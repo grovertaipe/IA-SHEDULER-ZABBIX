@@ -318,9 +318,9 @@ class ZabbixAPI:
         })
         return result
 
-# ----- Clase para el Parser de IA -----
+# ----- Clase para el Parser de IA (Ahora Interactivo) -----
 class AIParser:
-    """Clase para analizar solicitudes de mantenimiento usando IA"""
+    """Clase para analizar solicitudes de mantenimiento usando IA de forma interactiva"""
     
     @staticmethod
     def _extract_ticket_number(text: str) -> str:
@@ -344,65 +344,98 @@ class AIParser:
         return ""
     
     @staticmethod
-    def _build_prompt(user_text: str) -> str:
-        """Construye el prompt para la IA"""
+    def _build_interactive_prompt(user_text: str) -> str:
+        """Construye el prompt interactivo para la IA"""
         current_date = datetime.datetime.now().strftime("%Y-%m-%d")
         tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
         
         return f"""
-Eres un asistente especializado en Zabbix que analiza ÚNICAMENTE solicitudes de mantenimiento.
+Eres un asistente especializado en Zabbix que ayuda a crear mantenimientos. Eres amigable, útil y conversacional.
 
 FECHA ACTUAL: {current_date}
 FECHA MAÑANA: {tomorrow_date}
 
-TEXTO DEL USUARIO: "{user_text}"
+MENSAJE DEL USUARIO: "{user_text}"
 
-VALIDACIÓN PRIMERA: El usuario debe estar pidiendo crear un mantenimiento. Si el texto no es sobre mantenimiento, responde:
-{{"error": "Solo puedo ayudarte con solicitudes de mantenimiento. Ejemplo: 'Poner srv-tuxito en mantenimiento mañana de 8 a 10 con ticket 100-178306'"}}
+ANÁLISIS DEL MENSAJE:
+Determina qué tipo de mensaje es y responde apropiadamente:
 
-Si SÍ es una solicitud de mantenimiento válida, responde ÚNICAMENTE con un JSON válido que contenga:
-- "hosts": array de strings con nombres de servidores específicos (opcional)
-- "groups": array de strings con nombres de grupos (opcional)
-- "trigger_tags": array de objetos tag para triggers específicos (ej: [{{"tag": "component", "value": "cpu"}}]) (opcional)
-- "start_time": string en formato "YYYY-MM-DD HH:MM" (para mantenimientos únicos o fecha de inicio para rutinarios)
-- "end_time": string en formato "YYYY-MM-DD HH:MM" (para mantenimientos únicos o fecha de fin para rutinarios)
-- "description": string describiendo el mantenimiento
-- "recurrence_type": "once" | "daily" | "weekly" | "monthly"
-- "recurrence_config": objeto con configuración de recurrencia (solo si no es "once")
-- "ticket_number": string con el número de ticket si se menciona (ej: "100-178306")
-- "confidence": número del 0-100 indicando confianza en el parsing
+1. **SOLICITUD DE MANTENIMIENTO VÁLIDA**: Si el usuario pide crear un mantenimiento, responde con JSON:
+```json
+{{
+  "type": "maintenance_request",
+  "hosts": ["servidor1", "servidor2"],  // array de strings con nombres de servidores específicos (opcional)
+  "groups": ["grupo1", "grupo2"],       // array de strings con nombres de grupos (opcional) 
+  "trigger_tags": [{{"tag": "component", "value": "cpu"}}], // array de objetos tag para triggers específicos (opcional)
+  "start_time": "YYYY-MM-DD HH:MM",     // string en formato para inicio
+  "end_time": "YYYY-MM-DD HH:MM",       // string en formato para fin
+  "description": "Descripción del mantenimiento",
+  "recurrence_type": "once",            // "once" | "daily" | "weekly" | "monthly"
+  "recurrence_config": {{}},            // objeto con configuración de recurrencia (solo si no es "once")
+  "ticket_number": "100-178306",        // string con número de ticket si se menciona
+  "confidence": 95,                     // número 0-100 de confianza
+  "message": "¡Perfecto! He preparado tu mantenimiento. Revisa los detalles y confirma si todo está correcto."
+}}
+```
+
+2. **SOLICITUD DE EJEMPLO**: Si pide ejemplos, ayuda o no sabe cómo formular una solicitud:
+```json
+{{
+  "type": "help_request",
+  "message": "¡Por supuesto! Te ayudo con algunos ejemplos de cómo solicitar mantenimientos:\\n\\n📝 **Ejemplos Básicos:**\\n- \\"Mantenimiento para srv-web01 mañana de 8 a 10 con ticket 100-178306\\"\\n- \\"Poner srv-db01 en mantenimiento hoy de 14 a 16 horas\\"\\n- \\"Mantenimiento del grupo web-servers el domingo de 2 a 4 AM\\"\\n\\n🔄 **Mantenimientos Rutinarios:**\\n- \\"Backup diario para srv-backup de 2 a 4 AM con ticket 200-8341\\"\\n- \\"Mantenimiento semanal domingos para grupo database\\"\\n- \\"Limpieza mensual primer día del mes para todos los web-servers\\"\\n\\n🎫 **Con Tickets:**\\nSiempre puedes incluir números de ticket como: 100-178306, 200-8341, 500-43116\\n\\n¿Qué tipo de mantenimiento necesitas crear?",
+  "examples": [
+    {{
+      "title": "Mantenimiento Simple",
+      "example": "Mantenimiento para srv-web01 mañana de 8 a 10 con ticket 100-178306"
+    }},
+    {{
+      "title": "Mantenimiento de Grupo", 
+      "example": "Mantenimiento del grupo database el domingo de 2 a 4 AM ticket 200-8341"
+    }},
+    {{
+      "title": "Mantenimiento Rutinario",
+      "example": "Backup diario para srv-backup de 2 a 4 AM durante enero con ticket 500-43116"
+    }}
+  ]
+}}
+```
+
+3. **CONSULTA NO RELACIONADA**: Si pregunta sobre otras cosas (estado, configuración, etc.):
+```json
+{{
+  "type": "off_topic",
+  "message": "¡Hola! Soy tu asistente especializado en **crear mantenimientos** en Zabbix. 🔧\\n\\nSolo puedo ayudarte con:\\n✅ Crear mantenimientos únicos\\n✅ Programar mantenimientos rutinarios (diarios, semanales, mensuales)\\n✅ Mantenimientos con tickets\\n\\n💡 **¿Necesitas crear un mantenimiento?** \\nDime algo como: \\"Mantenimiento para srv-web01 mañana de 8 a 10 con ticket 100-178306\\"\\n\\n❓ **¿Necesitas ejemplos?** \\nEscribe \\"ejemplos\\" o \\"ayuda\\" y te muestro cómo hacerlo.\\n\\nPara otras consultas de Zabbix, usa las herramientas principales del sistema. ¿Qué mantenimiento quieres crear?"
+}}
+```
+
+4. **SOLICITUD INCOMPLETA O CONFUSA**: Si es sobre mantenimiento pero faltan datos:
+```json
+{{
+  "type": "clarification_needed",
+  "message": "Entiendo que quieres crear un mantenimiento, pero me faltan algunos detalles. 🤔\\n\\n**He detectado:** [explicar qué detectaste]\\n\\n**Necesito saber:**\\n- 🖥️ ¿Qué servidores o grupos?\\n- ⏰ ¿Cuándo? (fecha y hora)\\n- ⏱️ ¿Por cuánto tiempo?\\n- 🎫 ¿Tienes un número de ticket?\\n\\n**Ejemplo completo:**\\n\\"Mantenimiento para srv-web01 mañana de 8 a 10 con ticket 100-178306\\"\\n\\n¿Podrías darme más detalles?",
+  "missing_info": ["hosts_or_groups", "timing", "duration"],
+  "detected_info": {{}}
+}}
+```
 
 DETECCIÓN DE TICKETS:
-- Buscar patrones como: "100-178306", "200-8341", "500-43116"
+- Buscar patrones como: "100-178306", "200-8341", "500-43116"  
 - Buscar frases como: "con ticket XXX-XXX", "ticket: XXX-XXX", "#XXX-XXX"
-- Si encuentras un ticket, incluirlo en "ticket_number"
 
-REGLAS PARA MANTENIMIENTOS RUTINARIOS:
-- Si detectas palabras como "diario", "cada día", "todos los días" → recurrence_type: "daily"
-- Si detectas "semanal", "cada semana", "todos los lunes", etc. → recurrence_type: "weekly"
-- Si detectas "mensual", "cada mes", "primer día del mes" → recurrence_type: "monthly"
-- Para rutinarios, start_time y end_time indican el período general de validez
-
-CONFIGURACIÓN DE recurrence_config:
-Para "daily":
-{{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "every": cada_x_días}}
-
-Para "weekly":
-{{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "dayofweek": día_semana, "every": cada_x_semanas}}
-dayofweek: 1=lunes, 2=martes, 3=miércoles, 4=jueves, 5=viernes, 6=sábado, 7=domingo
-
-Para "monthly":
-{{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "dayofmonth": día_del_mes, "every": cada_x_meses}}
+CONFIGURACIÓN DE RECURRENCIA:
+Para "daily": {{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "every": cada_x_días}}
+Para "weekly": {{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "dayofweek": día_semana, "every": cada_x_semanas}}  
+Para "monthly": {{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "dayofmonth": día_del_mes, "every": cada_x_meses}}
 
 REGLAS IMPORTANTES:
-- Si el usuario menciona grupos, usar "groups" NO "hosts"
-- Si menciona tags de triggers (como "component: cpu"), usar "trigger_tags"
-- Usar "mañana" para el día siguiente ({tomorrow_date})
-- Usar "hoy" para la fecha actual ({current_date})
-- Horario en formato 24h
-- Si no se especifica año, usar el año actual
-- Si no se especifica hora, usar horario laboral (9:00-17:00)
-- Para rutinarios, calcular segundos desde medianoche correctamente
+- Sé conversacional y amigable en todos los mensajes
+- Usa emojis moderadamente para hacer más amigable la experiencia
+- Si detectas "mañana" usar {tomorrow_date}, si detectas "hoy" usar {current_date}
+- Para horarios, usar formato 24h
+- Si no se especifica hora, sugerir horario de mantenimiento típico (madrugada)
+- Siempre ofrecer ayuda adicional al final de las respuestas
+
+**RESPONDE ÚNICAMENTE CON EL JSON CORRESPONDIENTE AL TIPO DE MENSAJE DETECTADO.**
 
 EJEMPLOS VÁLIDOS:
 
@@ -445,12 +478,6 @@ Respuesta: {{
   "ticket_number": "",
   "confidence": 90
 }}
-
-EJEMPLOS NO VÁLIDOS:
-- "Hola, cómo estás"
-- "Cuántos servidores tengo"
-- "Mostrar el estado de srv-web01"
-- "Crear un usuario nuevo"
 """
     
     @staticmethod
@@ -462,11 +489,11 @@ EJEMPLOS NO VÁLIDOS:
         response = openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": "Eres un experto en análisis de solicitudes de mantenimiento para Zabbix. Solo respondes a solicitudes de mantenimiento, incluyendo rutinarios."},
+                {"role": "system", "content": "Eres un asistente amigable especializado en crear mantenimientos para Zabbix. Respondes de forma conversacional y útil."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1,
-            max_tokens=800
+            temperature=0.2,
+            max_tokens=1200
         )
         return response.choices[0].message.content if response.choices else ""
     
@@ -479,8 +506,8 @@ EJEMPLOS NO VÁLIDOS:
         response = gemini_model.generate_content(
             prompt,
             generation_config={
-                "temperature": 0.1,
-                "max_output_tokens": 800
+                "temperature": 0.2,
+                "max_output_tokens": 1200
             }
         )
         return response.text if hasattr(response, "text") else ""
@@ -497,12 +524,12 @@ EJEMPLOS NO VÁLIDOS:
             return {"error": f"Error decodificando JSON: {str(e)}"}
     
     @classmethod
-    def parse_maintenance_request(cls, user_text: str) -> dict:
-        """Analiza una solicitud de mantenimiento usando IA"""
+    def parse_interactive_request(cls, user_text: str) -> dict:
+        """Analiza cualquier solicitud del usuario de forma interactiva"""
         # Extracción del ticket como respaldo
         ticket_number = cls._extract_ticket_number(user_text)
         
-        prompt = cls._build_prompt(user_text)
+        prompt = cls._build_interactive_prompt(user_text)
         
         try:
             if loaded_provider == "openai":
@@ -510,40 +537,63 @@ EJEMPLOS NO VÁLIDOS:
             elif loaded_provider == "gemini":
                 content = cls._call_gemini(prompt)
             else:
-                return {"error": "Proveedor de IA no disponible"}
+                return {
+                    "type": "error", 
+                    "message": "❌ El asistente de IA no está disponible en este momento. Por favor, inténtalo más tarde."
+                }
             
             if not content:
-                return {"error": "La IA no devolvió una respuesta"}
+                return {
+                    "type": "error",
+                    "message": "😔 No pude procesar tu solicitud. ¿Podrías intentar de nuevo con más detalles?"
+                }
             
             parsed_data = cls._extract_json(content)
             if "error" in parsed_data:
-                return parsed_data
+                return {
+                    "type": "error",
+                    "message": f"⚠️ Hubo un problema procesando tu mensaje: {parsed_data['error']}"
+                }
             
-            # Si la IA no detectó el ticket pero nosotros sí, agregarlo
-            if not parsed_data.get("ticket_number") and ticket_number:
-                parsed_data["ticket_number"] = ticket_number
-                logger.info(f"Ticket agregado por detección local: {ticket_number}")
-            
-            # Validación básica de los campos requeridos
-            required_fields = ["start_time", "end_time", "recurrence_type"]
-            for field in required_fields:
-                if field not in parsed_data:
-                    return {"error": f"Falta el campo requerido: {field}"}
-            
-            # Validar recurrence_type
-            valid_recurrence = ["once", "daily", "weekly", "monthly"]
-            if parsed_data["recurrence_type"] not in valid_recurrence:
-                return {"error": f"Tipo de recurrencia inválido: {parsed_data['recurrence_type']}"}
-            
-            # Si no es "once", debe tener recurrence_config
-            if parsed_data["recurrence_type"] != "once" and "recurrence_config" not in parsed_data:
-                return {"error": "Falta configuración de recurrencia para mantenimiento rutinario"}
+            # Si es una solicitud de mantenimiento, hacer validaciones adicionales
+            if parsed_data.get("type") == "maintenance_request":
+                # Si la IA no detectó el ticket pero nosotros sí, agregarlo
+                if not parsed_data.get("ticket_number") and ticket_number:
+                    parsed_data["ticket_number"] = ticket_number
+                    logger.info(f"Ticket agregado por detección local: {ticket_number}")
+                
+                # Validación básica de los campos requeridos para mantenimientos
+                required_fields = ["start_time", "end_time", "recurrence_type"]
+                for field in required_fields:
+                    if field not in parsed_data:
+                        return {
+                            "type": "error",
+                            "message": f"⚠️ Información incompleta: falta {field}. ¿Podrías proporcionar más detalles?"
+                        }
+                
+                # Validar recurrence_type
+                valid_recurrence = ["once", "daily", "weekly", "monthly"]
+                if parsed_data["recurrence_type"] not in valid_recurrence:
+                    return {
+                        "type": "error", 
+                        "message": f"⚠️ Tipo de recurrencia no válido. Usa: once, daily, weekly o monthly."
+                    }
+                
+                # Si no es "once", debe tener recurrence_config
+                if parsed_data["recurrence_type"] != "once" and "recurrence_config" not in parsed_data:
+                    return {
+                        "type": "error",
+                        "message": "⚠️ Falta configuración para el mantenimiento rutinario. ¿Podrías especificar más detalles?"
+                    }
             
             return parsed_data
             
         except Exception as e:
-            logger.error(f"Error en el parser de IA: {str(e)}")
-            return {"error": f"Error procesando la solicitud: {str(e)}"}
+            logger.error(f"Error en el parser interactivo de IA: {str(e)}")
+            return {
+                "type": "error",
+                "message": f"😔 Ocurrió un error inesperado: {str(e)}. ¿Podrías intentar de nuevo?"
+            }
 
 # ----- Función para generar nombre del mantenimiento -----
 def generate_maintenance_name(parsed_data: dict, host_names: list = None, group_names: list = None) -> str:
@@ -597,28 +647,39 @@ def health_check():
         "zabbix_connected": zabbix_ok,
         "zabbix_version": zabbix_status.get("result", "unknown") if zabbix_ok else "error",
         "ai_provider": loaded_provider or AI_PROVIDER,
-        "version": "1.4.0",
-        "features": ["routine_maintenance", "daily", "weekly", "monthly", "ticket_support"]
+        "version": "1.5.0",
+        "features": ["interactive_chat", "routine_maintenance", "daily", "weekly", "monthly", "ticket_support"]
     })
 
-@app.route("/parse", methods=["POST"])
-def parse_request():
-    """Endpoint para analizar solicitudes de mantenimiento"""
+@app.route("/chat", methods=["POST"])
+def chat_endpoint():
+    """Endpoint principal para chat interactivo"""
     try:
         data = request.json
         if not data or "message" not in data:
-            return jsonify({"error": "Se requiere el campo 'message'"}), 400
+            return jsonify({
+                "type": "error",
+                "message": "😅 Parece que tu mensaje llegó vacío. ¿Podrías escribir tu solicitud de mantenimiento?"
+            }), 400
         
         user_text = data["message"].strip()
         if not user_text:
-            return jsonify({"error": "El mensaje no puede estar vacío"}), 400
+            return jsonify({
+                "type": "error", 
+                "message": "😅 No recibí ningún mensaje. ¿Qué mantenimiento necesitas crear?"
+            }), 400
         
-        logger.info(f"Procesando solicitud: {user_text}")
+        logger.info(f"💬 Mensaje recibido: {user_text}")
         
         # Analizar la solicitud con IA
-        parsed_data = AIParser.parse_maintenance_request(user_text)
-        if "error" in parsed_data:
-            return jsonify(parsed_data), 400
+        ai_response = AIParser.parse_interactive_request(user_text)
+        
+        # Si no es una solicitud de mantenimiento, devolver la respuesta de la IA directamente
+        if ai_response.get("type") != "maintenance_request":
+            return jsonify(ai_response)
+        
+        # Es una solicitud de mantenimiento - procesar con Zabbix
+        logger.info("🔧 Procesando solicitud de mantenimiento...")
         
         # Buscar entidades por diferentes métodos
         found_hosts = []
@@ -627,16 +688,16 @@ def parse_request():
         missing_groups = []
         
         # 1. Buscar hosts específicos
-        if parsed_data.get("hosts"):
-            logger.info(f"Buscando hosts: {parsed_data['hosts']}")
+        if ai_response.get("hosts"):
+            logger.info(f"🔍 Buscando hosts: {ai_response['hosts']}")
             
             # Búsqueda exacta
-            hosts_by_name = zabbix_api.get_hosts(parsed_data["hosts"])
+            hosts_by_name = zabbix_api.get_hosts(ai_response["hosts"])
             found_hosts.extend(hosts_by_name)
             found_host_names = [h["host"] for h in hosts_by_name]
             
             # Búsqueda flexible para hosts no encontrados
-            missing_host_names = [h for h in parsed_data["hosts"] if h not in found_host_names]
+            missing_host_names = [h for h in ai_response["hosts"] if h not in found_host_names]
             
             for missing_host in missing_host_names:
                 flexible_results = zabbix_api.search_hosts(missing_host)
@@ -646,16 +707,16 @@ def parse_request():
                     missing_hosts.append(missing_host)
         
         # 2. Buscar grupos
-        if parsed_data.get("groups"):
-            logger.info(f"Buscando grupos: {parsed_data['groups']}")
+        if ai_response.get("groups"):
+            logger.info(f"🔍 Buscando grupos: {ai_response['groups']}")
             
             # Búsqueda exacta de grupos
-            groups_by_name = zabbix_api.get_hostgroups(parsed_data["groups"])
+            groups_by_name = zabbix_api.get_hostgroups(ai_response["groups"])
             found_groups.extend(groups_by_name)
             found_group_names = [g["name"] for g in groups_by_name]
             
             # Búsqueda flexible para grupos no encontrados
-            missing_group_names = [g for g in parsed_data["groups"] if g not in found_group_names]
+            missing_group_names = [g for g in ai_response["groups"] if g not in found_group_names]
             
             for missing_group in missing_group_names:
                 flexible_results = zabbix_api.search_hostgroups(missing_group)
@@ -666,18 +727,19 @@ def parse_request():
         
         # 3. Buscar hosts por trigger tags
         hosts_by_tags = []
-        if parsed_data.get("trigger_tags"):
-            logger.info(f"Buscando por trigger tags: {parsed_data['trigger_tags']}")
-            hosts_by_tags = zabbix_api.get_hosts_by_tags(parsed_data["trigger_tags"])
+        if ai_response.get("trigger_tags"):
+            logger.info(f"🏷️ Buscando por trigger tags: {ai_response['trigger_tags']}")
+            hosts_by_tags = zabbix_api.get_hosts_by_tags(ai_response["trigger_tags"])
             found_hosts.extend(hosts_by_tags)
         
         # Eliminar duplicados en hosts
         unique_hosts = {h["hostid"]: h for h in found_hosts}.values()
         
-        logger.info(f"Resultados - Hosts: {len(unique_hosts)}, Grupos: {len(found_groups)}")
+        logger.info(f"✅ Resultados - Hosts: {len(unique_hosts)}, Grupos: {len(found_groups)}")
         
-        return jsonify({
-            **parsed_data,
+        # Construir respuesta con información adicional
+        response_data = {
+            **ai_response,
             "found_hosts": list(unique_hosts),
             "found_groups": found_groups,
             "missing_hosts": missing_hosts,
@@ -688,14 +750,45 @@ def parse_request():
                 "total_groups_found": len(found_groups),
                 "hosts_by_tags": len(hosts_by_tags),
                 "has_missing": len(missing_hosts) > 0 or len(missing_groups) > 0,
-                "is_routine": parsed_data.get("recurrence_type", "once") != "once",
-                "has_ticket": bool(parsed_data.get("ticket_number", "").strip())
+                "is_routine": ai_response.get("recurrence_type", "once") != "once",
+                "has_ticket": bool(ai_response.get("ticket_number", "").strip())
             }
-        })
+        }
+        
+        # Si hay recursos faltantes, actualizar el mensaje para ser más informativo
+        if missing_hosts or missing_groups:
+            missing_info = []
+            if missing_hosts:
+                missing_info.append(f"hosts: {', '.join(missing_hosts)}")
+            if missing_groups:
+                missing_info.append(f"grupos: {', '.join(missing_groups)}")
+            
+            response_data["message"] = f"⚠️ He preparado tu mantenimiento, pero no encontré algunos recursos: {'; '.join(missing_info)}.\n\n✅ **Recursos encontrados:**\n"
+            
+            if unique_hosts:
+                response_data["message"] += f"🖥️ Hosts: {', '.join([h['name'] or h['host'] for h in unique_hosts])}\n"
+            if found_groups:
+                response_data["message"] += f"📁 Grupos: {', '.join([g['name'] for g in found_groups])}\n"
+                
+            response_data["message"] += "\n¿Quieres continuar con los recursos encontrados o prefieres ajustar la solicitud?"
+        
+        elif not unique_hosts and not found_groups:
+            response_data["type"] = "clarification_needed"
+            response_data["message"] = "😔 No encontré ningún servidor o grupo con esos nombres.\n\n💡 **Sugerencias:**\n- Verifica los nombres de los servidores\n- Usa nombres exactos como aparecen en Zabbix\n- Puedes usar grupos en lugar de servidores individuales\n\n¿Podrías verificar los nombres y intentar de nuevo?"
+        
+        return jsonify(response_data)
         
     except Exception as e:
-        logger.error(f"Error en /parse: {str(e)}")
-        return jsonify({"error": f"Error interno: {str(e)}"}), 500
+        logger.error(f"💥 Error en /chat: {str(e)}")
+        return jsonify({
+            "type": "error",
+            "message": f"😔 Ocurrió un error inesperado: {str(e)}. ¿Podrías intentar de nuevo?"
+        }), 500
+
+@app.route("/parse", methods=["POST"])
+def parse_request():
+    """Endpoint legacy para compatibilidad - redirige a /chat"""
+    return chat_endpoint()
 
 @app.route("/create_maintenance", methods=["POST"])
 def create_maintenance():
@@ -705,11 +798,17 @@ def create_maintenance():
         required_fields = ["start_time", "end_time", "recurrence_type"]
         for field in required_fields:
             if field not in data:
-                return jsonify({"error": f"Falta el campo requerido: {field}"}), 400
+                return jsonify({
+                    "type": "error",
+                    "message": f"⚠️ Falta información requerida: {field}"
+                }), 400
         
         # Debe tener al menos hosts o grupos
         if not data.get("hosts") and not data.get("groups"):
-            return jsonify({"error": "Se requieren hosts específicos o grupos para el mantenimiento"}), 400
+            return jsonify({
+                "type": "error",
+                "message": "⚠️ Se requieren hosts específicos o grupos para el mantenimiento"
+            }), 400
         
         # Convertir fechas a timestamp
         try:
@@ -718,11 +817,17 @@ def create_maintenance():
             start_time = int(start_dt.timestamp())
             end_time = int(end_dt.timestamp())
         except ValueError as e:
-            return jsonify({"error": f"Formato de fecha inválido: {str(e)}"}), 400
+            return jsonify({
+                "type": "error",
+                "message": f"⚠️ Formato de fecha inválido: {str(e)}"
+            }), 400
         
         # Validaciones adicionales
         if end_time <= start_time:
-            return jsonify({"error": "La fecha de fin debe ser posterior a la de inicio"}), 400
+            return jsonify({
+                "type": "error",
+                "message": "⚠️ La fecha de fin debe ser posterior a la de inicio"
+            }), 400
         
         # Preparar datos para el mantenimiento
         host_ids = []
@@ -746,7 +851,10 @@ def create_maintenance():
         
         # Verificar que se encontraron recursos válidos
         if not host_ids and not group_ids:
-            return jsonify({"error": "No se encontraron hosts ni grupos válidos"}), 404
+            return jsonify({
+                "type": "error",
+                "message": "⚠️ No se encontraron hosts ni grupos válidos"
+            }), 404
         
         # Generar nombre del mantenimiento usando la nueva función
         maintenance_name = generate_maintenance_name(data, host_names, group_names)
@@ -776,13 +884,33 @@ def create_maintenance():
         
         if "error" in result:
             error_msg = result["error"].get("data", str(result["error"]))
-            return jsonify({"error": f"Error de Zabbix: {error_msg}"}), 400
+            return jsonify({
+                "type": "error",
+                "message": f"❌ Error de Zabbix: {error_msg}"
+            }), 400
         
         maintenance_id = None
         if "result" in result and "maintenanceids" in result["result"]:
             maintenance_id = result["result"]["maintenanceids"][0]
         
+        success_message = f"🎉 ¡Mantenimiento creado exitosamente!\n\n"
+        success_message += f"📋 **Detalles:**\n"
+        success_message += f"• Nombre: {maintenance_name}\n"
+        success_message += f"• Inicio: {data['start_time']}\n"
+        success_message += f"• Fin: {data['end_time']}\n"
+        success_message += f"• Hosts afectados: {len(host_ids)}\n"
+        success_message += f"• Grupos afectados: {len(group_ids)}\n"
+        
+        if recurrence_type != "once":
+            success_message += f"• Tipo: Rutinario ({recurrence_type})\n"
+        
+        if ticket_number:
+            success_message += f"• Ticket: {ticket_number}\n"
+        
+        success_message += f"\n✅ El mantenimiento está activo y funcionando."
+        
         return jsonify({
+            "type": "maintenance_created",
             "success": True,
             "maintenance_id": maintenance_id,
             "hosts_affected": len(host_ids),
@@ -793,12 +921,16 @@ def create_maintenance():
             "description": description,
             "recurrence_type": recurrence_type,
             "is_routine": recurrence_type != "once",
-            "ticket_number": ticket_number
+            "ticket_number": ticket_number,
+            "message": success_message
         })
         
     except Exception as e:
-        logger.error(f"Error en /create_maintenance: {str(e)}")
-        return jsonify({"error": f"Error interno: {str(e)}"}), 500
+        logger.error(f"💥 Error en /create_maintenance: {str(e)}")
+        return jsonify({
+            "type": "error",
+            "message": f"😔 Error interno: {str(e)}"
+        }), 500
 
 @app.route("/search_hosts", methods=["POST"])
 def search_hosts():
@@ -806,25 +938,36 @@ def search_hosts():
     try:
         data = request.json
         if not data or "search" not in data:
-            return jsonify({"error": "Se requiere el campo 'search'"}), 400
+            return jsonify({
+                "type": "error",
+                "message": "⚠️ Se requiere el campo 'search'"
+            }), 400
         
         search_term = data["search"].strip()
         if not search_term:
-            return jsonify({"error": "El término de búsqueda no puede estar vacío"}), 400
+            return jsonify({
+                "type": "error",
+                "message": "⚠️ El término de búsqueda no puede estar vacío"
+            }), 400
         
-        logger.info(f"Buscando hosts con término: {search_term}")
+        logger.info(f"🔍 Buscando hosts con término: {search_term}")
         
         hosts = zabbix_api.search_hosts(search_term)
         
         return jsonify({
+            "type": "search_results",
             "search_term": search_term,
             "hosts_found": len(hosts),
-            "hosts": hosts
+            "hosts": hosts,
+            "message": f"🔍 Encontré {len(hosts)} host(s) que coinciden con '{search_term}'"
         })
         
     except Exception as e:
-        logger.error(f"Error en /search_hosts: {str(e)}")
-        return jsonify({"error": f"Error interno: {str(e)}"}), 500
+        logger.error(f"💥 Error en /search_hosts: {str(e)}")
+        return jsonify({
+            "type": "error",
+            "message": f"😔 Error interno: {str(e)}"
+        }), 500
 
 @app.route("/search_groups", methods=["POST"])
 def search_groups():
@@ -832,25 +975,36 @@ def search_groups():
     try:
         data = request.json
         if not data or "search" not in data:
-            return jsonify({"error": "Se requiere el campo 'search'"}), 400
+            return jsonify({
+                "type": "error",
+                "message": "⚠️ Se requiere el campo 'search'"
+            }), 400
         
         search_term = data["search"].strip()
         if not search_term:
-            return jsonify({"error": "El término de búsqueda no puede estar vacío"}), 400
+            return jsonify({
+                "type": "error",
+                "message": "⚠️ El término de búsqueda no puede estar vacío"
+            }), 400
         
-        logger.info(f"Buscando grupos con término: {search_term}")
+        logger.info(f"🔍 Buscando grupos con término: {search_term}")
         
         groups = zabbix_api.search_hostgroups(search_term)
         
         return jsonify({
+            "type": "search_results",
             "search_term": search_term,
             "groups_found": len(groups),
-            "groups": groups
+            "groups": groups,
+            "message": f"🔍 Encontré {len(groups)} grupo(s) que coinciden con '{search_term}'"
         })
         
     except Exception as e:
-        logger.error(f"Error en /search_groups: {str(e)}")
-        return jsonify({"error": f"Error interno: {str(e)}"}), 500
+        logger.error(f"💥 Error en /search_groups: {str(e)}")
+        return jsonify({
+            "type": "error",
+            "message": f"😔 Error interno: {str(e)}"
+        }), 500
 
 @app.route("/maintenance/list", methods=["GET"])
 def list_maintenances():
@@ -869,7 +1023,10 @@ def list_maintenances():
         result = zabbix_api._make_request("maintenance.get", params)
         
         if "error" in result:
-            return jsonify(result), 400
+            return jsonify({
+                "type": "error",
+                "message": f"❌ Error obteniendo mantenimientos: {result['error']}"
+            }), 400
         
         maintenances = result.get("result", [])
         for maint in maintenances:
@@ -900,13 +1057,18 @@ def list_maintenances():
             maint["ticket_number"] = ticket_match.group(0) if ticket_match else ""
         
         return jsonify({
+            "type": "maintenance_list",
             "maintenances": maintenances,
-            "total": len(maintenances)
+            "total": len(maintenances),
+            "message": f"📋 Mostrando {len(maintenances)} mantenimiento(s) más recientes"
         })
         
     except Exception as e:
-        logger.error(f"Error en /maintenance/list: {str(e)}")
-        return jsonify({"error": f"Error interno: {str(e)}"}), 500
+        logger.error(f"💥 Error en /maintenance/list: {str(e)}")
+        return jsonify({
+            "type": "error",
+            "message": f"😔 Error interno: {str(e)}"
+        }), 500
 
 @app.route("/maintenance/templates", methods=["GET"])
 def get_maintenance_templates():
@@ -941,12 +1103,69 @@ def get_maintenance_templates():
         }
     }
     
-    return jsonify(templates)
+    return jsonify({
+        "type": "templates",
+        "templates": templates,
+        "message": "📄 Aquí tienes las plantillas disponibles para mantenimientos rutinarios"
+    })
+
+@app.route("/examples", methods=["GET"])
+def get_examples():
+    """Endpoint para obtener ejemplos de uso"""
+    examples = {
+        "basic": [
+            {
+                "title": "Mantenimiento Simple",
+                "description": "Un servidor específico por tiempo limitado",
+                "example": "Mantenimiento para srv-web01 mañana de 8 a 10 con ticket 100-178306"
+            },
+            {
+                "title": "Mantenimiento Múltiple",
+                "description": "Varios servidores al mismo tiempo",
+                "example": "Poner srv-web01, srv-web02 y srv-web03 en mantenimiento hoy de 14 a 16"
+            }
+        ],
+        "groups": [
+            {
+                "title": "Mantenimiento de Grupo",
+                "description": "Todo un grupo de servidores",
+                "example": "Mantenimiento del grupo database el domingo de 2 a 4 AM ticket 200-8341"
+            },
+            {
+                "title": "Múltiples Grupos",
+                "description": "Varios grupos a la vez",
+                "example": "Mantenimiento para grupos web-servers y app-servers mañana de 1 a 3 AM"
+            }
+        ],
+        "routine": [
+            {
+                "title": "Backup Diario",
+                "description": "Mantenimiento que se repite todos los días",
+                "example": "Backup diario para srv-backup de 2 a 4 AM durante enero con ticket 500-43116"
+            },
+            {
+                "title": "Mantenimiento Semanal",
+                "description": "Mantenimiento que se ejecuta cada semana",
+                "example": "Mantenimiento semanal domingos para grupo database de 1 a 3 AM"
+            },
+            {
+                "title": "Mantenimiento Mensual",
+                "description": "Mantenimiento que se ejecuta cada mes",
+                "example": "Limpieza mensual primer día del mes para todos los web-servers"
+            }
+        ]
+    }
+    
+    return jsonify({
+        "type": "examples",
+        "examples": examples,
+        "message": "💡 Aquí tienes algunos ejemplos de cómo solicitar mantenimientos"
+    })
 
 # ----- Inicio de la aplicación -----
 if __name__ == "__main__":
-    print("\n🚀 Servicio de Mantenimiento IA para Zabbix 7.2 - Con Soporte de Tickets")
-    print("------------------------------------------------------------------------------")
+    print("\n🚀 Asistente Interactivo de Mantenimiento IA para Zabbix 7.2")
+    print("================================================================")
     print(f"🔗 Zabbix API: {ZABBIX_API_URL}")
     print(f"🔑 Token: {'✅' if ZABBIX_TOKEN else '❌ No configurado'}")
     print(f"🧠 Proveedor IA: {loaded_provider or '❌ No disponible'}")
@@ -963,24 +1182,40 @@ if __name__ == "__main__":
     else:
         print(f"❌ Error conexión Zabbix: {test_result.get('error', 'Unknown')}")
     
-    print("\n📡 Endpoints disponibles:")
-    print(f"   - POST /parse (Analizar solicitud)")
+    print("\n💬 Endpoints de Chat Interactivo:")
+    print(f"   - POST /chat (Endpoint principal - conversacional)")
+    print(f"   - POST /create_maintenance (Crear mantenimiento)")
+    print(f"   - GET /examples (Obtener ejemplos de uso)")
+    
+    print("\n📡 Endpoints de API:")
     print(f"   - POST /search_hosts (Buscar hosts)")
     print(f"   - POST /search_groups (Buscar grupos)")
-    print(f"   - POST /create_maintenance (Crear mantenimiento)")
     print(f"   - GET /maintenance/list (Listar mantenimientos)")
     print(f"   - GET /maintenance/templates (Plantillas rutinarias)")
     print(f"   - GET /health (Verificar estado)")
     
+    print("\n🎯 Tipos de Interacción:")
+    print(f"   - 💬 Solicitudes de mantenimiento")
+    print(f"   - ❓ Pedidos de ayuda y ejemplos")
+    print(f"   - 🔍 Preguntas sobre el sistema")
+    print(f"   - ⚠️  Redirección para consultas no relacionadas")
+    
     print("\n📄 Tipos de mantenimiento soportados:")
-    print(f"   - Únicos (once)")
-    print(f"   - Diarios (daily)")
-    print(f"   - Semanales (weekly)")
-    print(f"   - Mensuales (monthly)")
+    print(f"   - 🔹 Únicos (once)")
+    print(f"   - 🔹 Diarios (daily)")
+    print(f"   - 🔹 Semanales (weekly)")
+    print(f"   - 🔹 Mensuales (monthly)")
     
     print("\n🎫 Soporte de tickets:")
     print(f"   - Formato: XXX-XXXXXX (ej: 100-178306)")
     print(f"   - Detección automática en texto")
-    print(f"   - Nombres personalizados por ticket\n")
+    print(f"   - Nombres personalizados por ticket")
+    
+    print("\n🤖 Funciones IA Interactivas:")
+    print(f"   - Conversación natural y amigable")
+    print(f"   - Ejemplos automáticos cuando se soliciten")
+    print(f"   - Redirección educada para consultas no relacionadas")
+    print(f"   - Clarificación inteligente de solicitudes incompletas")
+    print(f"   - Respuestas contextuales con emojis\n")
     
     app.run(host="0.0.0.0", port=5005, debug=False)
