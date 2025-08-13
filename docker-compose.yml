@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  aimaintenance:
+    build: .
+    container_name: aimaintenance
+    restart: unless-stopped
+    ports:
+      - "5005:5005"
+    environment:
+      # === Zabbix ===
+      ZABBIX_API_URL: "http://10.100.13.79/zabbix/api_jsonrpc.php"
+      ZABBIX_TOKEN: "${ZABBIX_TOKEN}"        # exporta esto en tu shell o en .env
+      # === IA ===
+      AI_PROVIDER: "gemini"                  # "gemini" | "openai"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY}"    # requerido si usas gemini
+      GEMINI_MODEL: "gemini-2.0-flash"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"    # si usas openai
+      OPENAI_MODEL: "gpt-4-turbo"
+    networks:
+      - aimaintenance_net
+
+networks:
+  aimaintenance_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.10.0/24
