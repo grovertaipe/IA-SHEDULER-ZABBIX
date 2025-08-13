@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   aimaintenance:
     build: .
@@ -8,7 +7,7 @@ services:
       - "5005:5005"
     environment:
       # === Zabbix ===
-      ZABBIX_API_URL: "http://10.100.13.79/zabbix/api_jsonrpc.php"
+      ZABBIX_API_URL: "localhost/zabbix/api_jsonrpc.php"
       ZABBIX_TOKEN: "${ZABBIX_TOKEN}"        # exporta esto en tu shell o en .env
       # === IA ===
       AI_PROVIDER: "gemini"                  # "gemini" | "openai"
