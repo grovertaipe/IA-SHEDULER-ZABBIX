@@ -35,7 +35,7 @@ $container = (new CDiv())
                         (new CDiv())
                             ->addClass('ai-header-text')
                             ->addItem((new CTag('h3', true, 'AI Maintenance Assistant')))
-                            ->addItem((new CSpan('Con soporte mantenimientos rutinarios'))->addClass('ai-status'))
+                            ->addItem((new CSpan('🐧 Con soporte para mantenimientos rutinarios'))->addClass('ai-status'))
                     )
                     ->addItem(
                         (new CDiv())
