@@ -176,7 +176,7 @@ TZ=America/Lima
 ### 4. Widget de Zabbix
 
 1. **Descargar el widget** desde el repositorio
-2. **Extraer** en `modules/widgets/` de tu instalación Zabbix
+2. **Extraer** en `/usr/share/zabbix/ui/modules/` de tu instalación Zabbix
 3. **Reiniciar** el frontend de Zabbix
 4. **Agregar widget** al dashboard desde "Dashboard → Edit → Add widget → AI Maintenance Assistant"
 5. **Configurar URL** del backend (ej: `http://localhost:5005`)
@@ -407,6 +407,15 @@ curl -X POST http://localhost:5005/test/routine \
     }
   }'
 ```
+## Ejemplo de funcionamiento del widget
+
+Vista del widget en el dashboard de Zabbix:
+
+![Widget mostrando hosts en mantenimiento](docs/images/captura1.png)
+
+Vista del formulario de configuración:
+
+![Formulario del widget](docs/images/captura2.png)
 
 ## Contribuir
 
