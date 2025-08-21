@@ -1,0 +1,1024 @@
+/* ============================================= */
+/* Estilos del Widget AI Maintenance para Zabbix 7.2 */
+/* Diseño Moderno con Mantenimientos Rutinarios y Tickets */
+/* ============================================= */
+
+:root {
+  /* Variables para tema claro */
+  --aim-primary-color: #229ED9;
+  --aim-primary-hover: #1E8BC3;
+  --aim-routine-color: #FF6B35;
+  --aim-routine-hover: #E55A2B;
+  --aim-ticket-color: #9C27B0;
+  --aim-ticket-hover: #7B1FA2;
+  --aim-bg-color: #ffffff;
+  --aim-bg-secondary: #f8f9fa;
+  --aim-border-color: #e1e5e9;
+  --aim-text-color: #2c2e30;
+  --aim-text-secondary: #707579;
+  --aim-input-bg: #ffffff;
+  --aim-shadow-light: rgba(0, 0, 0, 0.06);
+  --aim-shadow-medium: rgba(0, 0, 0, 0.12);
+  --aim-shadow-heavy: rgba(0, 0, 0, 0.18);
+  
+  /* Colores de mensajes mejorados */
+  --aim-message-system-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --aim-message-user-bg: #229ED9;
+  --aim-message-assistant-bg: #ffffff;
+  --aim-message-error-bg: #ff4757;
+  --aim-message-success-bg: #2ed573;
+  --aim-message-warning-bg: #ffa502;
+  --aim-message-info-bg: #3742fa;
+  
+  /* Scrollbar personalizado */
+  --aim-scrollbar-track: transparent;
+  --aim-scrollbar-thumb: #c1c7cd;
+  --aim-scrollbar-thumb-hover: #9aa0a6;
+}
+
+/* Tema oscuro mejorado */
+.dark-theme {
+  --aim-primary-color: #64B5F6;
+  --aim-primary-hover: #42A5F5;
+  --aim-routine-color: #FF8A50;
+  --aim-routine-hover: #FF7043;
+  --aim-ticket-color: #BA68C8;
+  --aim-ticket-hover: #AB47BC;
+  --aim-bg-color: #17212b;
+  --aim-bg-secondary: #1e2832;
+  --aim-border-color: #2f3a45;
+  --aim-text-color: #e4e6ea;
+  --aim-text-secondary: #aeb3ba;
+  --aim-input-bg: #2f3a45;
+  --aim-shadow-light: rgba(0, 0, 0, 0.3);
+  --aim-shadow-medium: rgba(0, 0, 0, 0.4);
+  --aim-shadow-heavy: rgba(0, 0, 0, 0.5);
+  
+  --aim-message-system-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --aim-message-user-bg: #229ED9;
+  --aim-message-assistant-bg: #2f3a45;
+  --aim-message-error-bg: #e55353;
+  --aim-message-success-bg: #00d68f;
+  --aim-message-warning-bg: #ff9f43;
+  --aim-message-info-bg: #4834d4;
+  
+  --aim-scrollbar-thumb: #4a5568;
+  --aim-scrollbar-thumb-hover: #68768a;
+}
+
+/* Contenedor principal con diseño moderno */
+.ai-maintenance-widget {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--aim-bg-color);
+  color: var(--aim-text-color);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px var(--aim-shadow-light);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--aim-border-color);
+}
+
+/* Header del asistente mejorado */
+.ai-header {
+  background: var(--aim-bg-secondary);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--aim-border-color);
+  position: relative;
+}
+
+.ai-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--aim-primary-color), transparent);
+  opacity: 0.3;
+}
+
+.ai-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ai-header-content > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ai-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--aim-primary-color), var(--aim-primary-hover));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+}
+
+.ai-header-text h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--aim-text-color);
+}
+
+.ai-status {
+  font-size: 13px;
+  color: var(--aim-text-secondary);
+  margin-top: 2px;
+  display: block;
+}
+
+/* Botón de plantillas */
+.templates-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--aim-routine-color);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+}
+
+.templates-button:hover {
+  background: var(--aim-routine-hover);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px var(--aim-shadow-medium);
+}
+
+.templates-button:active {
+  transform: scale(0.95);
+}
+
+/* Área de mensajes con scroll suave */
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--aim-bg-color);
+  scroll-behavior: smooth;
+}
+
+/* Mensaje de bienvenida mejorado con información de tickets */
+.welcome-message {
+  background: var(--aim-message-system-bg);
+  color: white;
+  border-radius: 16px;
+  border: none;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px var(--aim-shadow-medium);
+}
+
+.welcome-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.welcome-subtitle {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.welcome-footer {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-top: 16px;
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  backdrop-filter: blur(5px);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  transition: transform 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.feature-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.feature-text {
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.feature-example {
+  font-size: 11px;
+  opacity: 0.8;
+  font-style: italic;
+  margin-top: 2px;
+}
+
+/* Estilos de mensajes modernos */
+.ai-message {
+  margin-bottom: 12px;
+  max-width: 80%;
+  animation: messageSlideIn 0.3s ease-out;
+  position: relative;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-message.user {
+  margin-left: auto;
+  background: var(--aim-message-user-bg);
+  color: white;
+  border-radius: 18px 18px 6px 18px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+}
+
+.ai-message.assistant {
+  background: var(--aim-message-assistant-bg);
+  border-radius: 18px 18px 18px 6px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+  border: 1px solid var(--aim-border-color);
+}
+
+.ai-message.system {
+  background: var(--aim-message-system-bg);
+  color: white;
+  border-radius: 16px;
+  margin: 0 auto 16px;
+  max-width: 90%;
+}
+
+.ai-message.error {
+  background: var(--aim-message-error-bg);
+  color: white;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.ai-message.success {
+  background: var(--aim-message-success-bg);
+  color: white;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.ai-message.warning {
+  background: var(--aim-message-warning-bg);
+  color: white;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.ai-message.info {
+  background: var(--aim-message-info-bg);
+  color: white;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.message-content {
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.message-content strong {
+  font-weight: 600;
+}
+
+/* Área de entrada estilo Telegram */
+.ai-input-area {
+  padding: 16px 20px;
+  background: var(--aim-bg-secondary);
+  border-top: 1px solid var(--aim-border-color);
+}
+
+.input-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: var(--aim-input-bg);
+  border-radius: 24px;
+  padding: 8px 16px 8px 20px;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+  border: 1px solid var(--aim-border-color);
+  transition: all 0.2s ease;
+}
+
+.input-container:focus-within {
+  border-color: var(--aim-primary-color);
+  box-shadow: 0 4px 12px var(--aim-shadow-medium);
+}
+
+#ai-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--aim-text-color);
+  padding: 8px 0;
+  max-height: 300px;
+  min-height: 40px;
+  overflow-y: auto;
+}
+
+#ai-input:focus {
+  outline: none;
+}
+
+#ai-input::placeholder {
+  color: var(--aim-text-secondary);
+  opacity: 1;
+}
+
+/* Botón de envío estilo Telegram */
+.send-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--aim-primary-color);
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+  flex-shrink: 0;
+}
+
+.send-button:hover {
+  background: var(--aim-primary-hover);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px var(--aim-shadow-medium);
+}
+
+.send-button:active {
+  transform: scale(0.95);
+}
+
+.send-button svg {
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.send-button:hover svg {
+  transform: rotate(-45deg) scale(1.1);
+}
+
+/* Panel de confirmación moderno */
+.ai-confirmation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirmation-content {
+  background: var(--aim-bg-color);
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px var(--aim-shadow-heavy);
+  max-width: 90%;
+  width: 100%;
+  max-height: 80%;
+  overflow-y: auto;
+  border: 1px solid var(--aim-border-color);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.confirmation-content h4 {
+  margin: 0 0 20px 0;
+  color: var(--aim-text-color);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.maintenance-details {
+  background: var(--aim-bg-secondary);
+  padding: 20px;
+  border-radius: 12px;
+  margin: 16px 0;
+  border: 1px solid var(--aim-border-color);
+}
+
+.maintenance-details h5 {
+  margin: 0 0 12px 0;
+  color: var(--aim-text-color);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.maintenance-details ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.maintenance-details li {
+  margin-bottom: 8px;
+  color: var(--aim-text-color);
+}
+
+/* Advertencia para mantenimientos rutinarios */
+.routine-warning {
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, #FF6B35, #F7931E);
+  color: white;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Nueva advertencia para mantenimientos sin ticket */
+.no-ticket-warning {
+  margin-top: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, var(--aim-ticket-color), var(--aim-ticket-hover));
+  color: white;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn-alt {
+  padding: 12px 24px;
+  border: 2px solid var(--aim-border-color);
+  border-radius: 24px;
+  background: var(--aim-bg-color);
+  color: var(--aim-text-color);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-alt:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--aim-shadow-medium);
+}
+
+.btn-success {
+  background: var(--aim-message-success-bg) !important;
+  border-color: var(--aim-message-success-bg) !important;
+  color: white !important;
+}
+
+.btn-success:hover {
+  background: #26d469 !important;
+  border-color: #26d469 !important;
+}
+
+.btn-cancel {
+  background: var(--aim-message-error-bg) !important;
+  border-color: var(--aim-message-error-bg) !important;
+  color: white !important;
+}
+
+.btn-cancel:hover {
+  background: #e14545 !important;
+  border-color: #e14545 !important;
+}
+
+/* Indicador de carga elegante */
+.ai-loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 50;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid var(--aim-primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.ai-loading span {
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Scrollbar personalizado */
+.ai-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ai-messages::-webkit-scrollbar-track {
+  background: var(--aim-scrollbar-track);
+}
+
+.ai-messages::-webkit-scrollbar-thumb {
+  background: var(--aim-scrollbar-thumb);
+  border-radius: 2px;
+}
+
+.ai-messages::-webkit-scrollbar-thumb:hover {
+  background: var(--aim-scrollbar-thumb-hover);
+}
+
+/* Indicadores visuales para tipos de mantenimiento y tickets */
+.maintenance-type-indicator {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.maintenance-type-once {
+  background: #E3F2FD;
+  color: #1565C0;
+}
+
+.maintenance-type-daily {
+  background: #E8F5E8;
+  color: #2E7D32;
+}
+
+.maintenance-type-weekly {
+  background: #FFF3E0;
+  color: #EF6C00;
+}
+
+.maintenance-type-monthly {
+  background: #F3E5F5;
+  color: #7B1FA2;
+}
+
+/* Indicador para tickets */
+.ticket-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--aim-ticket-color);
+  color: white;
+  margin-left: 8px;
+}
+
+.ticket-indicator::before {
+  content: '🎫';
+  font-size: 10px;
+}
+
+/* Tema oscuro para indicadores */
+.dark-theme .maintenance-type-once {
+  background: #1A237E;
+  color: #BBDEFB;
+}
+
+.dark-theme .maintenance-type-daily {
+  background: #1B5E20;
+  color: #C8E6C9;
+}
+
+.dark-theme .maintenance-type-weekly {
+  background: #E65100;
+  color: #FFE0B2;
+}
+
+.dark-theme .maintenance-type-monthly {
+  background: #4A148C;
+  color: #E1BEE7;
+}
+
+.dark-theme .ticket-indicator {
+  background: var(--aim-ticket-color);
+  color: white;
+}
+
+/* Estilos para destacar tickets en mensajes */
+.ticket-highlight {
+  background: linear-gradient(135deg, var(--aim-ticket-color), var(--aim-ticket-hover));
+  color: white;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  display: inline-block;
+  margin: 0 2px;
+}
+
+/* Responsividad mejorada */
+@media (max-width: 768px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .feature-card {
+    padding: 12px;
+  }
+  
+  .ai-message {
+    max-width: 95%;
+  }
+  
+  .confirmation-content {
+    margin: 16px;
+    padding: 20px;
+  }
+  
+  .confirmation-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .btn-alt {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .input-container {
+    padding: 6px 12px 6px 16px;
+  }
+  
+  .send-button {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .templates-button {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .ai-header-content {
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animaciones mejoradas para mensajes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-message {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+/* Mejoras para accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .ai-message,
+  .loading-spinner,
+  .btn-alt,
+  .templates-button,
+  .send-button {
+    animation: none;
+    transition: none;
+  }
+  
+  .ai-avatar.thinking {
+    animation: none;
+  }
+}
+
+/* Estados de hover mejorados */
+.feature-card:hover .feature-icon {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+.templates-button:hover {
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.send-button:hover {
+  box-shadow: 0 4px 12px rgba(34, 158, 217, 0.3);
+}
+
+/* Estilos para elementos de configuración de rutina */
+.routine-config-display {
+  background: rgba(255, 107, 53, 0.1);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--aim-text-color);
+}
+
+.dark-theme .routine-config-display {
+  background: rgba(255, 138, 80, 0.15);
+  border-color: rgba(255, 138, 80, 0.4);
+}
+
+/* Mejoras para el grid de características en pantallas pequeñas */
+@media (max-width: 480px) {
+  .feature-card {
+    flex-direction: row;
+    text-align: left;
+    padding: 10px;
+  }
+  
+  .feature-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  
+  .feature-text {
+    font-size: 12px;
+  }
+  
+  .feature-example {
+    font-size: 10px;
+  }
+  
+  .welcome-title {
+    font-size: 16px;
+  }
+  
+  .welcome-subtitle {
+    font-size: 13px;
+  }
+}
+
+/* Animación de pulso para el avatar cuando está "pensando" */
+.ai-avatar.thinking {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { 
+    box-shadow: 0 2px 8px var(--aim-shadow-light);
+  }
+  50% { 
+    box-shadow: 0 4px 16px var(--aim-primary-color);
+  }
+}
+
+/* Efectos hover para mejorar UX */
+.feature-card,
+.ai-message.assistant,
+.btn-alt,
+.templates-button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Estados de focus mejorados para accesibilidad */
+.send-button:focus,
+.btn-alt:focus,
+.templates-button:focus {
+  outline: 2px solid var(--aim-primary-color);
+  outline-offset: 2px;
+}
+
+#ai-input:focus {
+  outline: none;
+}
+
+/* Estilos para tooltips informativos */
+.info-tooltip {
+  position: relative;
+  cursor: help;
+}
+
+.info-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 1000;
+}
+
+.info-tooltip:hover::after {
+  opacity: 1;
+}
+
+/* Estilos para badges de estado */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: var(--aim-message-success-bg);
+  color: white;
+}
+
+.status-badge.inactive {
+  background: var(--aim-text-secondary);
+  color: white;
+}
+
+.status-badge.routine {
+  background: var(--aim-routine-color);
+  color: white;
+}
+
+.status-badge.ticket {
+  background: var(--aim-ticket-color);
+  color: white;
+}
+
+/* Personalización del scrollbar para el área de confirmación */
+.confirmation-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.confirmation-content::-webkit-scrollbar-track {
+  background: var(--aim-bg-secondary);
+  border-radius: 3px;
+}
+
+.confirmation-content::-webkit-scrollbar-thumb {
+  background: var(--aim-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.confirmation-content::-webkit-scrollbar-thumb:hover {
+  background: var(--aim-scrollbar-thumb-hover);
+}
+
+/* Estilos específicos para información de tickets */
+.ticket-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(156, 39, 176, 0.1);
+  border: 1px solid rgba(156, 39, 176, 0.3);
+  border-radius: 8px;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.ticket-info::before {
+  content: '🎫';
+  font-size: 14px;
+}
+
+.dark-theme .ticket-info {
+  background: rgba(186, 104, 200, 0.15);
+  border-color: rgba(186, 104, 200, 0.4);
+}
+
+/* Estilos para mensajes con tickets destacados */
+.message-with-ticket {
+  border-left: 3px solid var(--aim-ticket-color);
+  padding-left: 16px;
+}
+
+/* Animación sutil para elementos con tickets */
+.ticket-element {
+  animation: ticketGlow 2s ease-in-out infinite;
+}
+
+@keyframes ticketGlow {
+  0%, 100% { 
+    box-shadow: 0 2px 8px var(--aim-shadow-light);
+  }
+  50% { 
+    box-shadow: 0 4px 12px rgba(156, 39, 176, 0.2);
+  }
+}
+
+/* Reducir animaciones en modo de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .ticket-element {
+    animation: none;
+  }
+}

@@ -1,8 +1,7 @@
-.env
 __pycache__/
 *.pyc
-
+*.log
 .env
-__pycache__/
-*.pyc
-
+.venv/
+.zabbix-widget-*.zip
+# node_modules/ si algún día lo usas
