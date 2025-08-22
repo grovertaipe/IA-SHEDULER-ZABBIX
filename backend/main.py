@@ -1020,6 +1020,21 @@ EJEMPLOS CON TERMINOLOGÍA DE INFRAESTRUCTURA:
 # ----- Inicialización de servicios -----
 zabbix_api = ZabbixAPI(ZABBIX_API_URL, ZABBIX_TOKEN)
 
+def validate_zabbix_user(user_info):
+    """Valida que el usuario esté autenticado en Zabbix"""
+    if not user_info or not user_info.get('userid'):
+        return False
+    
+    # Verificar que el userid existe en Zabbix
+    try:
+        result = zabbix_api._make_request("user.get", {
+            "userids": [user_info['userid']],
+            "output": ["userid", "username"]
+        })
+        return "result" in result and len(result["result"]) > 0
+    except:
+        return False
+
 # ----- Endpoints de la API -----
 @app.route("/health", methods=["GET"])
 def health_check():
@@ -1047,6 +1062,13 @@ def chat_endpoint():
                 "type": "error",
                 "message": "Parece que tu mensaje llegó vacío. ¿Podrías escribir tu solicitud de mantenimiento?"
             }), 400
+            
+        user_info = data.get("user_info")
+        if not validate_zabbix_user(user_info):
+            return jsonify({
+                "type": "error",
+                "message": "Acceso no autorizado. Debe estar logueado en Zabbix."
+            }), 401    
         
         user_text = data["message"]
         if user_text is None:
@@ -1197,6 +1219,13 @@ def create_maintenance():
                     "message": f"Falta información requerida: {field}"
                 }), 400
         
+        user_info = data.get("user_info")
+        if not validate_zabbix_user(user_info):
+            return jsonify({
+                "type": "error",
+                "message": "Acceso no autorizado. Debe estar logueado en Zabbix."
+            }), 401
+            
         # Debe tener al menos hosts o grupos
         if not data.get("hosts") and not data.get("groups"):
             return jsonify({
