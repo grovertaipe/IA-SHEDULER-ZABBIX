@@ -1003,3 +1003,21 @@ class WidgetAIMaintenance extends CWidget {
         super.destroy?.();
     }
 }
+
+// Función global para toggle del mensaje de bienvenida
+function toggleWelcomeDetails() {
+    const details = document.getElementById('welcome-details');
+    const toggle = document.querySelector('.welcome-toggle');
+    
+    if (!details || !toggle) return;
+    
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        details.classList.add('show');
+        toggle.classList.add('expanded');
+    } else {
+        details.style.display = 'none';
+        details.classList.remove('show');
+        toggle.classList.remove('expanded');
+    }
+}
