@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 
 /**
- * AI Maintenance widget view - Clean version with external translations
+ * AI Maintenance widget view - Version with routine maintenance and ticket support
  *
  * @var CView $this
  * @var array $data
@@ -10,6 +10,7 @@
 $chatHeight = $data['fields_values']['chat_height'] ?? 500;
 $apiUrl = $data['fields_values']['api_url'] ?? 'http://localhost:5005';
 
+// Get current user information
 $userInfo = CWebUser::$data;
 $userDisplay = '';
 if (!empty($userInfo)) {
@@ -19,6 +20,7 @@ if (!empty($userInfo)) {
     }
 }
 
+// Main container with better theme handling
 $container = (new CDiv())
     ->addClass('ai-maintenance-widget')
     ->addStyle('height: 100%; overflow: hidden;')
@@ -80,37 +82,58 @@ $container = (new CDiv())
                                     ->setId('welcome-details')
                                     ->addClass('welcome-details')
                                     ->addStyle('display: none;')
-                                    ->addItem((new CDiv())->addClass('welcome-subtitle')->addItem(_('Quick examples:')))
+                                    ->addItem((new CDiv())->addClass('welcome-subtitle')->addItem(_('Complete support for routine maintenance:')))
+                            ->addItem(
+                                (new CDiv())
+                                    ->addClass('feature-grid')
                                     ->addItem(
                                         (new CDiv())
-                                            ->addClass('feature-compact')
-                                            ->addItem(_('Servers: "srv-web01 tomorrow 8-10h ticket 100-178306"'))
+                                            ->addClass('feature-card')
+                                            ->addItem((new CDiv())->addClass('feature-icon')->addItem('🖥️'))
+                                            ->addItem((new CDiv())->addClass('feature-text')->addItem(_('Specific servers')))
+                                            ->addItem((new CDiv())->addClass('feature-example')->addItem(_('"srv-tuxito tomorrow 8-10h ticket 100-178306"')))
                                     )
                                     ->addItem(
                                         (new CDiv())
-                                            ->addClass('feature-compact')
-                                            ->addItem(_('Groups: "Cloud group today 14-16h ticket 200-8341"'))
+                                            ->addClass('feature-card')
+                                            ->addItem((new CDiv())->addClass('feature-icon')->addItem('👥'))
+                                            ->addItem((new CDiv())->addClass('feature-text')->addItem(_('Complete groups')))
+                                            ->addItem((new CDiv())->addClass('feature-example')->addItem(_('"Cloud group today 14-16h ticket 200-8341"')))
                                     )
                                     ->addItem(
                                         (new CDiv())
-                                            ->addClass('feature-compact')
-                                            ->addItem(_('Daily: "daily backup 2 AM ticket 500-43116"'))
+                                            ->addClass('feature-card')
+                                            ->addItem((new CDiv())->addClass('feature-icon')->addItem('🔄'))
+                                            ->addItem((new CDiv())->addClass('feature-text')->addItem(_('Daily maintenance')))
+                                            ->addItem((new CDiv())->addClass('feature-example')->addItem(_('"daily backup 2 AM ticket 500-43116"')))
                                     )
                                     ->addItem(
                                         (new CDiv())
-                                            ->addClass('feature-compact')
-                                            ->addItem(_('Weekly: "every Sunday 1-3 AM ticket 100-12345"'))
+                                            ->addClass('feature-card')
+                                            ->addItem((new CDiv())->addClass('feature-icon')->addItem('📅'))
+                                            ->addItem((new CDiv())->addClass('feature-text')->addItem(_('Weekly maintenance')))
+                                            ->addItem((new CDiv())->addClass('feature-example')->addItem(_('"every Sunday 1-3 AM ticket 100-12345"')))
                                     )
                                     ->addItem(
                                         (new CDiv())
-                                            ->addClass('feature-compact')
-                                            ->addItem(_('Monthly: "first day each month ticket 200-67890"'))
+                                            ->addClass('feature-card')
+                                            ->addItem((new CDiv())->addClass('feature-icon')->addItem('🗓️'))
+                                            ->addItem((new CDiv())->addClass('feature-text')->addItem(_('Monthly maintenance')))
+                                            ->addItem((new CDiv())->addClass('feature-example')->addItem(_('"first day each month ticket 200-67890"')))
+                                    )
+                                    ->addItem(
+                                        (new CDiv())
+                                            ->addClass('feature-card')
+                                            ->addItem((new CDiv())->addClass('feature-icon')->addItem('🎫'))
+                                            ->addItem((new CDiv())->addClass('feature-text')->addItem(_('Ticket management')))
+                                            ->addItem((new CDiv())->addClass('feature-example')->addItem(_('"format: 100-178306, 200-8341"')))
                                     )
                             )
                             ->addItem(
                                 (new CDiv())
                                     ->addClass('welcome-footer')
-                                    ->addItem(_('Click above to see examples. Button for complete templates.'))
+                                    ->addItem(_('💡 Click above to see examples. Button 📋 for complete templates.'))
+                            )
                             )
                     )
             )
@@ -124,7 +147,7 @@ $container = (new CDiv())
                     ->addItem(
                         (new CTextArea('ai-input', ''))
                             ->setId('ai-input')
-                            ->setAttribute('placeholder', _('Describe the maintenance... Ex: "srv-web01 tomorrow 8-10h ticket 100-178306", "daily backup 2 AM ticket 200-8341"'))
+                            ->setAttribute('placeholder', _('💬 Describe maintenance... Ex: "srv-web01 tomorrow 8-10h ticket 100-178306", "daily backup 2 AM ticket 200-8341"'))
                             ->setAttribute('rows', '3')
                     )
                     ->addItem(
@@ -154,7 +177,7 @@ $container = (new CDiv())
             ->addItem(
                 (new CDiv())
                     ->addClass('confirmation-content')
-                    ->addItem(new CTag('h4', true, _('Confirm Maintenance')))
+                    ->addItem(new CTag('h4', true, _('✅ Confirm Maintenance')))
                     ->addItem(
                         (new CDiv())
                             ->setId('maintenance-details')
@@ -164,12 +187,12 @@ $container = (new CDiv())
                         (new CDiv())
                             ->addClass('confirmation-actions')
                             ->addItem(
-                                (new CButton('confirm-maintenance', _('Create Maintenance')))
+                                (new CButton('confirm-maintenance', _('✅ Create Maintenance')))
                                     ->setId('confirm-maintenance')
                                     ->addClass('btn-alt btn-success')
                             )
                             ->addItem(
-                                (new CButton('cancel-maintenance', _('Cancel')))
+                                (new CButton('cancel-maintenance', _('❌ Cancel')))
                                     ->setId('cancel-maintenance')
                                     ->addClass('btn-alt btn-cancel')
                             )
@@ -188,6 +211,6 @@ $container = (new CDiv())
 (new CWidgetView($data))
     ->addItem($container)
     ->setVar('api_url', $apiUrl)
-    ->setVar('user_info', $userInfo)
+    ->setVar('user_info', $userInfo)  // Add user information
     ->setVar('fields_values', $data['fields_values'])
     ->show();

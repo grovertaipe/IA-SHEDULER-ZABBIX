@@ -3,7 +3,6 @@
     "id": "aimaintenance",
     "type": "widget",
     "name": "AI Maintenance Assistant",
-    "description": "AI-powered maintenance assistant for Zabbix monitoring",
     "namespace": "AIMaintenance",
     "version": "1.1.0",
     "author": "Grover T.",
@@ -24,9 +23,5 @@
     "assets": {
         "css": ["widget.css"],
         "js": ["class.widget.js"]
-    },
-    "translation": {
-        "supported_languages": ["en", "es"],
-        "default_language": "en"
     }
 }

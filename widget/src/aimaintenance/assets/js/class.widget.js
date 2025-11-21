@@ -6,7 +6,7 @@ class WidgetAIMaintenance extends CWidget {
         this.current_parsed_data = null;
         this.user_info = null;
         this.templates = null;
-        this.request_timeout = 60000;
+        this.request_timeout = 60000; // 60 seconds
         this.retry_count = 0;
         this.max_retries = 2;
         this.translations = {};
@@ -16,6 +16,7 @@ class WidgetAIMaintenance extends CWidget {
     processUpdateResponse(response) {
         this.api_url = response.fields_values?.api_url || 'http://localhost:5005';
         
+        // Process user information correctly
         if (response.user_info) {
             this.user_info = {
                 username: response.user_info.username || '',
@@ -39,24 +40,8 @@ class WidgetAIMaintenance extends CWidget {
             const response = await fetch(`widgets/aimaintenance/locale/${this.currentLang}.json`);
             this.translations = await response.json();
         } catch (error) {
-            try {
-                const response = await fetch('widgets/aimaintenance/locale/en.json');
-                this.translations = await response.json();
-            } catch (fallbackError) {
-                console.warn('Could not load translations, using fallback');
-                this.translations = {
-                    'templates_not_available': 'Templates are not available at this time',
-                    'routine_maintenance_examples': 'Routine maintenance examples',
-                    'daily': 'Daily',
-                    'weekly': 'Weekly',
-                    'monthly_specific_day': 'Monthly specific day',
-                    'monthly_weekday': 'Monthly weekday',
-                    'daily_backup_example': 'daily backup 2 AM ticket 100-178306',
-                    'weekly_maintenance_example': 'Sunday maintenance 1-3 AM ticket 200-8341',
-                    'monthly_day_example': 'cleanup day 5 each month ticket 500-43116',
-                    'monthly_weekday_example': 'update first Sunday each month ticket 600-78901'
-                };
-            }
+            // Fallback translations
+            this.translations = this.getFallbackTranslations();
         }
         this.setupEventListeners();
         this.loadMaintenanceTemplates();
@@ -76,6 +61,86 @@ class WidgetAIMaintenance extends CWidget {
         return 'en';
     }
 
+    getFallbackTranslations() {
+        const isSpanish = this.currentLang === 'es';
+        return {
+            'system_status': isSpanish ? 'Estado del Sistema' : 'System Status',
+            'backend_unavailable': isSpanish ? 'Backend no disponible' : 'Backend unavailable',
+            'connected': isSpanish ? 'Conectado' : 'Connected',
+            'disconnected': isSpanish ? 'Desconectado' : 'Disconnected',
+            'not_available': isSpanish ? 'No disponible' : 'Not available',
+            'enabled': isSpanish ? 'Habilitado' : 'Enabled',
+            'disabled': isSpanish ? 'Deshabilitado' : 'Disabled',
+            'some_functions_limited': isSpanish ? 'Algunas funciones pueden estar limitadas.' : 'Some functions may be limited.',
+            'system_connected': isSpanish ? 'Sistema Conectado' : 'System Connected',
+            'routines': isSpanish ? 'Rutinarios' : 'Routines',
+            'tickets': isSpanish ? 'Tickets' : 'Tickets',
+            'could_not_verify_backend': isSpanish ? 'No se pudo verificar la conexión con el backend.' : 'Could not verify backend connection.',
+            'functions_may_be_limited': isSpanish ? 'Las funciones pueden estar limitadas hasta que se restablezca la conexión.' : 'Functions may be limited until connection is restored.',
+            'templates_not_available': isSpanish ? 'Las plantillas no están disponibles en este momento.' : 'Templates are not available at this time.',
+            'routine_maintenance_examples': isSpanish ? 'Ejemplos de mantenimientos rutinarios:' : 'Routine maintenance examples:',
+            'daily': isSpanish ? 'Diario' : 'Daily',
+            'weekly': isSpanish ? 'Semanal' : 'Weekly',
+            'monthly_specific_day': isSpanish ? 'Mensual día específico' : 'Monthly specific day',
+            'monthly_weekday': isSpanish ? 'Mensual día de semana' : 'Monthly weekday',
+            'routine_maintenance_templates': isSpanish ? 'Plantillas de Mantenimientos Rutinarios' : 'Routine Maintenance Templates',
+            'examples': isSpanish ? 'Ejemplos' : 'Examples',
+            'tips_routine_maintenance': isSpanish ? 'Consejos para mantenimientos rutinarios:' : 'Tips for routine maintenance:',
+            'routine_bitmask_tip': isSpanish ? 'Los mantenimientos rutinarios usan bitmasks internos para una programación precisa.' : 'Routine maintenance uses internal bitmasks for precise scheduling.',
+            'message_too_short': isSpanish ? 'El mensaje es muy corto. Describe qué tipo de mantenimiento necesitas crear.' : 'Message is too short. Describe what type of maintenance you need to create.',
+            'message_too_long': isSpanish ? 'El mensaje es muy largo. Por favor, sé más conciso.' : 'Message is too long. Please be more concise.',
+            'analyzing_request': isSpanish ? 'Analizando solicitud...' : 'Analyzing request...',
+            'server_error': isSpanish ? 'Error del servidor' : 'Server error',
+            'request_timeout': isSpanish ? 'La solicitud tardó demasiado tiempo. Intenta de nuevo.' : 'Request took too long. Try again.',
+            'connection_error': isSpanish ? 'Error de conexión (intento' : 'Connection error (attempt',
+            'retrying': isSpanish ? 'Reintentando...' : 'Retrying...',
+            'could_not_connect_backend': isSpanish ? 'No se pudo conectar con el backend. Verifica que el servicio esté funcionando.' : 'Could not connect to backend. Verify that the service is running.',
+            'invalid_server_response': isSpanish ? 'Respuesta inválida del servidor' : 'Invalid server response',
+            'unknown_response': isSpanish ? 'Recibí una respuesta que no pude procesar completamente.' : 'Received a response that could not be processed completely.',
+            'detected_information': isSpanish ? 'Información detectada:' : 'Detected information:',
+            'analysis_completed': isSpanish ? 'Análisis completado' : 'Analysis completed',
+            'ticket': isSpanish ? 'Ticket' : 'Ticket',
+            'type': isSpanish ? 'Tipo' : 'Type',
+            'routine': isSpanish ? 'Rutinario' : 'Routine',
+            'unique': isSpanish ? 'Único' : 'Unique',
+            'configuration': isSpanish ? 'Configuración' : 'Configuration',
+            'summary': isSpanish ? 'Resumen:' : 'Summary:',
+            'hosts_found': isSpanish ? 'Hosts encontrados' : 'Hosts found',
+            'groups_found': isSpanish ? 'Grupos encontrados' : 'Groups found',
+            'hosts_by_tags': isSpanish ? 'Hosts por tags' : 'Hosts by tags',
+            'with_ticket': isSpanish ? 'Con ticket' : 'With ticket',
+            'routine_maintenance': isSpanish ? 'Mantenimiento rutinario' : 'Routine maintenance',
+            'yes': isSpanish ? 'Sí' : 'Yes',
+            'servers_found': isSpanish ? 'Servidores encontrados' : 'Servers found',
+            'groups_found_list': isSpanish ? 'Grupos encontrados' : 'Groups found',
+            'trigger_tags': isSpanish ? 'Tags de triggers:' : 'Trigger tags:',
+            'servers_not_found': isSpanish ? 'Servidores NO encontrados:' : 'Servers NOT found:',
+            'groups_not_found': isSpanish ? 'Grupos NO encontrados:' : 'Groups NOT found:',
+            'period': isSpanish ? 'Período:' : 'Period:',
+            'from': isSpanish ? 'Desde' : 'From',
+            'to': isSpanish ? 'Hasta' : 'To',
+            'description': isSpanish ? 'Descripción' : 'Description',
+            'confidence': isSpanish ? 'Confianza' : 'Confidence',
+            'no_valid_hosts_groups': isSpanish ? 'No se encontraron hosts ni grupos válidos para crear el mantenimiento' : 'No valid hosts or groups found to create maintenance',
+            'no_maintenance_data': isSpanish ? 'No hay datos de mantenimiento para confirmar' : 'No maintenance data to confirm',
+            'creating_maintenance': isSpanish ? 'Creando mantenimiento...' : 'Creating maintenance...',
+            'error_creating_maintenance': isSpanish ? 'Error al crear mantenimiento' : 'Error creating maintenance',
+            'routine_maintenance_configured': isSpanish ? 'Mantenimiento Rutinario Configurado' : 'Routine Maintenance Configured',
+            'id': isSpanish ? 'ID' : 'ID',
+            'auto_generated': isSpanish ? 'Generado automáticamente' : 'Auto generated',
+            'will_run_automatically': isSpanish ? 'Se ejecutará automáticamente según la configuración' : 'Will run automatically according to configuration',
+            'uses_internal_bitmasks': isSpanish ? 'Usa bitmasks internos para programación precisa' : 'Uses internal bitmasks for precise scheduling',
+            'maintenance_summary': isSpanish ? 'Resumen de mantenimientos:' : 'Maintenance summary:',
+            'unique_maintenances': isSpanish ? 'Únicos' : 'Unique',
+            'routine_maintenances': isSpanish ? 'Rutinarios' : 'Routine',
+            'daily_maintenances': isSpanish ? 'Diarios' : 'Daily',
+            'weekly_maintenances': isSpanish ? 'Semanales' : 'Weekly',
+            'monthly_maintenances': isSpanish ? 'Mensuales' : 'Monthly',
+            'with_tickets': isSpanish ? 'Con tickets' : 'With tickets',
+            'total': isSpanish ? 'Total' : 'Total'
+        };
+    }
+
     t(key) {
         return this.translations[key] || key;
     }
@@ -88,7 +153,7 @@ class WidgetAIMaintenance extends CWidget {
             });
             
             if (!response.ok) {
-                throw new Error(`Backend no disponible (${response.status})`);
+                throw new Error(`${this.t('backend_unavailable')} (${response.status})`);
             }
             
             const data = await response.json();
@@ -96,21 +161,21 @@ class WidgetAIMaintenance extends CWidget {
             if (data.status === 'unhealthy' || data.status === 'degraded') {
                 this.addMessage(
                     `Sistema reporta estado: ${data.status}\n` +
-                    `Estado de Zabbix: ${data.zabbix_connected ? 'Conectado' : 'Desconectado'}\n` +
-                    `Proveedor IA: ${data.ai_provider || 'No disponible'}\n` +
-                    `Soporte bitmask: ${data.features?.includes('bitmask_support') ? 'Habilitado' : 'Deshabilitado'}\n` +
-                    `${data.status === 'degraded' ? 'Algunas funciones pueden estar limitadas.' : ''}`,
+                    `Estado de Zabbix: ${data.zabbix_connected ? this.t('connected') : this.t('disconnected')}\n` +
+                    `Proveedor IA: ${data.ai_provider || this.t('not_available')}\n` +
+                    `Soporte bitmask: ${data.features?.includes('bitmask_support') ? this.t('enabled') : this.t('disabled')}\n` +
+                    `${data.status === 'degraded' ? this.t('some_functions_limited') : ''}`,
                     'warning'
                 );
             } else {
                 const features = data.features || [];
                 this.addMessage(
-                    `Sistema Conectado - v${data.version}\n` +
-                    `Zabbix: ${data.zabbix_connected ? 'Conectado' : 'Desconectado'}\n` +
+                    `${this.t('system_connected')} - v${data.version}\n` +
+                    `Zabbix: ${data.zabbix_connected ? this.t('connected') : this.t('disconnected')}\n` +
                     `IA: ${data.ai_provider}\n` +
-                    `Funciones: ${features.includes('routine_maintenance') ? 'Rutinarios' : ''} ` +
+                    `Funciones: ${features.includes('routine_maintenance') ? this.t('routines') : ''} ` +
                     `${features.includes('bitmask_support') ? 'Bitmask' : ''} ` +
-                    `${features.includes('ticket_support') ? 'Tickets' : ''}`,
+                    `${features.includes('ticket_support') ? this.t('tickets') : ''}`,
                     'success'
                 );
             }
@@ -118,10 +183,10 @@ class WidgetAIMaintenance extends CWidget {
         } catch (error) {
             console.warn("Error verificando conexión con backend:", error);
             this.addMessage(
-                this.t('system_status') + ':\n' +
-                this.t('could_not_verify_backend') + '.\n' +
-                'URL: ' + this.api_url + '\n' +
-                this.t('functions_may_be_limited') + '.',
+                `${this.t('system_status')}:\n` +
+                `${this.t('could_not_verify_backend')}\n` +
+                `URL: ${this.api_url}\n` +
+                `${this.t('functions_may_be_limited')}`,
                 'info'
             );
         }
@@ -159,8 +224,10 @@ class WidgetAIMaintenance extends CWidget {
 
     clearPlaceholderOnce(event) {
         const input = event.target;
-        if (input.value === '' && input.placeholder.includes('Ej:')) {
-            input.placeholder = this.t('description_placeholder');
+        if (input.value === '' && input.placeholder.includes('Ex:')) {
+            input.placeholder = this.currentLang === 'es' ? 
+                'Describe el mantenimiento que necesitas...' : 
+                'Describe the maintenance you need...';
         }
         input.removeEventListener('focus', this.clearPlaceholderOnce);
     }
@@ -207,7 +274,7 @@ class WidgetAIMaintenance extends CWidget {
                 this.templates = templates.templates;
                 console.log("Templates loaded:", Object.keys(this.templates || {}).length);
             } else {
-                console.warn(`Error cargando plantillas: ${response.status}`);
+                console.warn(`Error loading templates: ${response.status}`);
             }
         } catch (error) {
             if (error.name === 'AbortError') {
@@ -221,37 +288,37 @@ class WidgetAIMaintenance extends CWidget {
     showTemplates() {
         if (!this.templates) {
             this.addMessage(
-                this.t('templates_not_available') + '.\n\n' +
-                '**' + this.t('routine_maintenance_examples') + ':**\n' +
-                '• **' + this.t('daily') + ':** \'' + this.t('daily_backup_example') + '\'\n' +
-                '• **' + this.t('weekly') + ':** \'' + this.t('weekly_maintenance_example') + '\'\n' +
-                '• **' + this.t('monthly_specific_day') + ':** \'' + this.t('monthly_day_example') + '\'\n' +
-                '• **' + this.t('monthly_weekday') + ':** \'' + this.t('monthly_weekday_example') + '\'',
+                `${this.t('templates_not_available')}\n\n` +
+                `**${this.t('routine_maintenance_examples')}**\n` +
+                `• **${this.t('daily')}:** '${this.currentLang === 'es' ? 'backup diario a las 2 AM con ticket 100-178306' : 'daily backup 2 AM ticket 100-178306'}'\n` +
+                `• **${this.t('weekly')}:** '${this.currentLang === 'es' ? 'mantenimiento domingos de 1-3 AM ticket 200-8341' : 'Sunday maintenance 1-3 AM ticket 200-8341'}'\n` +
+                `• **${this.t('monthly_specific_day')}:** '${this.currentLang === 'es' ? 'limpieza día 5 cada mes con ticket 500-43116' : 'cleanup day 5 each month ticket 500-43116'}'\n` +
+                `• **${this.t('monthly_weekday')}:** '${this.currentLang === 'es' ? 'actualización primer domingo cada mes ticket 600-78901' : 'update first Sunday each month ticket 600-78901'}'`,
                 'info'
             );
             return;
         }
         
-        let templateMsg = "**" + this.t('routine_maintenance_templates') + "**\n\n";
+        let templateMsg = `**${this.t('routine_maintenance_templates')}**\n\n`;
         
         Object.entries(this.templates).forEach(([type, info]) => {
-            const icon = type === 'daily' ? this.t('daily') : type === 'weekly' ? this.t('weekly') : this.t('monthly');
+            const icon = type === 'daily' ? this.t('daily') : type === 'weekly' ? this.t('weekly') : 'Monthly';
             templateMsg += `${icon} **${info.name}**\n`;
             templateMsg += `${info.description}\n`;
-            templateMsg += "**" + this.t('examples') + ":**\n";
+            templateMsg += `**${this.t('examples')}:**\n`;
             info.examples.forEach(example => {
                 templateMsg += `• "${example}"\n`;
             });
             templateMsg += "\n";
         });
         
-        templateMsg += "**" + this.t('tips_for_routine_maintenance') + ":**\n";
-        templateMsg += "• **" + this.t('daily') + ":** '" + this.t('daily_keywords') + "'\n";
-        templateMsg += "• **" + this.t('weekly') + ":** '" + this.t('weekly_keywords') + "'\n";
-        templateMsg += "• **" + this.t('monthly_day') + ":** '" + this.t('monthly_day_keywords') + "'\n";
-        templateMsg += "• **" + this.t('monthly_week') + ":** '" + this.t('monthly_week_keywords') + "'\n";
-        templateMsg += "• **" + this.t('tickets') + ":** " + this.t('ticket_tip') + "\n";
-        templateMsg += "\n**" + this.t('tip') + ":** " + this.t('routine_bitmask_tip');
+        templateMsg += `**${this.t('tips_routine_maintenance')}**\n`;
+        templateMsg += `• **${this.t('daily')}:** '${this.currentLang === 'es' ? 'cada día, todos los días, diariamente' : 'every day, daily, each day'}'\n`;
+        templateMsg += `• **${this.t('weekly')}:** '${this.currentLang === 'es' ? 'cada lunes, todos los domingos, semanalmente' : 'every Monday, all Sundays, weekly'}'\n`;
+        templateMsg += `• **Monthly (day):** '${this.currentLang === 'es' ? 'día 5 cada mes, el día 15, día 1 mensualmente' : 'day 5 each month, day 15, day 1 monthly'}'\n`;
+        templateMsg += `• **Monthly (week):** '${this.currentLang === 'es' ? 'primer domingo, segunda semana, último viernes' : 'first Sunday, second week, last Friday'}'\n`;
+        templateMsg += `• **${this.t('tickets')}:** ${this.currentLang === 'es' ? "Incluye siempre números como '100-178306', '200-8341'" : "Always include numbers like '100-178306', '200-8341'"}\n`;
+        templateMsg += `\n**Tip:** ${this.t('routine_bitmask_tip')}`;
         
         this.addMessage(templateMsg, 'info');
     }
@@ -285,7 +352,7 @@ class WidgetAIMaintenance extends CWidget {
         input.value = '';
         input.style.height = 'auto';
         this.addMessage(message, 'user');
-        this.showLoading(true, this.t('processing_request'));
+        this.showLoading(true, this.t('analyzing_request'));
 
         try {
             const requestData = { 
@@ -414,7 +481,7 @@ class WidgetAIMaintenance extends CWidget {
                 break;
                 
             default:
-                console.warn(`Tipo de respuesta desconocido: ${responseType}`);
+                console.warn(`Unknown response type: ${responseType}`);
                 this.addMessage(
                     data.message || this.t('unknown_response'), 
                     'assistant'
@@ -424,7 +491,7 @@ class WidgetAIMaintenance extends CWidget {
     }
 
     showDetectedInfo(detectedInfo) {
-        let infoMsg = "\n**" + this.t('detected_information') + ":**\n";
+        let infoMsg = `\n**${this.t('detected_information')}**\n`;
         Object.entries(detectedInfo).forEach(([key, value]) => {
             if (value) {
                 const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -464,7 +531,7 @@ class WidgetAIMaintenance extends CWidget {
         
         if (data.search_summary) {
             const summary = data.search_summary;
-            message += `**${this.t('summary')}:**\n`;
+            message += `**${this.t('summary')}**\n`;
             message += `• ${this.t('hosts_found')}: ${summary.total_hosts_found}\n`;
             message += `• ${this.t('groups_found')}: ${summary.total_groups_found}\n`;
             if (summary.hosts_by_tags > 0) {
@@ -482,7 +549,7 @@ class WidgetAIMaintenance extends CWidget {
         message = this.appendResourcesInfo(message, data);
         
         if (data.start_time && data.end_time) {
-            message += `**${this.t('period')}:**\n`;
+            message += `**${this.t('period')}**\n`;
             message += `• ${this.t('from')}: ${data.start_time}\n`;
             message += `• ${this.t('to')}: ${data.end_time}\n\n`;
         }
@@ -519,7 +586,7 @@ class WidgetAIMaintenance extends CWidget {
         }
 
         if (data.found_groups && data.found_groups.length > 0) {
-            message += `**${this.t('groups_found')} (${data.found_groups.length}):**\n`;
+            message += `**${this.t('groups_found_list')} (${data.found_groups.length}):**\n`;
             data.found_groups.forEach(group => {
                 message += `• ${group.name}\n`;
             });
@@ -527,7 +594,7 @@ class WidgetAIMaintenance extends CWidget {
         }
 
         if (data.trigger_tags && data.trigger_tags.length > 0) {
-            message += `**${this.t('trigger_tags')}:**\n`;
+            message += `**${this.t('trigger_tags')}**\n`;
             data.trigger_tags.forEach(tag => {
                 message += `• ${tag.tag}: ${tag.value}\n`;
             });
@@ -535,7 +602,7 @@ class WidgetAIMaintenance extends CWidget {
         }
 
         if (data.missing_hosts && data.missing_hosts.length > 0) {
-            message += `**${this.t('servers_not_found')}:**\n`;
+            message += `**${this.t('servers_not_found')}**\n`;
             data.missing_hosts.forEach(host => {
                 message += `• ${host}\n`;
             });
@@ -543,7 +610,7 @@ class WidgetAIMaintenance extends CWidget {
         }
 
         if (data.missing_groups && data.missing_groups.length > 0) {
-            message += `**${this.t('groups_not_found')}:**\n`;
+            message += `**${this.t('groups_not_found')}**\n`;
             data.missing_groups.forEach(group => {
                 message += `• ${group}\n`;
             });
@@ -561,7 +628,7 @@ class WidgetAIMaintenance extends CWidget {
     showExamples(examples) {
         if (!examples || examples.length === 0) return;
         
-        let exampleMsg = "\n**" + this.t('examples') + ":**\n\n";
+        let exampleMsg = `\n**${this.t('examples')}:**\n\n`;
         
         examples.forEach((example, index) => {
             exampleMsg += `${index + 1}. **${example.title}**\n`;
@@ -609,7 +676,7 @@ class WidgetAIMaintenance extends CWidget {
                 maintenanceData.groups = this.current_parsed_data.found_groups.map(g => g.name);
             }
 
-            console.log("Datos de mantenimiento a enviar:", maintenanceData);
+            console.log("Maintenance data to send:", maintenanceData);
 
             const response = await this.makeRequest('/create_maintenance', {
                 method: 'POST',
@@ -656,12 +723,12 @@ class WidgetAIMaintenance extends CWidget {
             const response = await this.makeRequest('/maintenance/list');
             
             if (!response.ok) {
-                console.warn(`Error obteniendo lista de mantenimientos: ${response.status}`);
+                console.warn(`Error getting maintenance list: ${response.status}`);
                 return;
             }
 
             const data = await response.json();
-            console.log("Mantenimientos actualizados:", data.maintenances?.length || 0);
+            console.log("Maintenances updated:", data.maintenances?.length || 0);
             
             const maintenances = data.maintenances || [];
             if (maintenances.length > 0) {
@@ -674,19 +741,19 @@ class WidgetAIMaintenance extends CWidget {
                 const monthlyCount = maintenances.filter(m => m.routine_type === 'monthly').length;
                 
                 this.addMessage(
-                    `**${this.t('maintenance_summary')}:**\n` +
-                    `• ${this.t('unique')}: ${oneTimeCount}\n` + 
-                    `• ${this.t('routine')}: ${routineCount}\n` +
-                    `  - ${this.t('daily')}: ${dailyCount}\n` +
-                    `  - ${this.t('weekly')}: ${weeklyCount}\n` +
-                    `  - ${this.t('monthly')}: ${monthlyCount}\n` +
+                    `**${this.t('maintenance_summary')}**\n` +
+                    `• ${this.t('unique_maintenances')}: ${oneTimeCount}\n` + 
+                    `• ${this.t('routine_maintenances')}: ${routineCount}\n` +
+                    `  - ${this.t('daily_maintenances')}: ${dailyCount}\n` +
+                    `  - ${this.t('weekly_maintenances')}: ${weeklyCount}\n` +
+                    `  - ${this.t('monthly_maintenances')}: ${monthlyCount}\n` +
                     `• ${this.t('with_tickets')}: ${withTickets}\n` +
                     `• ${this.t('total')}: ${maintenances.length}`, 
                     'info'
                 );
             }
         } catch (error) {
-            console.error("Error actualizando lista:", error);
+            console.error("Error updating list:", error);
         }
     }
 
@@ -752,8 +819,8 @@ class WidgetAIMaintenance extends CWidget {
         const labels = {
             'once': this.t('unique'),
             'daily': this.t('daily'),
-            'weekly': this.t('weekly'),
-            'monthly': this.t('monthly')
+            'weekly': this.currentLang === 'es' ? 'Semanal' : 'Weekly',
+            'monthly': this.currentLang === 'es' ? 'Mensual' : 'Monthly'
         };
         return labels[type] || type;
     }
@@ -762,54 +829,71 @@ class WidgetAIMaintenance extends CWidget {
         if (!config || typeof config !== 'object') return '';
         
         let info = '';
+        const isSpanish = this.currentLang === 'es';
         
         switch (type) {
             case 'daily':
-                info = `${this.t('every')} ${config.every || 1} ${this.t('days')}`;
+                info = isSpanish ? `Cada ${config.every || 1} día(s)` : `Every ${config.every || 1} day(s)`;
                 if (config.start_time !== undefined) {
                     const hours = Math.floor(config.start_time / 3600);
                     const minutes = Math.floor((config.start_time % 3600) / 60);
-                    info += ` ${this.t('at')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    info += isSpanish ? 
+                        ` a las ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` :
+                        ` at ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 }
                 break;
                 
             case 'weekly': {                
                 const dayNames = this.decodeDaysBitmask(config.dayofweek || 1);
-                info = `${this.t('every')} ${config.every || 1} ${this.t('weeks')} ${this.t('on')} ${dayNames.join(', ')}`;
+                info = isSpanish ? 
+                    `Cada ${config.every || 1} semana(s) los ${dayNames.join(', ')}` :
+                    `Every ${config.every || 1} week(s) on ${dayNames.join(', ')}`;
                 if (config.start_time !== undefined) {
                     const hours = Math.floor(config.start_time / 3600);
                     const minutes = Math.floor((config.start_time % 3600) / 60);
-                    info += ` ${this.t('at')} ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}`;
+                    info += isSpanish ?
+                        ` a las ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}` :
+                        ` at ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}`;
                 }
                 break;
             }
                 
             case 'monthly':
                 if (config.day !== undefined) {
-                    info = `${this.t('day')} ${config.day} ${this.t('of_every')} ${config.every || 1} ${this.t('months')}`;
+                    info = isSpanish ?
+                        `El día ${config.day} de cada ${config.every || 1} mes(es)` :
+                        `Day ${config.day} of every ${config.every || 1} month(s)`;
                 } else if (config.dayofweek !== undefined) {
                     const dayNames = this.decodeDaysBitmask(config.dayofweek);
-                    const weekNames = {1: this.t('first'), 2: this.t('second'), 3: this.t('third'), 4: this.t('fourth'), 5: this.t('last')};
-                    const weekName = weekNames[config.every] || this.t('first');
-                    info = `${weekName} ${this.t('week')} - ${dayNames.join(', ')} ${this.t('of_each_month')}`;
+                    const weekNames = isSpanish ?
+                        {1: 'primera', 2: 'segunda', 3: 'tercera', 4: 'cuarta', 5: 'última'} :
+                        {1: 'first', 2: 'second', 3: 'third', 4: 'fourth', 5: 'last'};
+                    const weekName = weekNames[config.every] || (isSpanish ? 'primera' : 'first');
+                    info = isSpanish ?
+                        `${weekName} semana - ${dayNames.join(', ')} de cada mes` :
+                        `${weekName} week - ${dayNames.join(', ')} of each month`;
                 }
                 
                 if (config.start_time !== undefined) {
                     const hours = Math.floor(config.start_time / 3600);
                     const minutes = Math.floor((config.start_time % 3600) / 60);
-                    info += ` ${this.t('at')} ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    info += isSpanish ?
+                        ` a las ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}` :
+                        ` at ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 }
                 break;
                 
             default:
-                info = this.t('custom_configuration');
+                info = isSpanish ? 'Configuración personalizada' : 'Custom configuration';
         }
         
         return info;
     }
     
     decodeDaysBitmask(bitmask) {
-        const days = [this.t('monday'), this.t('tuesday'), this.t('wednesday'), this.t('thursday'), this.t('friday'), this.t('saturday'), this.t('sunday')];
+        const days = this.currentLang === 'es' ?
+            ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] :
+            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         const result = [];
         
         for (let i = 0; i < 7; i++) {
@@ -818,12 +902,15 @@ class WidgetAIMaintenance extends CWidget {
             }
         }
         
-        return result.length > 0 ? result : [this.t('monday')];
+        return result.length > 0 ? result : [days[0]];
     }
     
     decodeMonthsBitmask(bitmask) {
-        const months = [this.t('january'), this.t('february'), this.t('march'), this.t('april'), this.t('may'), this.t('june'),
-                       this.t('july'), this.t('august'), this.t('september'), this.t('october'), this.t('november'), this.t('december')];
+        const months = this.currentLang === 'es' ?
+            ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+             'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] :
+            ['January', 'February', 'March', 'April', 'May', 'June',
+             'July', 'August', 'September', 'October', 'November', 'December'];
         const result = [];
         
         for (let i = 0; i < 12; i++) {
@@ -832,7 +919,7 @@ class WidgetAIMaintenance extends CWidget {
             }
         }
         
-        return result.length > 0 ? result : [this.t('all_months')];
+        return result.length > 0 ? result : [this.currentLang === 'es' ? 'Todos los meses' : 'All months'];
     }
 
     showConfirmation(data) {
@@ -840,15 +927,16 @@ class WidgetAIMaintenance extends CWidget {
         const details = this._body.querySelector('#maintenance-details');
         
         if (!confirmation || !details) {
-            console.error("Elementos de confirmación no encontrados");
+            console.error("Confirmation elements not found");
             return;
         }
 
         const isRoutine = data.recurrence_type !== 'once';
         const recurrenceLabel = this.getRecurrenceTypeLabel(data.recurrence_type);
         const hasTicket = data.ticket_number && data.ticket_number.trim();
+        const isSpanish = this.currentLang === 'es';
 
-        let detailsHtml = `<h5>${this.t('maintenance_details')}:</h5><ul>`;
+        let detailsHtml = `<h5>${isSpanish ? 'Detalles del Mantenimiento:' : 'Maintenance Details:'}</h5><ul>`;
 
         if (hasTicket) {
             detailsHtml += `<li><strong>${this.t('ticket')}:</strong> ${this.escapeHtml(data.ticket_number)}</li>`;
@@ -859,63 +947,67 @@ class WidgetAIMaintenance extends CWidget {
         if (isRoutine && data.recurrence_config) {
             const configInfo = this.formatRecurrenceConfig(data.recurrence_type, data.recurrence_config);
             if (configInfo) {
-                detailsHtml += `<li><strong>${this.t('recurrence')}:</strong> ${this.escapeHtml(configInfo)}</li>`;
+                detailsHtml += `<li><strong>${isSpanish ? 'Recurrencia' : 'Recurrence'}:</strong> ${this.escapeHtml(configInfo)}</li>`;
             }
             
-            detailsHtml += `<li><strong>${this.t('technical_configuration')}:</strong> `;
+            detailsHtml += `<li><strong>${isSpanish ? 'Configuración técnica' : 'Technical configuration'}:</strong> `;
             if (data.recurrence_type === 'weekly') {
-                detailsHtml += `${this.t('days_bitmask')}: ${data.recurrence_config.dayofweek || 1}`;
+                detailsHtml += `${isSpanish ? 'Bitmask días' : 'Days bitmask'}: ${data.recurrence_config.dayofweek || 1}`;
             } else if (data.recurrence_type === 'monthly') {
                 if (data.recurrence_config.day !== undefined) {
-                    detailsHtml += `${this.t('day')} ${data.recurrence_config.day} ${this.t('of_month')}`;
+                    detailsHtml += `${isSpanish ? 'Día' : 'Day'} ${data.recurrence_config.day} ${isSpanish ? 'del mes' : 'of month'}`;
                 } else if (data.recurrence_config.dayofweek !== undefined) {
-                    detailsHtml += `${this.t('days_bitmask')}: ${data.recurrence_config.dayofweek}, ${this.t('week')}: ${data.recurrence_config.every || 1}`;
+                    detailsHtml += `${isSpanish ? 'Bitmask días' : 'Days bitmask'}: ${data.recurrence_config.dayofweek}, ${isSpanish ? 'Semana' : 'Week'}: ${data.recurrence_config.every || 1}`;
                 }
                 
                 if (data.recurrence_config.month !== undefined && data.recurrence_config.month !== 4095) {
                     const monthNames = this.decodeMonthsBitmask(data.recurrence_config.month);
-                    detailsHtml += `, ${this.t('months')}: ${monthNames.join(', ')} (bitmask: ${data.recurrence_config.month})`;
+                    detailsHtml += `, ${isSpanish ? 'Meses' : 'Months'}: ${monthNames.join(', ')} (bitmask: ${data.recurrence_config.month})`;
                 }
             } else if (data.recurrence_type === 'daily') {
-                detailsHtml += `${this.t('every')} ${data.recurrence_config.every || 1} ${this.t('days')}`;
+                detailsHtml += `${isSpanish ? 'Cada' : 'Every'} ${data.recurrence_config.every || 1} ${isSpanish ? 'día(s)' : 'day(s)'}`;
             }
             detailsHtml += `</li>`;
         }
 
         if (data.found_hosts && data.found_hosts.length > 0) {
             const hostNames = data.found_hosts.map(h => h.name || h.host).join(', ');
-            detailsHtml += `<li><strong>${this.t('servers')} (${data.found_hosts.length}):</strong> ${this.escapeHtml(hostNames)}</li>`;
+            detailsHtml += `<li><strong>${isSpanish ? 'Servidores' : 'Servers'} (${data.found_hosts.length}):</strong> ${this.escapeHtml(hostNames)}</li>`;
         }
 
         if (data.found_groups && data.found_groups.length > 0) {
             const groupNames = data.found_groups.map(g => g.name).join(', ');
-            detailsHtml += `<li><strong>${this.t('groups')} (${data.found_groups.length}):</strong> ${this.escapeHtml(groupNames)}</li>`;
+            detailsHtml += `<li><strong>${isSpanish ? 'Grupos' : 'Groups'} (${data.found_groups.length}):</strong> ${this.escapeHtml(groupNames)}</li>`;
         }
 
         if (data.trigger_tags && data.trigger_tags.length > 0) {
             const tagStrings = data.trigger_tags.map(t => `${t.tag}: ${t.value}`).join(', ');
-            detailsHtml += `<li><strong>${this.t('trigger_tags')}:</strong> ${this.escapeHtml(tagStrings)}</li>`;
+            detailsHtml += `<li><strong>${isSpanish ? 'Tags de triggers' : 'Trigger tags'}:</strong> ${this.escapeHtml(tagStrings)}</li>`;
         }
 
-        detailsHtml += `<li><strong>${this.t('period')}:</strong> ${this.escapeHtml(data.start_time)} - ${this.escapeHtml(data.end_time)}</li>`;
+        detailsHtml += `<li><strong>${isSpanish ? 'Período' : 'Period'}:</strong> ${this.escapeHtml(data.start_time)} - ${this.escapeHtml(data.end_time)}</li>`;
         
         const previewName = this.generateMaintenanceName(data);
-        detailsHtml += `<li><strong>${this.t('name')}:</strong> ${this.escapeHtml(previewName)}</li>`;
+        detailsHtml += `<li><strong>${isSpanish ? 'Nombre' : 'Name'}:</strong> ${this.escapeHtml(previewName)}</li>`;
         
         detailsHtml += '</ul>';
 
         if (isRoutine) {
-            detailsHtml += `<div class="routine-warning">`;
-            detailsHtml += `<strong>${this.t('routine_maintenance')}:</strong><br>`;
-            detailsHtml += this.t('routine_warning_text');
-            detailsHtml += `</div>`;
+            detailsHtml += '<div class="routine-warning">';
+            detailsHtml += `<strong>${isSpanish ? 'Mantenimiento Rutinario:' : 'Routine Maintenance:'}</strong><br>`;
+            detailsHtml += isSpanish ?
+                'Este mantenimiento se repetirá automáticamente según la configuración especificada. Usa bitmasks internos para programación precisa en Zabbix. Revisa cuidadosamente los horarios y la frecuencia antes de confirmar.' :
+                'This maintenance will repeat automatically according to the specified configuration. Uses internal bitmasks for precise scheduling in Zabbix. Carefully review schedules and frequency before confirming.';
+            detailsHtml += '</div>';
         }
 
         if (!hasTicket) {
-            detailsHtml += `<div class="no-ticket-warning">`;
-            detailsHtml += `<strong>${this.t('no_ticket')}:</strong><br>`;
-            detailsHtml += this.t('no_ticket_warning_text');
-            detailsHtml += `</div>`;
+            detailsHtml += '<div class="no-ticket-warning">';
+            detailsHtml += `<strong>${isSpanish ? 'Sin Ticket:' : 'No Ticket:'}</strong><br>`;
+            detailsHtml += isSpanish ?
+                'Se usará el nombre estándar. Para incluir un ticket en futuras solicitudes, menciónalo en el mensaje (ej: "ticket 100-178306").' :
+                'Standard name will be used. To include a ticket in future requests, mention it in the message (ex: "ticket 100-178306").';
+            detailsHtml += '</div>';
         }
 
         details.innerHTML = detailsHtml;
@@ -928,16 +1020,17 @@ class WidgetAIMaintenance extends CWidget {
     }
 
     generateMaintenanceName(data) {
-        if (!data) return this.t('ai_maintenance_no_data');
+        if (!data) return this.currentLang === 'es' ? "AI Maintenance: Sin datos" : "AI Maintenance: No data";
         
         const ticket_number = data.ticket_number && data.ticket_number.trim();
         const recurrence_type = data.recurrence_type || 'once';
+        const isSpanish = this.currentLang === 'es';
         
         let base_prefix;
         if (recurrence_type === 'once') {
-            base_prefix = this.t('ai_maintenance');
+            base_prefix = 'AI Maintenance';
         } else {
-            base_prefix = this.t('ai_routine_maintenance');
+            base_prefix = isSpanish ? 'AI Maintenance Rutinario' : 'AI Routine Maintenance';
         }
         
         if (ticket_number) {
@@ -950,22 +1043,26 @@ class WidgetAIMaintenance extends CWidget {
             const hostNames = data.found_hosts.map(h => h.name || h.host).slice(0, 3);
             maintenance_name_parts.push(...hostNames);
             if (data.found_hosts.length > 3) {
-                maintenance_name_parts.push(`${this.t('and')} ${data.found_hosts.length - 3} ${this.t('more_hosts')}`);
+                maintenance_name_parts.push(isSpanish ? 
+                    `y ${data.found_hosts.length - 3} hosts más` :
+                    `and ${data.found_hosts.length - 3} more hosts`);
             }
         }
         
         if (data.found_groups && data.found_groups.length > 0) {
-            const groupNames = data.found_groups.map(g => `${this.t('group')} ${g.name}`).slice(0, 2);
+            const groupNames = data.found_groups.map(g => `${isSpanish ? 'Grupo' : 'Group'} ${g.name}`).slice(0, 2);
             maintenance_name_parts.push(...groupNames);
             if (data.found_groups.length > 2) {
-                maintenance_name_parts.push(`${this.t('and')} ${data.found_groups.length - 2} ${this.t('more_groups')}`);
+                maintenance_name_parts.push(isSpanish ?
+                    `y ${data.found_groups.length - 2} grupos más` :
+                    `and ${data.found_groups.length - 2} more groups`);
             }
         }
         
         if (maintenance_name_parts.length > 0) {
             return `${base_prefix}: ${maintenance_name_parts.join(', ')}`;
         } else {
-            return `${base_prefix}: ${this.t('various_resources')}`;
+            return `${base_prefix}: ${isSpanish ? 'Recursos varios' : 'Various resources'}`;
         }
     }
 
@@ -995,6 +1092,7 @@ class WidgetAIMaintenance extends CWidget {
     }
 }
 
+// Global function for welcome toggle
 function toggleWelcomeDetails() {
     const details = document.getElementById('welcome-details');
     const toggle = document.querySelector('.welcome-toggle');
