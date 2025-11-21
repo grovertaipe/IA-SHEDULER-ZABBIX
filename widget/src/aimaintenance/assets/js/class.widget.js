@@ -9,7 +9,7 @@ class WidgetAIMaintenance extends CWidget {
         this.request_timeout = 60000; // 60 seconds
         this.retry_count = 0;
         this.max_retries = 2;
-        this.currentLang = 'es'; // Default to Spanish, will be updated in setContents
+        this.currentLang = 'en'; // Default to English, will be updated in setContents
     }
 
     processUpdateResponse(response) {
@@ -50,7 +50,7 @@ class WidgetAIMaintenance extends CWidget {
         } catch (error) {
             console.warn('Error detecting locale:', error);
         }
-        return 'es'; // Default to Spanish
+        return 'en'; // Default to English
     }
 
     t(key) {
