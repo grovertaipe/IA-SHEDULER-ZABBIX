@@ -1,7 +1,7 @@
 <?php declare(strict_types = 1);
 
 /**
- * AI Maintenance widget view - Versión con soporte para mantenimientos rutinarios y tickets
+ * AI Maintenance widget view - Clean version with external translations
  *
  * @var CView $this
  * @var array $data
@@ -10,17 +10,15 @@
 $chatHeight = $data['fields_values']['chat_height'] ?? 500;
 $apiUrl = $data['fields_values']['api_url'] ?? 'http://localhost:5005';
 
-// Obtener información del usuario actual
 $userInfo = CWebUser::$data;
 $userDisplay = '';
 if (!empty($userInfo)) {
     $userDisplay = trim(($userInfo['name'] ?? '') . ' ' . ($userInfo['surname'] ?? ''));
     if (empty($userDisplay)) {
-        $userDisplay = $userInfo['username'] ?? 'Usuario desconocido';
+        $userDisplay = $userInfo['username'] ?? 'Unknown user';
     }
 }
 
-// Contenedor principal con mejor manejo de temas
 $container = (new CDiv())
     ->addClass('ai-maintenance-widget')
     ->addStyle('height: 100%; overflow: hidden;')
@@ -35,7 +33,7 @@ $container = (new CDiv())
                         (new CDiv())
                             ->addClass('ai-header-text')
                             ->addItem((new CTag('h3', true, _('AI Maintenance Assistant'))))
-                            ->addItem((new CSpan(_('🐧 With routine maintenance support')))->addClass('ai-status'))
+                            ->addItem((new CSpan(_('With routine maintenance support')))->addClass('ai-status'))
                     )
                     ->addItem(
                         (new CDiv())
@@ -74,7 +72,7 @@ $container = (new CDiv())
                                 (new CDiv())
                                     ->addClass('welcome-header')
                                     ->setAttribute('onclick', 'toggleWelcomeDetails()')
-                                    ->addItem((new CDiv())->addClass('welcome-title')->addItem(_('🎯 Maintenance Assistant')))
+                                    ->addItem((new CDiv())->addClass('welcome-title')->addItem(_('Maintenance Assistant')))
                                     ->addItem((new CDiv())->addClass('welcome-toggle')->addItem('▼'))
                             )
                             ->addItem(
@@ -86,33 +84,33 @@ $container = (new CDiv())
                                     ->addItem(
                                         (new CDiv())
                                             ->addClass('feature-compact')
-                                            ->addItem(_('🖥️ Servers: "srv-web01 tomorrow 8-10h ticket 100-178306"'))
+                                            ->addItem(_('Servers: "srv-web01 tomorrow 8-10h ticket 100-178306"'))
                                     )
                                     ->addItem(
                                         (new CDiv())
                                             ->addClass('feature-compact')
-                                            ->addItem(_('👥 Groups: "Cloud group today 14-16h ticket 200-8341"'))
+                                            ->addItem(_('Groups: "Cloud group today 14-16h ticket 200-8341"'))
                                     )
                                     ->addItem(
                                         (new CDiv())
                                             ->addClass('feature-compact')
-                                            ->addItem(_('🔄 Daily: "daily backup 2 AM ticket 500-43116"'))
+                                            ->addItem(_('Daily: "daily backup 2 AM ticket 500-43116"'))
                                     )
                                     ->addItem(
                                         (new CDiv())
                                             ->addClass('feature-compact')
-                                            ->addItem(_('📅 Weekly: "every Sunday 1-3 AM ticket 100-12345"'))
+                                            ->addItem(_('Weekly: "every Sunday 1-3 AM ticket 100-12345"'))
                                     )
                                     ->addItem(
                                         (new CDiv())
                                             ->addClass('feature-compact')
-                                            ->addItem(_('🗓️ Monthly: "first day each month ticket 200-67890"'))
+                                            ->addItem(_('Monthly: "first day each month ticket 200-67890"'))
                                     )
                             )
                             ->addItem(
                                 (new CDiv())
                                     ->addClass('welcome-footer')
-                                    ->addItem(_('💡 Click above to see examples. Button 📋 for complete templates.'))
+                                    ->addItem(_('Click above to see examples. Button for complete templates.'))
                             )
                     )
             )
@@ -126,7 +124,7 @@ $container = (new CDiv())
                     ->addItem(
                         (new CTextArea('ai-input', ''))
                             ->setId('ai-input')
-                            ->setAttribute('placeholder', _('💬 Describe the maintenance... Ex: "srv-web01 tomorrow 8-10h ticket 100-178306", "daily backup 2 AM ticket 200-8341"'))
+                            ->setAttribute('placeholder', _('Describe the maintenance... Ex: "srv-web01 tomorrow 8-10h ticket 100-178306", "daily backup 2 AM ticket 200-8341"'))
                             ->setAttribute('rows', '3')
                     )
                     ->addItem(
@@ -156,7 +154,7 @@ $container = (new CDiv())
             ->addItem(
                 (new CDiv())
                     ->addClass('confirmation-content')
-                    ->addItem(new CTag('h4', true, _('✅ Confirmar Mantenimiento')))
+                    ->addItem(new CTag('h4', true, _('Confirm Maintenance')))
                     ->addItem(
                         (new CDiv())
                             ->setId('maintenance-details')
@@ -166,12 +164,12 @@ $container = (new CDiv())
                         (new CDiv())
                             ->addClass('confirmation-actions')
                             ->addItem(
-                                (new CButton('confirm-maintenance', _('✅ Crear Mantenimiento')))
+                                (new CButton('confirm-maintenance', _('Create Maintenance')))
                                     ->setId('confirm-maintenance')
                                     ->addClass('btn-alt btn-success')
                             )
                             ->addItem(
-                                (new CButton('cancel-maintenance', _('❌ Cancelar')))
+                                (new CButton('cancel-maintenance', _('Cancel')))
                                     ->setId('cancel-maintenance')
                                     ->addClass('btn-alt btn-cancel')
                             )
@@ -184,12 +182,12 @@ $container = (new CDiv())
             ->addClass('ai-loading')
             ->addStyle('display: none;')
             ->addItem((new CDiv())->addClass('loading-spinner'))
-            ->addItem(new CSpan(_('Procesando solicitud...')))
+            ->addItem(new CSpan(_('Processing request...')))
     );
 
 (new CWidgetView($data))
     ->addItem($container)
     ->setVar('api_url', $apiUrl)
-    ->setVar('user_info', $userInfo)  // Añadir información del usuario
+    ->setVar('user_info', $userInfo)
     ->setVar('fields_values', $data['fields_values'])
     ->show();
