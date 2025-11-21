@@ -14,7 +14,6 @@ class WidgetForm extends CWidgetForm {
                 (new CWidgetFieldTextBox('api_url', _('Backend API URL')))
                     ->setDefault('http://localhost:5005')
                     ->setFlags(CWidgetField::FLAG_NOT_EMPTY)
-                    ->setValidationRules(['regex' => '/^https?:\/\/.+/', 'messageInvalid' => _('Invalid URL format. Must start with http:// or https://')])
             )
             ->addField(
                 (new CWidgetFieldTextBox('chat_height', _('Chat height')))
