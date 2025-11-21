@@ -43,8 +43,19 @@ class WidgetAIMaintenance extends CWidget {
                 const response = await fetch('widgets/aimaintenance/locale/en.json');
                 this.translations = await response.json();
             } catch (fallbackError) {
-                console.warn('Could not load translations');
-                this.translations = {};
+                console.warn('Could not load translations, using fallback');
+                this.translations = {
+                    'templates_not_available': 'Templates are not available at this time',
+                    'routine_maintenance_examples': 'Routine maintenance examples',
+                    'daily': 'Daily',
+                    'weekly': 'Weekly',
+                    'monthly_specific_day': 'Monthly specific day',
+                    'monthly_weekday': 'Monthly weekday',
+                    'daily_backup_example': 'daily backup 2 AM ticket 100-178306',
+                    'weekly_maintenance_example': 'Sunday maintenance 1-3 AM ticket 200-8341',
+                    'monthly_day_example': 'cleanup day 5 each month ticket 500-43116',
+                    'monthly_weekday_example': 'update first Sunday each month ticket 600-78901'
+                };
             }
         }
         this.setupEventListeners();
