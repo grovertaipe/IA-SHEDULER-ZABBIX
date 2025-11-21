@@ -4,80 +4,88 @@
 /* ============================================= */
 
 :root {
-  /* Colores principales */
-  --aim-primary: #229ED9;
+  /* Variables para tema claro */
+  --aim-primary-color: #229ED9;
   --aim-primary-hover: #1E8BC3;
-  --aim-routine: #FF6B35;
-  --aim-ticket: #9C27B0;
-  
-  /* Colores de fondo */
-  --aim-bg: #ffffff;
+  --aim-routine-color: #FF6B35;
+  --aim-routine-hover: #E55A2B;
+  --aim-ticket-color: #9C27B0;
+  --aim-ticket-hover: #7B1FA2;
+  --aim-bg-color: #ffffff;
   --aim-bg-secondary: #f8f9fa;
-  --aim-input-bg: #ffffff;
-  
-  /* Colores de texto y bordes */
-  --aim-text: #2c2e30;
+  --aim-border-color: #e1e5e9;
+  --aim-text-color: #2c2e30;
   --aim-text-secondary: #707579;
-  --aim-border: #e1e5e9;
+  --aim-input-bg: #ffffff;
+  --aim-shadow-light: rgba(0, 0, 0, 0.06);
+  --aim-shadow-medium: rgba(0, 0, 0, 0.12);
+  --aim-shadow-heavy: rgba(0, 0, 0, 0.18);
   
-  /* Sombras */
-  --aim-shadow-sm: rgba(0, 0, 0, 0.06);
-  --aim-shadow-md: rgba(0, 0, 0, 0.12);
-  --aim-shadow-lg: rgba(0, 0, 0, 0.18);
+  /* Colores de mensajes mejorados */
+  --aim-message-system-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --aim-message-user-bg: #229ED9;
+  --aim-message-assistant-bg: #ffffff;
+  --aim-message-error-bg: #ff4757;
+  --aim-message-success-bg: #2ed573;
+  --aim-message-warning-bg: #ffa502;
+  --aim-message-info-bg: #3742fa;
   
-  /* Colores de estado */
-  --aim-error: #ff4757;
-  --aim-success: #2ed573;
-  --aim-warning: #ffa502;
-  --aim-info: #3742fa;
-  
-  /* Scrollbar */
-  --aim-scrollbar: #c1c7cd;
-  --aim-scrollbar-hover: #9aa0a6;
+  /* Scrollbar personalizado */
+  --aim-scrollbar-track: transparent;
+  --aim-scrollbar-thumb: #c1c7cd;
+  --aim-scrollbar-thumb-hover: #9aa0a6;
 }
 
+/* Tema oscuro mejorado */
 .dark-theme {
-  --aim-primary: #64B5F6;
+  --aim-primary-color: #64B5F6;
   --aim-primary-hover: #42A5F5;
-  --aim-routine: #FF8A50;
-  --aim-ticket: #BA68C8;
-  --aim-bg: #17212b;
+  --aim-routine-color: #FF8A50;
+  --aim-routine-hover: #FF7043;
+  --aim-ticket-color: #BA68C8;
+  --aim-ticket-hover: #AB47BC;
+  --aim-bg-color: #17212b;
   --aim-bg-secondary: #1e2832;
-  --aim-input-bg: #2f3a45;
-  --aim-text: #e4e6ea;
+  --aim-border-color: #2f3a45;
+  --aim-text-color: #e4e6ea;
   --aim-text-secondary: #aeb3ba;
-  --aim-border: #2f3a45;
-  --aim-shadow-sm: rgba(0, 0, 0, 0.3);
-  --aim-shadow-md: rgba(0, 0, 0, 0.4);
-  --aim-shadow-lg: rgba(0, 0, 0, 0.5);
-  --aim-error: #e55353;
-  --aim-success: #00d68f;
-  --aim-warning: #ff9f43;
-  --aim-info: #4834d4;
-  --aim-scrollbar: #4a5568;
-  --aim-scrollbar-hover: #68768a;
+  --aim-input-bg: #2f3a45;
+  --aim-shadow-light: rgba(0, 0, 0, 0.3);
+  --aim-shadow-medium: rgba(0, 0, 0, 0.4);
+  --aim-shadow-heavy: rgba(0, 0, 0, 0.5);
+  
+  --aim-message-system-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --aim-message-user-bg: #229ED9;
+  --aim-message-assistant-bg: #2f3a45;
+  --aim-message-error-bg: #e55353;
+  --aim-message-success-bg: #00d68f;
+  --aim-message-warning-bg: #ff9f43;
+  --aim-message-info-bg: #4834d4;
+  
+  --aim-scrollbar-thumb: #4a5568;
+  --aim-scrollbar-thumb-hover: #68768a;
 }
 
 /* Contenedor principal con diseño moderno */
 .ai-maintenance-widget {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background: var(--aim-bg);
-  color: var(--aim-text);
+  background: var(--aim-bg-color);
+  color: var(--aim-text-color);
   height: 100%;
   display: flex;
   flex-direction: column;
   border-radius: 12px;
-  box-shadow: 0 4px 16px var(--aim-shadow-sm);
+  box-shadow: 0 4px 16px var(--aim-shadow-light);
   overflow: hidden;
   position: relative;
-  border: 1px solid var(--aim-border);
+  border: 1px solid var(--aim-border-color);
 }
 
 /* Header del asistente mejorado */
 .ai-header {
   background: var(--aim-bg-secondary);
   padding: 16px 20px;
-  border-bottom: 1px solid var(--aim-border);
+  border-bottom: 1px solid var(--aim-border-color);
   position: relative;
 }
 
@@ -88,7 +96,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--aim-primary), transparent);
+  background: linear-gradient(90deg, transparent, var(--aim-primary-color), transparent);
   opacity: 0.3;
 }
 

@@ -9,8 +9,6 @@ class WidgetAIMaintenance extends CWidget {
         this.request_timeout = 60000; // 60 segundos
         this.retry_count = 0;
         this.max_retries = 2;
-        this.currentRequest = null;
-        this.retryTimeout = null;
     }
 
     processUpdateResponse(response) {
@@ -38,8 +36,9 @@ class WidgetAIMaintenance extends CWidget {
 
     async checkBackendConnection() {
         try {
-            const response = await this.makeRequest('/health', {
-                method: 'GET'
+            const response = await fetch(`${this.api_url}/health`, {
+                method: 'GET',
+                timeout: 10000
             });
             
             if (!response.ok) {
@@ -222,13 +221,15 @@ class WidgetAIMaintenance extends CWidget {
             return;
         }
 
-        // Validación completa de entrada
-        const validationResult = this.validateMessage(message);
-        if (!validationResult.isValid) {
-            this.addMessage(validationResult.error, 'warning');
-            if (validationResult.shouldHighlight) {
-                this.highlightInput(input);
-            }
+        // Validación de longitud
+        if (message.length < 5) {
+            this.addMessage("El mensaje es muy corto. Describe qué tipo de mantenimiento necesitas crear.", 'warning');
+            this.highlightInput(input);
+            return;
+        }
+
+        if (message.length > 1000) {
+            this.addMessage("El mensaje es muy largo. Por favor, sé más conciso.", 'warning');
             return;
         }
 
@@ -242,7 +243,7 @@ class WidgetAIMaintenance extends CWidget {
         input.value = '';
         input.style.height = 'auto';
         this.addMessage(message, 'user');
-        this.showLoading(true, t('Processing...'));
+        this.showLoading(true, 'Analizando solicitud...');
 
         try {
             const requestData = { 
@@ -296,45 +297,6 @@ class WidgetAIMaintenance extends CWidget {
         }
     }
 
-    validateMessage(message) {
-        // Validación de longitud
-        if (message.length < 5) {
-            return {
-                isValid: false,
-                error: "El mensaje es muy corto. Describe qué tipo de mantenimiento necesitas crear.",
-                shouldHighlight: true
-            };
-        }
-
-        if (message.length > 1000) {
-            return {
-                isValid: false,
-                error: "El mensaje es muy largo. Por favor, sé más conciso.",
-                shouldHighlight: false
-            };
-        }
-
-        // Validación de contenido malicioso básico
-        const dangerousPatterns = [
-            /<script[^>]*>/i,
-            /javascript:/i,
-            /on\w+\s*=/i,
-            /<iframe[^>]*>/i
-        ];
-
-        for (const pattern of dangerousPatterns) {
-            if (pattern.test(message)) {
-                return {
-                    isValid: false,
-                    error: "El mensaje contiene contenido no permitido.",
-                    shouldHighlight: true
-                };
-            }
-        }
-
-        return { isValid: true };
-    }
-
     highlightInput(input) {
         if (!input) return;
         
@@ -346,55 +308,31 @@ class WidgetAIMaintenance extends CWidget {
         }, 2000);
     }
 
-    handleRequestError(error, originalMessage = null) {
-        console.error('Request error:', error);
-        
-        if (this.shouldRetry(error)) {
-            this.retryRequest(originalMessage);
-        } else {
-            this.showFinalError(error);
-        }
-    }
-
-    shouldRetry(error) {
-        return this.retry_count < this.max_retries && 
-               (error.message.includes('timeout') || 
-                error.message.includes('network') ||
-                error.message.includes('fetch'));
-    }
-
-    retryRequest(originalMessage) {
-        this.retry_count++;
-        this.addMessage(
-            `Error de conexión (intento ${this.retry_count}/${this.max_retries + 1}). Reintentando...`,
-            'warning'
-        );
-        
-        this.retryTimeout = setTimeout(() => {
-            if (originalMessage) {
+    handleRequestError(error, originalMessage) {
+        if (this.retry_count < this.max_retries && 
+            (error.message.includes('timeout') || error.message.includes('network'))) {
+            
+            this.retry_count++;
+            this.addMessage(
+                `Error de conexión (intento ${this.retry_count}/${this.max_retries + 1}). Reintentando...`,
+                'warning'
+            );
+            
+            setTimeout(() => {
                 const input = this._body.querySelector('#ai-input');
                 if (input) {
                     input.value = originalMessage;
                     this.onSendMessage();
                 }
-            }
-        }, 2000);
-    }
-
-    showFinalError(error) {
-        this.retry_count = 0;
-        const errorMessage = this.getErrorMessage(error);
-        this.addMessage(errorMessage, 'error');
-    }
-
-    getErrorMessage(error) {
-        if (error.message.includes('fetch') || error.message.includes('network')) {
-            return "No se pudo conectar con el backend. Verifica que el servicio esté funcionando.";
+            }, 2000);
+        } else {
+            this.retry_count = 0;
+            const errorMessage = error.message.includes('fetch') 
+                ? "No se pudo conectar con el backend. Verifica que el servicio esté funcionando."
+                : `Error: ${error.message}`;
+            
+            this.addMessage(`${errorMessage}`, 'error');
         }
-        if (error.message.includes('timeout')) {
-            return "La solicitud tardó demasiado tiempo. Intenta de nuevo.";
-        }
-        return `Error: ${error.message}`;
     }
 
     handleInteractiveResponse(data) {
@@ -457,7 +395,70 @@ class WidgetAIMaintenance extends CWidget {
     showMaintenanceResults(data) {
         if (!data) return;
 
-        const message = this.buildMaintenanceMessage(data);
+        let message = '';
+        
+        if (data.message && data.message.trim()) {
+            message = data.message + '\n\n';
+        } else {
+            message = `**Análisis completado**\n\n`;
+        }
+        
+        // Mostrar información de ticket si está presente
+        if (data.ticket_number && data.ticket_number.trim()) {
+            message += `**Ticket:** ${data.ticket_number}\n\n`;
+        }
+        
+        // Mostrar tipo de mantenimiento
+        const recurrenceLabel = this.getRecurrenceTypeLabel(data.recurrence_type);
+        const isRoutine = data.recurrence_type !== 'once';
+        
+        const typeIcon = isRoutine ? 'Rutinario' : 'Único';
+        message += `**Tipo:** ${recurrenceLabel} (${typeIcon})\n\n`;
+        
+        // Configuración de recurrencia si aplica
+        if (isRoutine && data.recurrence_config) {
+            const configInfo = this.formatRecurrenceConfig(data.recurrence_type, data.recurrence_config);
+            if (configInfo) {
+                message += `**Configuración:** ${configInfo}\n\n`;
+            }
+        }
+        
+        // Mostrar resumen de búsqueda si está disponible
+        if (data.search_summary) {
+            const summary = data.search_summary;
+            message += `**Resumen:**\n`;
+            message += `• Hosts encontrados: ${summary.total_hosts_found}\n`;
+            message += `• Grupos encontrados: ${summary.total_groups_found}\n`;
+            if (summary.hosts_by_tags > 0) {
+                message += `• Hosts por tags: ${summary.hosts_by_tags}\n`;
+            }
+            if (summary.has_ticket) {
+                message += `• Con ticket: Sí\n`;
+            }
+            if (summary.is_routine) {
+                message += `• Mantenimiento rutinario: Sí\n`;
+            }
+            message += '\n';
+        }
+        
+        // Mostrar recursos encontrados
+        message = this.appendResourcesInfo(message, data);
+        
+        // Mostrar horario
+        if (data.start_time && data.end_time) {
+            message += `**Período:**\n`;
+            message += `• Desde: ${data.start_time}\n`;
+            message += `• Hasta: ${data.end_time}\n\n`;
+        }
+        
+        if (data.description && data.description.trim()) {
+            message += `**Descripción:** ${data.description}\n\n`;
+        }
+
+        if (data.confidence && data.confidence > 0) {
+            message += `**Confianza:** ${data.confidence}%`;
+        }
+
         this.addMessage(message, 'assistant');
 
         // Mostrar confirmación si hay recursos válidos
@@ -468,94 +469,6 @@ class WidgetAIMaintenance extends CWidget {
         } else {
             this.addMessage('No se encontraron hosts ni grupos válidos para crear el mantenimiento', 'warning');
         }
-    }
-
-    buildMaintenanceMessage(data) {
-        let message = this.getBaseMessage(data);
-        message += this.getTicketInfo(data);
-        message += this.getMaintenanceTypeInfo(data);
-        message += this.getRecurrenceConfigInfo(data);
-        message += this.getSearchSummaryInfo(data);
-        message = this.appendResourcesInfo(message, data);
-        message += this.getScheduleInfo(data);
-        message += this.getDescriptionInfo(data);
-        message += this.getConfidenceInfo(data);
-        
-        return message;
-    }
-
-    getBaseMessage(data) {
-        if (data.message && data.message.trim()) {
-            return data.message + '\n\n';
-        }
-        return `**Análisis completado**\n\n`;
-    }
-
-    getTicketInfo(data) {
-        if (data.ticket_number && data.ticket_number.trim()) {
-            return `**Ticket:** ${data.ticket_number}\n\n`;
-        }
-        return '';
-    }
-
-    getMaintenanceTypeInfo(data) {
-        const recurrenceLabel = this.getRecurrenceTypeLabel(data.recurrence_type);
-        const isRoutine = data.recurrence_type !== 'once';
-        const typeIcon = isRoutine ? 'Rutinario' : 'Único';
-        return `**Tipo:** ${recurrenceLabel} (${typeIcon})\n\n`;
-    }
-
-    getRecurrenceConfigInfo(data) {
-        const isRoutine = data.recurrence_type !== 'once';
-        if (isRoutine && data.recurrence_config) {
-            const configInfo = this.formatRecurrenceConfig(data.recurrence_type, data.recurrence_config);
-            if (configInfo) {
-                return `**Configuración:** ${configInfo}\n\n`;
-            }
-        }
-        return '';
-    }
-
-    getSearchSummaryInfo(data) {
-        if (!data.search_summary) return '';
-        
-        const summary = data.search_summary;
-        let info = `**Resumen:**\n`;
-        info += `• Hosts encontrados: ${summary.total_hosts_found}\n`;
-        info += `• Grupos encontrados: ${summary.total_groups_found}\n`;
-        
-        if (summary.hosts_by_tags > 0) {
-            info += `• Hosts por tags: ${summary.hosts_by_tags}\n`;
-        }
-        if (summary.has_ticket) {
-            info += `• Con ticket: Sí\n`;
-        }
-        if (summary.is_routine) {
-            info += `• Mantenimiento rutinario: Sí\n`;
-        }
-        
-        return info + '\n';
-    }
-
-    getScheduleInfo(data) {
-        if (data.start_time && data.end_time) {
-            return `**Período:**\n• Desde: ${data.start_time}\n• Hasta: ${data.end_time}\n\n`;
-        }
-        return '';
-    }
-
-    getDescriptionInfo(data) {
-        if (data.description && data.description.trim()) {
-            return `**Descripción:** ${data.description}\n\n`;
-        }
-        return '';
-    }
-
-    getConfidenceInfo(data) {
-        if (data.confidence && data.confidence > 0) {
-            return `**Confianza:** ${data.confidence}%`;
-        }
-        return '';
     }
     
     appendResourcesInfo(baseMessage, data) {
@@ -641,7 +554,7 @@ class WidgetAIMaintenance extends CWidget {
             return;
         }
         
-        this.showLoading(true, t('Creating maintenance...'));
+        this.showLoading(true, 'Creando mantenimiento...');
         
         try {
             // Preparar datos para enviar
@@ -767,8 +680,19 @@ class WidgetAIMaintenance extends CWidget {
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         
-        // Sanitizar y formatear mensaje de forma segura
-        this.formatMessageContent(contentDiv, message);
+        // Preservar saltos de línea y formato básico de markdown
+        let formattedMessage = this.escapeHtml(message).replace(/\n/g, '<br>');
+        
+        // Convertir texto en negrita **texto** a <strong>
+        formattedMessage = formattedMessage.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // Destacar tickets en el texto
+        formattedMessage = formattedMessage.replace(
+            /\b(\d{3}-\d{3,6})\b/g,
+            '<span class="ticket-highlight">$1</span>'
+        );
+        
+        contentDiv.innerHTML = formattedMessage;
         
         messageDiv.appendChild(contentDiv);
         messages.appendChild(messageDiv);
@@ -777,80 +701,11 @@ class WidgetAIMaintenance extends CWidget {
         this.scrollToBottom(messages);
     }
 
-    formatMessageContent(container, message) {
-        // Dividir por saltos de línea para procesamiento seguro
-        const lines = message.split('\n');
-        
-        lines.forEach((line, index) => {
-            if (index > 0) {
-                container.appendChild(document.createElement('br'));
-            }
-            
-            // Procesar línea de forma segura
-            this.processLineContent(container, line);
-        });
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
-
-    processLineContent(container, line) {
-        // Buscar patrones de formato de forma segura
-        const boldPattern = /\*\*(.*?)\*\*/g;
-        const ticketPattern = /\b(\d{3}-\d{3,6})\b/g;
-        
-        let lastIndex = 0;
-        let match;
-        
-        // Procesar texto en negrita
-        while ((match = boldPattern.exec(line)) !== null) {
-            // Agregar texto antes del match
-            if (match.index > lastIndex) {
-                const textNode = document.createTextNode(line.substring(lastIndex, match.index));
-                container.appendChild(textNode);
-            }
-            
-            // Crear elemento strong
-            const strongElement = document.createElement('strong');
-            strongElement.textContent = match[1];
-            container.appendChild(strongElement);
-            
-            lastIndex = boldPattern.lastIndex;
-        }
-        
-        // Agregar texto restante
-        const remainingText = line.substring(lastIndex);
-        if (remainingText) {
-            this.processTicketsInText(container, remainingText);
-        }
-    }
-
-    processTicketsInText(container, text) {
-        const ticketPattern = /\b(\d{3}-\d{3,6})\b/g;
-        let lastIndex = 0;
-        let match;
-        
-        while ((match = ticketPattern.exec(text)) !== null) {
-            // Texto antes del ticket
-            if (match.index > lastIndex) {
-                const textNode = document.createTextNode(text.substring(lastIndex, match.index));
-                container.appendChild(textNode);
-            }
-            
-            // Crear elemento para ticket
-            const ticketSpan = document.createElement('span');
-            ticketSpan.className = 'ticket-highlight';
-            ticketSpan.textContent = match[1];
-            container.appendChild(ticketSpan);
-            
-            lastIndex = ticketPattern.lastIndex;
-        }
-        
-        // Texto restante
-        if (lastIndex < text.length) {
-            const textNode = document.createTextNode(text.substring(lastIndex));
-            container.appendChild(textNode);
-        }
-    }
-
-    // Método ya no necesario - se usa DOM manipulation seguro
 
     scrollToBottom(element) {
         if (!element) return;
@@ -861,7 +716,7 @@ class WidgetAIMaintenance extends CWidget {
         });
     }
 
-    showLoading(show, message = t('Loading...')) {
+    showLoading(show, message = 'Procesando...') {
         const loading = this._body.querySelector('#ai-loading');
         if (!loading) return;
 
@@ -886,12 +741,6 @@ class WidgetAIMaintenance extends CWidget {
         return labels[type] || type;
     }
     
-    formatTime(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-    }
-
     formatRecurrenceConfig(type, config) {
         if (!config || typeof config !== 'object') return '';
         
@@ -901,7 +750,9 @@ class WidgetAIMaintenance extends CWidget {
             case 'daily':
                 info = `Cada ${config.every || 1} día(s)`;
                 if (config.start_time !== undefined) {
-                    info += ` a las ${this.formatTime(config.start_time)}`;
+                    const hours = Math.floor(config.start_time / 3600);
+                    const minutes = Math.floor((config.start_time % 3600) / 60);
+                    info += ` a las ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 }
                 break;
                 
@@ -909,7 +760,9 @@ class WidgetAIMaintenance extends CWidget {
                 const dayNames = this.decodeDaysBitmask(config.dayofweek || 1);
                 info = `Cada ${config.every || 1} semana(s) los ${dayNames.join(', ')}`;
                 if (config.start_time !== undefined) {
-                    info += ` a las ${this.formatTime(config.start_time)}`;
+                    const hours = Math.floor(config.start_time / 3600);
+                    const minutes = Math.floor((config.start_time % 3600) / 60);
+                    info += ` a las ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}`;
                 }
                 break;
             }
@@ -925,7 +778,9 @@ class WidgetAIMaintenance extends CWidget {
                 }
                 
                 if (config.start_time !== undefined) {
-                    info += ` a las ${this.formatTime(config.start_time)}`;
+                    const hours = Math.floor(config.start_time / 3600);
+                    const minutes = Math.floor((config.start_time % 3600) / 60);
+                    info += ` a las ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                 }
                 break;
                 
@@ -1060,20 +915,7 @@ class WidgetAIMaintenance extends CWidget {
             detailsHtml += '</div>';
         }
 
-        // Limpiar contenido anterior
-        details.innerHTML = '';
-        
-        // Crear elementos de forma segura
-        const title = document.createElement('h5');
-        title.textContent = 'Detalles del Mantenimiento:';
-        details.appendChild(title);
-        
-        const list = document.createElement('ul');
-        this.buildDetailsList(list, data);
-        details.appendChild(list);
-        
-        // Agregar advertencias si es necesario
-        this.addWarnings(details, data, hasTicket);
+        details.innerHTML = detailsHtml;
         confirmation.style.display = 'flex';
         
         // Enfocar el primer botón para accesibilidad
@@ -1143,96 +985,6 @@ class WidgetAIMaintenance extends CWidget {
         const input = this._body.querySelector('#ai-input');
         if (input) {
             setTimeout(() => input.focus(), 100);
-        }
-    }
-
-    buildDetailsList(list, data) {
-        const isRoutine = data.recurrence_type !== 'once';
-        const hasTicket = data.ticket_number && data.ticket_number.trim();
-        
-        // Ticket
-        if (hasTicket) {
-            this.addListItem(list, 'Ticket:', data.ticket_number);
-        }
-        
-        // Tipo
-        const recurrenceLabel = this.getRecurrenceTypeLabel(data.recurrence_type);
-        this.addListItem(list, 'Tipo:', `${recurrenceLabel}${isRoutine ? ' (Rutinario)' : ''}`);
-        
-        // Configuración de recurrencia
-        if (isRoutine && data.recurrence_config) {
-            const configInfo = this.formatRecurrenceConfig(data.recurrence_type, data.recurrence_config);
-            if (configInfo) {
-                this.addListItem(list, 'Recurrencia:', configInfo);
-            }
-        }
-        
-        // Recursos
-        if (data.found_hosts && data.found_hosts.length > 0) {
-            const hostNames = data.found_hosts.map(h => h.name || h.host).join(', ');
-            this.addListItem(list, `Servidores (${data.found_hosts.length}):`, hostNames);
-        }
-        
-        if (data.found_groups && data.found_groups.length > 0) {
-            const groupNames = data.found_groups.map(g => g.name).join(', ');
-            this.addListItem(list, `Grupos (${data.found_groups.length}):`, groupNames);
-        }
-        
-        // Período
-        this.addListItem(list, 'Período:', `${data.start_time} - ${data.end_time}`);
-        
-        // Nombre
-        const previewName = this.generateMaintenanceName(data);
-        this.addListItem(list, 'Nombre:', previewName);
-    }
-    
-    addListItem(list, label, value) {
-        const li = document.createElement('li');
-        const strong = document.createElement('strong');
-        strong.textContent = label;
-        li.appendChild(strong);
-        li.appendChild(document.createTextNode(' ' + value));
-        list.appendChild(li);
-    }
-    
-    addWarnings(container, data, hasTicket) {
-        const isRoutine = data.recurrence_type !== 'once';
-        
-        if (isRoutine) {
-            const routineWarning = document.createElement('div');
-            routineWarning.className = 'routine-warning';
-            
-            const title = document.createElement('strong');
-            title.textContent = 'Mantenimiento Rutinario:';
-            routineWarning.appendChild(title);
-            routineWarning.appendChild(document.createElement('br'));
-            
-            const text = document.createTextNode(
-                'Este mantenimiento se repetirá automáticamente según la configuración especificada. ' +
-                'Usa bitmasks internos para programación precisa en Zabbix. ' +
-                'Revisa cuidadosamente los horarios y la frecuencia antes de confirmar.'
-            );
-            routineWarning.appendChild(text);
-            
-            container.appendChild(routineWarning);
-        }
-        
-        if (!hasTicket) {
-            const ticketWarning = document.createElement('div');
-            ticketWarning.className = 'no-ticket-warning';
-            
-            const title = document.createElement('strong');
-            title.textContent = 'Sin Ticket:';
-            ticketWarning.appendChild(title);
-            ticketWarning.appendChild(document.createElement('br'));
-            
-            const text = document.createTextNode(
-                'Se usará el nombre estándar. Para incluir un ticket en futuras solicitudes, ' +
-                'menciónalo en el mensaje (ej: "ticket 100-178306").'
-            );
-            ticketWarning.appendChild(text);
-            
-            container.appendChild(ticketWarning);
         }
     }
 
