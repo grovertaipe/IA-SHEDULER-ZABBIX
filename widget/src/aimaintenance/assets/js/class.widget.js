@@ -105,7 +105,41 @@ class WidgetAIMaintenance extends CWidget {
             'monthly_week': isSpanish ? 'Mensuales (semana)' : 'Monthly (week)',
             'monthly_week_keywords': isSpanish ? 'primer domingo, segunda semana, último viernes' : 'first Sunday, second week, last Friday',
             'ticket_tip': isSpanish ? "Incluye siempre números como '100-178306', '200-8341'" : "Always include numbers like '100-178306', '200-8341'",
-            'tip': isSpanish ? 'Tip' : 'Tip'
+            'tip': isSpanish ? 'Tip' : 'Tip',
+            'detected_information': isSpanish ? 'Información detectada' : 'Detected information',
+            'analysis_completed': isSpanish ? 'Análisis completado' : 'Analysis completed',
+            'ticket': isSpanish ? 'Ticket' : 'Ticket',
+            'type': isSpanish ? 'Tipo' : 'Type',
+            'routine': isSpanish ? 'Rutinario' : 'Routine',
+            'unique': isSpanish ? 'Único' : 'Unique',
+            'configuration': isSpanish ? 'Configuración' : 'Configuration',
+            'summary': isSpanish ? 'Resumen' : 'Summary',
+            'hosts_found': isSpanish ? 'Hosts encontrados' : 'Hosts found',
+            'groups_found': isSpanish ? 'Grupos encontrados' : 'Groups found',
+            'hosts_by_tags': isSpanish ? 'Hosts por tags' : 'Hosts by tags',
+            'with_ticket': isSpanish ? 'Con ticket' : 'With ticket',
+            'routine_maintenance': isSpanish ? 'Mantenimiento rutinario' : 'Routine maintenance',
+            'yes': isSpanish ? 'Sí' : 'Yes',
+            'servers_found': isSpanish ? 'Servidores encontrados' : 'Servers found',
+            'groups_found_list': isSpanish ? 'Grupos encontrados' : 'Groups found',
+            'trigger_tags': isSpanish ? 'Tags de triggers' : 'Trigger tags',
+            'servers_not_found': isSpanish ? 'Servidores NO encontrados' : 'Servers NOT found',
+            'groups_not_found': isSpanish ? 'Grupos NO encontrados' : 'Groups NOT found',
+            'period': isSpanish ? 'Período' : 'Period',
+            'from': isSpanish ? 'Desde' : 'From',
+            'to': isSpanish ? 'Hasta' : 'To',
+            'description': isSpanish ? 'Descripción' : 'Description',
+            'confidence': isSpanish ? 'Confianza' : 'Confidence',
+            'no_valid_hosts_groups': isSpanish ? 'No se encontraron hosts ni grupos válidos para crear el mantenimiento' : 'No valid hosts or groups found to create maintenance',
+            'no_maintenance_data': isSpanish ? 'No hay datos de mantenimiento para confirmar' : 'No maintenance data to confirm',
+            'error_creating_maintenance': isSpanish ? 'Error al crear mantenimiento' : 'Error creating maintenance',
+            'routine_maintenance_configured': isSpanish ? 'Mantenimiento Rutinario Configurado' : 'Routine Maintenance Configured',
+            'id': isSpanish ? 'ID' : 'ID',
+            'auto_generated': isSpanish ? 'Generado automáticamente' : 'Auto generated',
+            'will_run_automatically': isSpanish ? 'Se ejecutará automáticamente según la configuración' : 'Will run automatically according to configuration',
+            'uses_internal_bitmasks': isSpanish ? 'Usa bitmasks internos para programación precisa' : 'Uses internal bitmasks for precise scheduling',
+            'invalid_server_response': isSpanish ? 'Respuesta inválida del servidor' : 'Invalid server response',
+            'unknown_response': isSpanish ? 'Recibí una respuesta que no pude procesar completamente.' : 'Received a response that could not be processed completely.'
         };
         return translations[key] || key;
     }
@@ -297,13 +331,13 @@ class WidgetAIMaintenance extends CWidget {
         }
 
         if (message.length < 5) {
-            this.addMessage("El mensaje es muy corto. Describe qué tipo de mantenimiento necesitas crear.", 'warning');
+            this.addMessage(this.t('message_too_short'), 'warning');
             this.highlightInput(input);
             return;
         }
 
         if (message.length > 1000) {
-            this.addMessage("El mensaje es muy largo. Por favor, sé más conciso.", 'warning');
+            this.addMessage(this.t('message_too_long'), 'warning');
             return;
         }
 
@@ -315,7 +349,7 @@ class WidgetAIMaintenance extends CWidget {
         input.value = '';
         input.style.height = 'auto';
         this.addMessage(message, 'user');
-        this.showLoading(true, 'Analizando solicitud...');
+        this.showLoading(true, this.t('analyzing_request'));
 
         try {
             const requestData = { 
@@ -331,7 +365,7 @@ class WidgetAIMaintenance extends CWidget {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Error del servidor (${response.status})`);
+                throw new Error(errorData.message || `${this.t('server_error')} (${response.status})`);
             }
 
             const data = await response.json();
@@ -363,7 +397,7 @@ class WidgetAIMaintenance extends CWidget {
         } catch (error) {
             clearTimeout(timeoutId);
             if (error.name === 'AbortError') {
-                throw new Error('La solicitud tardó demasiado tiempo. Intenta de nuevo.');
+                throw new Error(this.t('request_timeout'));
             }
             throw error;
         }
@@ -386,7 +420,7 @@ class WidgetAIMaintenance extends CWidget {
             
             this.retry_count++;
             this.addMessage(
-                `Error de conexión (intento ${this.retry_count}/${this.max_retries + 1}). Reintentando...`,
+                `${this.t('connection_error')} ${this.retry_count}/${this.max_retries + 1}). ${this.t('retrying')}`,
                 'warning'
             );
             
@@ -400,7 +434,7 @@ class WidgetAIMaintenance extends CWidget {
         } else {
             this.retry_count = 0;
             const errorMessage = error.message.includes('fetch') 
-                ? "No se pudo conectar con el backend. Verifica que el servicio esté funcionando."
+                ? this.t('could_not_connect_backend')
                 : `Error: ${error.message}`;
             
             this.addMessage(`${errorMessage}`, 'error');
@@ -409,7 +443,7 @@ class WidgetAIMaintenance extends CWidget {
 
     handleInteractiveResponse(data) {
         if (!data || typeof data !== 'object') {
-            this.addMessage("Respuesta inválida del servidor", 'error');
+            this.addMessage(this.t('invalid_server_response'), 'error');
             return;
         }
 
@@ -444,9 +478,9 @@ class WidgetAIMaintenance extends CWidget {
                 break;
                 
             default:
-                console.warn(`Tipo de respuesta desconocido: ${responseType}`);
+                console.warn(`Unknown response type: ${responseType}`);
                 this.addMessage(
-                    data.message || 'Recibí una respuesta que no pude procesar completamente.', 
+                    data.message || this.t('unknown_response'), 
                     'assistant'
                 );
                 break;
@@ -603,18 +637,18 @@ class WidgetAIMaintenance extends CWidget {
 
     async onConfirmMaintenance() {
         if (!this.current_parsed_data) {
-            this.addMessage("No hay datos de mantenimiento para confirmar", 'error');
+            this.addMessage(this.t('no_maintenance_data'), 'error');
             return;
         }
         
         const hasValidTargets = this.hasValidTargets(this.current_parsed_data);
         
         if (!hasValidTargets) {
-            this.addMessage('No hay hosts ni grupos válidos para crear el mantenimiento', 'error');
+            this.addMessage(this.t('no_valid_hosts_groups'), 'error');
             return;
         }
         
-        this.showLoading(true, 'Creando mantenimiento...');
+        this.showLoading(true, this.t('creating_maintenance'));
         
         try {
             const maintenanceData = {
@@ -649,7 +683,7 @@ class WidgetAIMaintenance extends CWidget {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Error del servidor (${response.status})`);
+                throw new Error(errorData.message || `${this.t('server_error')} (${response.status})`);
             }
 
             const data = await response.json();            
@@ -658,11 +692,11 @@ class WidgetAIMaintenance extends CWidget {
             
             if (data.is_routine) {
                 this.addMessage(
-                    `**Mantenimiento Rutinario Configurado**\n` +
-                    `• Tipo: ${data.recurrence_type}\n` +
-                    `• ID: ${data.maintenance_id || 'Generado automáticamente'}\n` +
-                    `• Se ejecutará automáticamente según la configuración\n` +
-                    `• Usa bitmasks internos para programación precisa`,
+                    `**${this.t('routine_maintenance_configured')}**\n` +
+                    `• ${this.t('type')}: ${data.recurrence_type}\n` +
+                    `• ${this.t('id')}: ${data.maintenance_id || this.t('auto_generated')}\n` +
+                    `• ${this.t('will_run_automatically')}\n` +
+                    `• ${this.t('uses_internal_bitmasks')}`,
                     'info'
                 );
             }
@@ -670,9 +704,9 @@ class WidgetAIMaintenance extends CWidget {
             this.updateMaintenanceList();
 
         } catch (error) {
-            console.error("Error creando mantenimiento:", error);
+            console.error("Error creating maintenance:", error);
             this.addMessage(
-                `Error al crear mantenimiento: ${error.message}`,
+                `${this.t('error_creating_maintenance')}: ${error.message}`,
                 'error'
             );
         } finally {
