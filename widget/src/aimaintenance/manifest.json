@@ -1,0 +1,27 @@
+{
+    "manifest_version": "2.0",
+    "id": "aimaintenance",
+    "type": "widget",
+    "name": "AI Maintenance Assistant",
+    "namespace": "AIMaintenance",
+    "version": "1.1.0",
+    "author": "Grover T.",
+    "support": "Zabbix 7.2+",
+    "actions": {
+        "widget.aimaintenance.view": {
+            "class": "WidgetView",
+            "view": "widget.view"
+        }
+    },
+    "widget": {
+        "js_class": "WidgetAIMaintenance",
+        "size": {
+            "min_width": 4,
+            "min_height": 3
+        }
+    },
+    "assets": {
+        "css": ["widget.css"],
+        "js": ["class.widget.js"]
+    }
+}
