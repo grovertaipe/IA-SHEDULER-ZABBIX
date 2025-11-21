@@ -1,14 +1,14 @@
 """
 AI Maintenance Assistant for Zabbix 7.2
-Asistente Interactivo de Mantenimiento con IA
+Interactive AI Maintenance Assistant
 
-Desarrollado por: Grover T.
-Fecha: 2025
-Versión: 1.7.0
+Developed by: Grover T.
+Date: 2025
+Version: 1.7.0
 
-Sistema interactivo para crear mantenimientos en Zabbix usando IA.
-Soporta mantenimientos únicos y rutinarios (diarios, semanales, mensuales)
-con gestión avanzada de tickets y bitmasks.
+Interactive system for creating Zabbix maintenances using AI.
+Supports one-time and routine maintenances (daily, weekly, monthly)
+with advanced ticket and bitmask management.
 """
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -22,14 +22,14 @@ from typing import List
 import html
 from urllib.parse import urlparse
 
-# ----- Configuración de Logging -----
+# ----- Logging Configuration -----
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
     level=getattr(logging, log_level, logging.INFO),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        # En producción, agregar FileHandler si es necesario
+        # In production, add FileHandler if needed
     ]
 )
 logger = logging.getLogger(__name__)
@@ -38,20 +38,20 @@ logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
-# ----- Configuración de Variables -----
+# ----- Variable Configuration -----
 ZABBIX_API_URL = os.getenv("ZABBIX_API_URL", "http://http://10.100.13.79/zabbix/api_jsonrpc.php")
 ZABBIX_TOKEN = os.getenv("ZABBIX_TOKEN", "21c16f09a9934e3ffdb602273c73603da0f463d6e7ea4ae1c244d382bfe3a64d")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").strip().lower()  # "gemini" | "openai"
 
-# Configuración para OpenAI
+# OpenAI Configuration
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "")
 
-# Configuración para Gemini
+# Gemini Configuration
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyDUZRcs89RqQJbtIy2EER8_iRWesmHXP7A")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
-# ----- Inicialización de la IA -----
+# ----- AI Initialization -----
 openai_client = None
 gemini_model = None
 loaded_provider = None
@@ -62,11 +62,11 @@ if AI_PROVIDER == "openai":
         if OPENAI_API_KEY:
             openai_client = OpenAI(api_key=OPENAI_API_KEY)
             loaded_provider = "openai"
-            logger.info(f"OpenAI configurado. Modelo: {OPENAI_MODEL}")
+            logger.info(f"OpenAI configured. Model: {OPENAI_MODEL}")
         else:
-            logger.error("Falta OPENAI_API_KEY para usar OpenAI")
+            logger.error("Missing OPENAI_API_KEY for OpenAI usage")
     except Exception as e:
-        logger.error(f"Error inicializando OpenAI: {e}")
+        logger.error(f"Error initializing OpenAI: {e}")
 
 elif AI_PROVIDER == "gemini":
     try:
@@ -75,32 +75,32 @@ elif AI_PROVIDER == "gemini":
             genai.configure(api_key=GEMINI_API_KEY)
             gemini_model = genai.GenerativeModel(GEMINI_MODEL)
             loaded_provider = "gemini"
-            logger.info(f"Gemini configurado. Modelo: {GEMINI_MODEL}")
+            logger.info(f"Gemini configured. Model: {GEMINI_MODEL}")
         else:
-            logger.error("Falta GOOGLE_API_KEY para usar Gemini")
+            logger.error("Missing GOOGLE_API_KEY for Gemini usage")
     except Exception as e:
-        logger.error(f"Error inicializando Gemini: {e}")
+        logger.error(f"Error initializing Gemini: {e}")
 else:
-    logger.error(f"Proveedor de IA no soportado: {AI_PROVIDER}")
+    logger.error(f"Unsupported AI provider: {AI_PROVIDER}")
 
 app = Flask(__name__)
 
-# Configuración de CORS más segura
+# More secure CORS configuration
 CORS(app, 
-     origins=["*"],  # En producción, especificar dominios exactos
+     origins=["*"],  # In production, specify exact domains
      methods=["GET", "POST", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization"],
      supports_credentials=False,
      max_age=3600
 )
 
-# Configuración de seguridad adicional
+# Additional security configuration
 app.config['JSON_SORT_KEYS'] = False
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
 # ----- Clase para la API de Zabbix (7.2) -----
 class ZabbixAPI:
-    """Clase para interactuar con la API de Zabbix 7.2"""
+    """Class to interact with Zabbix 7.2 API"""
     
     def __init__(self, url: str, token: str):
         self.url = url
@@ -111,13 +111,13 @@ class ZabbixAPI:
         }
     
     def _make_request(self, method: str, params: dict) -> dict:
-        """Método base para llamadas a la API"""
-        # Validar parámetros de entrada
+        """Base method for API calls"""
+        # Validate input parameters
         if not isinstance(method, str) or not method:
-            raise ValueError("Método debe ser una cadena no vacía")
+            raise ValueError("Method must be a non-empty string")
         
         if not isinstance(params, dict):
-            raise ValueError("Parámetros deben ser un diccionario")
+            raise ValueError("Parameters must be a dictionary")
         
         payload = {
             "jsonrpc": "2.0",
@@ -127,8 +127,8 @@ class ZabbixAPI:
         }
         
         try:
-            logger.info(f"Llamada API: {method}")
-            logger.debug(f"Parámetros: {params}")
+            logger.info(f"API call: {method}")
+            logger.debug(f"Parameters: {params}")
             
             response = requests.post(
                 self.url, 
@@ -146,33 +146,33 @@ class ZabbixAPI:
             try:
                 result = response.json()
             except json.JSONDecodeError as e:
-                logger.error(f"Error decodificando JSON: {e}")
-                logger.error(f"Respuesta cruda: {response.text[:500]}")
-                return {"error": "Respuesta inválida del servidor Zabbix"}
+                logger.error(f"Error decoding JSON: {e}")
+                logger.error(f"Raw response: {response.text[:500]}")
+                return {"error": "Invalid response from Zabbix server"}
             
             if "error" in result:
                 error_info = result["error"]
                 logger.error(f"Error API Zabbix: {error_info}")
                 return {"error": error_info}
             
-            logger.debug(f"Respuesta exitosa para {method}")
+            logger.debug(f"Successful response for {method}")
             return result
             
         except requests.exceptions.Timeout:
-            logger.error(f"Timeout en llamada a {method}")
-            return {"error": "Timeout conectando con Zabbix"}
+            logger.error(f"Timeout in call to {method}")
+            return {"error": "Timeout connecting to Zabbix"}
         except requests.exceptions.ConnectionError:
-            logger.error(f"Error de conexión a Zabbix: {self.url}")
-            return {"error": "No se puede conectar con el servidor Zabbix"}
+            logger.error(f"Connection error to Zabbix: {self.url}")
+            return {"error": "Cannot connect to Zabbix server"}
         except requests.exceptions.RequestException as e:
-            logger.error(f"Error en solicitud a {method}: {str(e)}")
-            return {"error": f"Error de red: {str(e)}"}
+            logger.error(f"Request error to {method}: {str(e)}")
+            return {"error": f"Network error: {str(e)}"}
         except Exception as e:
-            logger.error(f"Error inesperado en {method}: {str(e)}")
-            return {"error": f"Error interno: {str(e)}"}
+            logger.error(f"Unexpected error in {method}: {str(e)}")
+            return {"error": f"Internal error: {str(e)}"}
     
     def get_hosts(self, host_names: List[str]) -> List[dict]:
-        """Obtener información de hosts por nombre"""
+        """Get host information by name"""
         if not host_names:
             return []
             
@@ -184,15 +184,15 @@ class ZabbixAPI:
         result = self._make_request("host.get", params)
         
         if "error" in result:
-            logger.error(f"Error obteniendo hosts: {result['error']}")
+            logger.error(f"Error getting hosts: {result['error']}")
             return []
         
         hosts = result.get("result", [])
-        logger.info(f"Hosts encontrados: {len(hosts)}")
+        logger.info(f"Hosts found: {len(hosts)}")
         return hosts
     
     def search_hosts(self, search_term: str) -> List[dict]:
-        """Buscar hosts que contengan el término de búsqueda"""
+        """Search hosts containing the search term"""
         params = {
             "output": ["hostid", "host", "name", "status"],
             "search": {"host": search_term, "name": search_term},
@@ -203,13 +203,13 @@ class ZabbixAPI:
         result = self._make_request("host.get", params)
         
         if "error" in result:
-            logger.error(f"Error buscando hosts: {result['error']}")
+            logger.error(f"Error searching hosts: {result['error']}")
             return []
             
         return result.get("result", [])
     
     def get_hosts_by_tags(self, tags: List[dict]) -> List[dict]:
-        """Obtener hosts que coincidan con los tags especificados"""
+        """Get hosts matching specified tags"""
         if not tags:
             return []
             
@@ -222,13 +222,13 @@ class ZabbixAPI:
         result = self._make_request("host.get", params)
         
         if "error" in result:
-            logger.error(f"Error obteniendo hosts por tags: {result['error']}")
+            logger.error(f"Error getting hosts by tags: {result['error']}")
             return []
             
         return result.get("result", [])
     
     def get_hostgroups(self, group_names: List[str]) -> List[dict]:
-        """Obtener información de grupos por nombre"""
+        """Get group information by name"""
         if not group_names:
             return []
             
@@ -240,13 +240,13 @@ class ZabbixAPI:
         result = self._make_request("hostgroup.get", params)
         
         if "error" in result:
-            logger.error(f"Error obteniendo grupos: {result['error']}")
+            logger.error(f"Error getting groups: {result['error']}")
             return []
             
         return result.get("result", [])
     
     def search_hostgroups(self, search_term: str) -> List[dict]:
-        """Buscar grupos que contengan el término de búsqueda"""
+        """Search groups containing the search term"""
         params = {
             "output": ["groupid", "name"],
             "search": {"name": search_term},
@@ -257,34 +257,34 @@ class ZabbixAPI:
         result = self._make_request("hostgroup.get", params)
         
         if "error" in result:
-            logger.error(f"Error buscando grupos: {result['error']}")
+            logger.error(f"Error searching groups: {result['error']}"}
             return []
             
         return result.get("result", [])
     
     def get_hosts_by_groups(self, group_names: List[str]) -> List[dict]:
-        """Obtener hosts pertenecientes a los grupos especificados"""
+        """Get hosts belonging to specified groups"""
         if not group_names:
             return []
             
-        # Primero obtener los IDs de los grupos
+        # First get group IDs
         groups_result = self._make_request("hostgroup.get", {
             "output": ["groupid", "name"],
             "filter": {"name": group_names}
         })
         
         if "error" in groups_result:
-            logger.error(f"Error obteniendo grupos: {groups_result['error']}")
+            logger.error(f"Error getting groups: {groups_result['error']}")
             return []
         
         groups = groups_result.get("result", [])
         if not groups:
-            logger.warning(f"No se encontraron grupos: {group_names}")
+            logger.warning(f"No groups found: {group_names}")
             return []
         
         group_ids = [g["groupid"] for g in groups]
         
-        # Obtener hosts de esos grupos
+        # Get hosts from those groups
         params = {
             "output": ["hostid", "host", "name", "status"],
             "groupids": group_ids
@@ -293,7 +293,7 @@ class ZabbixAPI:
         result = self._make_request("host.get", params)
         
         if "error" in result:
-            logger.error(f"Error obteniendo hosts por grupos: {result['error']}")
+            logger.error(f"Error getting hosts by groups: {result['error']}")
             return []
             
         return result.get("result", [])
@@ -304,11 +304,11 @@ class ZabbixAPI:
                          tags: List[dict] = None, recurrence_type: str = "once",
                          recurrence_config: dict = None) -> dict:
         """
-        Crear un periodo de mantenimiento en Zabbix 7.2
-        Soporta mantenimientos únicos y recurrentes
+        Create a maintenance period in Zabbix 7.2
+        Supports one-time and recurring maintenances
         
         recurrence_type: "once", "daily", "weekly", "monthly"
-        recurrence_config: configuración específica para recurrencia
+        recurrence_config: specific configuration for recurrence
         """
         try:
             params = {
@@ -319,9 +319,9 @@ class ZabbixAPI:
                 "maintenance_type": 0,  # con recolección de datos
             }
             
-            # Configurar períodos de tiempo según el tipo de recurrencia
+            # Configure time periods according to recurrence type
             if recurrence_type == "once":
-                # Mantenimiento único
+                # One-time maintenance
                 params["timeperiods"] = [{
                     "timeperiod_type": 0,  # período único
                     "start_date": start_time,
@@ -329,9 +329,9 @@ class ZabbixAPI:
                 }]
                 
             elif recurrence_type == "daily":
-                # Mantenimiento diario
+                # Daily maintenance
                 if not recurrence_config:
-                    raise ValueError("Se requiere recurrence_config para mantenimientos diarios")
+                    raise ValueError("recurrence_config required for daily maintenances")
                     
                 params["timeperiods"] = [{
                     "timeperiod_type": 2,  # diario
@@ -341,9 +341,9 @@ class ZabbixAPI:
                 }]
                 
             elif recurrence_type == "weekly":
-                # Mantenimiento semanal
+                # Weekly maintenance
                 if not recurrence_config:
-                    raise ValueError("Se requiere recurrence_config para mantenimientos semanales")                
+                    raise ValueError("recurrence_config required for weekly maintenances")                
                 
                 dayofweek_bitmask = recurrence_config.get("dayofweek", 1)
                 
@@ -356,9 +356,9 @@ class ZabbixAPI:
                 }]
                 
             elif recurrence_type == "monthly":
-                # Mantenimiento mensual
+                # Monthly maintenance
                 if not recurrence_config:
-                    raise ValueError("Se requiere recurrence_config para mantenimientos mensuales")
+                    raise ValueError("recurrence_config required for monthly maintenances")
                 
                 timeperiod = {
                     "timeperiod_type": 4,  # mensual
@@ -367,47 +367,47 @@ class ZabbixAPI:
                     "month": recurrence_config.get("month", 4095),
                 }
                 
-                # Determinar si es por día del mes o día de la semana
+                # Determine if by day of month or day of week
                 if "day" in recurrence_config: 
-                    # Por día específico del mes (ej: día 5 de cada mes)
+                    # By specific day of month (e.g.: day 5 of each month)
                     timeperiod["day"] = recurrence_config["day"]
-                    timeperiod["every"] = recurrence_config.get("every", 1)  # Cada X meses
+                    timeperiod["every"] = recurrence_config.get("every", 1)  # Every X months
                     
                 elif "dayofweek" in recurrence_config:                    
                     timeperiod["dayofweek"] = recurrence_config["dayofweek"]  
                     timeperiod["every"] = recurrence_config.get("every", 1)  
                     
                 else:
-                    # Por defecto, primer día del mes
+                    # Default, first day of month
                     timeperiod["day"] = 1
                     timeperiod["every"] = recurrence_config.get("every", 1)
                 
                 params["timeperiods"] = [timeperiod]
             
             else:
-                raise ValueError(f"Tipo de recurrencia no soportado: {recurrence_type}")
+                raise ValueError(f"Unsupported recurrence type: {recurrence_type}")
             
-            # Agregar hosts específicos si se proporcionan
+            # Add specific hosts if provided
             if host_ids:
                 params["hosts"] = [{"hostid": hid} for hid in host_ids]
             
-            # Agregar grupos si se proporcionan
+            # Add groups if provided
             if group_ids:
                 params["groups"] = [{"groupid": gid} for gid in group_ids]
             
-            # Agregar tags específicos para el mantenimiento si se proporcionan
+            # Add specific tags for maintenance if provided
             if tags:
                 params["tags"] = tags
             
-            logger.info(f"Creando mantenimiento con parámetros: {json.dumps(params, indent=2)}")
+            logger.info(f"Creating maintenance with parameters: {json.dumps(params, indent=2)}")
             return self._make_request("maintenance.create", params)
             
         except Exception as e:
-            logger.error(f"Error preparando parámetros de mantenimiento: {str(e)}")
-            return {"error": f"Error en configuración: {str(e)}"}
+            logger.error(f"Error preparing maintenance parameters: {str(e)}")
+            return {"error": f"Configuration error: {str(e)}"}
 
     def test_connection(self) -> dict:
-        """Probar la conexión a la API"""
+        """Test API connection"""
         try:
             result = self._make_request("user.get", {
                 "output": ["userid", "username"],
@@ -415,45 +415,45 @@ class ZabbixAPI:
             })
             
             if "error" not in result and "result" in result:
-                logger.info("Conexión a Zabbix exitosa")
+                logger.info("Successful Zabbix connection")
             
             return result
         except Exception as e:
-            logger.error(f"Error probando conexión: {str(e)}")
-            return {"error": f"Error de conexión: {str(e)}"}
+            logger.error(f"Error testing connection: {str(e)}")
+            return {"error": f"Connection error: {str(e)}"}
 
 
-# ----- Funciones auxiliares -----
+# ----- Auxiliary Functions -----
 def safe_strip(value, default=""):
-    """Función auxiliar para hacer strip() de forma segura"""
+    """Auxiliary function to safely strip() values"""
     if value is None:
         return default
     return str(value).strip()
 
 def validate_and_sanitize_input(data: dict) -> dict:
-    """Valida y sanitiza los datos de entrada"""
+    """Validates and sanitizes input data"""
     if not isinstance(data, dict):
-        raise ValueError("Los datos deben ser un diccionario")
+        raise ValueError("Data must be a dictionary")
     
     sanitized = {}
     
     for key, value in data.items():
-        # Validar claves
+        # Validate keys
         if not isinstance(key, str) or len(key) > 100:
-            raise ValueError(f"Clave inválida: {key}")
+            raise ValueError(f"Invalid key: {key}")
         
-        # Sanitizar valores según el tipo
+        # Sanitize values by type
         if isinstance(value, str):
-            # Limitar longitud
+            # Limit length
             if len(value) > 10000:
-                raise ValueError(f"Valor demasiado largo para {key}")
+                raise ValueError(f"Value too long for {key}")
             
-            # Sanitizar HTML
+            # Sanitize HTML
             sanitized_value = html.escape(value.strip())
             
-            # Validaciones específicas por campo
+            # Field-specific validations
             if key in ['message', 'description']:
-                # Validar contenido malicioso
+                # Validate malicious content
                 dangerous_patterns = [
                     r'<script[^>]*>.*?</script>',
                     r'javascript:',
@@ -466,18 +466,18 @@ def validate_and_sanitize_input(data: dict) -> dict:
                 
                 for pattern in dangerous_patterns:
                     if re.search(pattern, value, re.IGNORECASE):
-                        raise ValueError(f"Contenido no permitido en {key}")
+                        raise ValueError(f"Content not allowed in {key}")
             
             sanitized[key] = sanitized_value
             
         elif isinstance(value, (int, float)):
-            # Validar rangos numéricos
+            # Validate numeric ranges
             if key in ['confidence'] and not (0 <= value <= 100):
-                raise ValueError(f"Valor fuera de rango para {key}: {value}")
+                raise ValueError(f"Value out of range for {key}: {value}")
             sanitized[key] = value
             
         elif isinstance(value, (list, dict)):
-            # Recursivo para estructuras anidadas
+            # Recursive for nested structures
             if isinstance(value, dict):
                 sanitized[key] = validate_and_sanitize_input(value)
             else:
@@ -488,36 +488,36 @@ def validate_and_sanitize_input(data: dict) -> dict:
     return sanitized
 
 def validate_maintenance_request(data: dict) -> dict:
-    """Valida específicamente solicitudes de mantenimiento"""
+    """Specifically validates maintenance requests"""
     required_fields = ['start_time', 'end_time', 'recurrence_type']
     
     for field in required_fields:
         if field not in data:
-            raise ValueError(f"Campo requerido faltante: {field}")
+            raise ValueError(f"Missing required field: {field}")
     
-    # Validar formato de fechas
+    # Validate date format
     try:
         datetime.datetime.strptime(data['start_time'], '%Y-%m-%d %H:%M')
         datetime.datetime.strptime(data['end_time'], '%Y-%m-%d %H:%M')
     except ValueError:
-        raise ValueError("Formato de fecha inválido. Use YYYY-MM-DD HH:MM")
+        raise ValueError("Invalid date format. Use YYYY-MM-DD HH:MM")
     
-    # Validar tipo de recurrencia
+    # Validate recurrence type
     valid_recurrence = ['once', 'daily', 'weekly', 'monthly']
     if data['recurrence_type'] not in valid_recurrence:
-        raise ValueError(f"Tipo de recurrencia inválido: {data['recurrence_type']}")
+        raise ValueError(f"Invalid recurrence type: {data['recurrence_type']}")
     
     return data
 
 def generate_maintenance_description(parsed_data: dict, user_info: dict = None) -> str:
     """
-    Genera la descripción del mantenimiento incluyendo información del ticket y del usuario
-    en un formato ordenado (cada dato en su propia línea).
+    Generates maintenance description including ticket and user information
+    in an ordered format (each data on its own line).
     """
     import re
 
-    # Descripción base
-    description = parsed_data.get("description", "Mantenimiento creado via AI Widget")
+    # Base description
+    description = parsed_data.get("description", "Maintenance created via AI Widget")
     ticket_number = safe_strip(parsed_data.get("ticket_number"))
     ticket_inline_pattern = re.compile(
         r'\s*[-–—]?\s*Ticket:\s*\d{3}-\d{3,6}\s*',
@@ -532,7 +532,7 @@ def generate_maintenance_description(parsed_data: dict, user_info: dict = None) 
             ticket_number = m.group(1)
 
     # 3) Ensamblar en líneas separadas
-    lines = [cleaned_description if cleaned_description else "Mantenimiento creado via AI Widget"]
+    lines = [cleaned_description if cleaned_description else "Maintenance created via AI Widget"]
 
     # Agregar ticket si existe (y ya no está embebido)
     if ticket_number:
@@ -548,7 +548,7 @@ def generate_maintenance_description(parsed_data: dict, user_info: dict = None) 
             user_display = user_info.get("username", "Usuario desconocido")
 
         # Agregar usuario al final, en una nueva línea
-        lines.append(f"Usuario: {user_display}")
+        lines.append(f"User: {user_display}")
 
     # 4) Retornar todas las líneas unidas con salto de línea
     return "\n".join(lines)
@@ -625,16 +625,16 @@ class AIParser:
         tomorrow_date = (datetime.datetime.now() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
         
         return f"""
-Eres un asistente especializado en Zabbix que ayuda a crear mantenimientos. Eres amigable, útil y conversacional.
+You are a specialized Zabbix assistant that helps create maintenances. You are friendly, helpful and conversational. IMPORTANT: Always respond in the same language the user writes to you.
 
 FECHA ACTUAL: {current_date}
 FECHA MAÑANA: {tomorrow_date}
 
 MENSAJE DEL USUARIO: "{user_text}"
 
-IMPORTANTE: Para mantenimientos rutinarios, construye DIRECTAMENTE el JSON con los cálculos correctos de bitmasks.
+IMPORTANT: For routine maintenances, build the JSON DIRECTLY with correct bitmask calculations.
 
-TERMINOLOGÍA DE EQUIPOS - Reconoce estos términos como servidores/hosts:
+EQUIPMENT TERMINOLOGY - Recognize these terms as servers/hosts:
 - CI's, CIs, Configuration Items
 - Servidores, servers, srv
 - Equipos, hosts, máquinas
@@ -643,10 +643,10 @@ TERMINOLOGÍA DE EQUIPOS - Reconoce estos términos como servidores/hosts:
 - Instancias, instances
 - Appliances, appliance
 
-ANÁLISIS DEL MENSAJE:
-Determina qué tipo de mensaje es y responde apropiadamente:
+MESSAGE ANALYSIS:
+Determine what type of message it is and respond appropriately:
 
-1. **SOLICITUD DE MANTENIMIENTO VÁLIDA**: Si el usuario pide crear un mantenimiento, responde con JSON:
+1. **VALID MAINTENANCE REQUEST**: If user asks to create a maintenance, respond with JSON:
 ```json
 {{
   "type": "maintenance_request",
@@ -664,7 +664,7 @@ Determina qué tipo de mensaje es y responde apropiadamente:
 }}
 ```
 
-CONFIGURACIÓN DE RECURRENCIA RUTINARIA:
+ROUTINE RECURRENCE CONFIGURATION:
 
 Para "daily":
 {{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "every": cada_x_días}}
@@ -672,7 +672,7 @@ Para "daily":
 Para "weekly" - CALCULA DIRECTAMENTE EL BITMASK:
 {{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "dayofweek": bitmask_calculado, "every": cada_x_semanas}}
 
-BITMASKS DE DÍAS (USA ESTOS VALORES EXACTOS):
+DAY BITMASKS (USE THESE EXACT VALUES):
 - Lunes: 1
 - Martes: 2  
 - Miércoles: 4
@@ -681,7 +681,7 @@ BITMASKS DE DÍAS (USA ESTOS VALORES EXACTOS):
 - Sábado: 32
 - Domingo: 64
 
-EJEMPLOS DE CÁLCULO DE BITMASKS:
+BITMASK CALCULATION EXAMPLES:
 - Solo lunes: dayofweek = 1
 - Solo jueves: dayofweek = 8
 - Solo viernes: dayofweek = 16
@@ -697,25 +697,25 @@ Para "monthly" - DÍA ESPECÍFICO DEL MES (Day of month):
 Para "monthly" - DÍA DE SEMANA ESPECÍFICO (Day of week):
 {{"start_time": segundos_desde_medianoche, "duration": duración_en_segundos, "dayofweek": bitmask_día, "every": ocurrencia_semana, "month": bitmask_meses}}
 
-OCURRENCIAS DE SEMANA para "day of week" (USA ESTOS VALORES EXACTOS):
+WEEK OCCURRENCES for "day of week" (USE THESE EXACT VALUES):
 - Primera semana (first): every = 1
 - Segunda semana (second): every = 2  
 - Tercera semana (third): every = 3
 - Cuarta semana (fourth): every = 4
 - Última semana (last): every = 5
 
-MÚLTIPLES OCURRENCIAS (Para casos como "segundo y cuarto lunes"):
+MULTIPLE OCCURRENCES (For cases like "second and fourth Monday"):
 - Para múltiples ocurrencias, suma los valores como bitmask:
 - Segunda Y cuarta semana: every = 2 + 4 = 6
 - Primera, tercera Y quinta semana: every = 1 + 3 + 5 = 9
 - Todas las semanas: every = 1 + 2 + 3 + 4 + 5 = 15
 
-BITMASKS DE MESES - CALCULA DIRECTAMENTE (USA ESTOS VALORES EXACTOS):
+MONTH BITMASKS - CALCULATE DIRECTLY (USE THESE EXACT VALUES):
 - Enero: 1, Febrero: 2, Marzo: 4, Abril: 8, Mayo: 16, Junio: 32
 - Julio: 64, Agosto: 128, Septiembre: 256, Octubre: 512, Noviembre: 1024, Diciembre: 2048
 - Todos los meses: 4095 (suma de todos)
 
-EJEMPLOS DE CÁLCULO DE BITMASKS DE MESES:
+MONTH BITMASK CALCULATION EXAMPLES:
 - Solo enero: month = 1
 - Solo agosto: month = 128
 - Enero y marzo: month = 1 + 4 = 5
@@ -726,7 +726,7 @@ EJEMPLOS DE CÁLCULO DE BITMASKS DE MESES:
 - Solo meses impares: month = 1 + 4 + 16 + 64 + 256 + 1024 = 1365
 - Todos los meses: month = 4095
 
-EJEMPLOS ESPECÍFICOS DE CONFIGURACIÓN:
+SPECIFIC CONFIGURATION EXAMPLES:
 
 **"Mantenimiento rutinario semanal los días jueves y viernes de 5 a 7 am":**
 ```json
@@ -864,7 +864,7 @@ EJEMPLOS ESPECÍFICOS DE CONFIGURACIÓN:
 }}
 ```
 
-REGLAS IMPORTANTES:
+IMPORTANT RULES:
 - Siempre calcula los bitmasks directamente en el JSON
 - Para múltiples días, suma los valores de bitmask
 - Para múltiples meses, suma los valores de bitmask de meses
@@ -873,14 +873,14 @@ REGLAS IMPORTANTES:
 - Si detectas "mañana" usar {tomorrow_date}, si detectas "hoy" usar {current_date}
 
 
-FORMATOS DE FECHA QUE DEBES RECONOCER:
+DATE FORMATS YOU MUST RECOGNIZE:
 - "24/08/25 10:00am" = "2025-08-24 10:00"
 - "24/08/2025 16:50" = "2025-08-24 16:50" 
 - "desde 10:00 hasta 16:50" = usar fecha actual con esas horas
 - "mañana de 8 a 10" = usar {tomorrow_date} con esas horas
 - "hoy de 14 a 16" = usar {current_date} con esas horas
 
-EJEMPLOS CON TERMINOLOGÍA DE INFRAESTRUCTURA:
+EXAMPLES WITH INFRASTRUCTURE TERMINOLOGY:
 **"Programar mantenimiento del CI srv-tuxito desde 24/08/25 10:00am hasta 16:50":**
 ```json
 {{
