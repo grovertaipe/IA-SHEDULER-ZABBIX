@@ -39,8 +39,8 @@ logging.getLogger('requests').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
 
 # ----- Variable Configuration -----
-ZABBIX_API_URL = os.getenv("ZABBIX_API_URL", "http://http://10.100.13.79/zabbix/api_jsonrpc.php")
-ZABBIX_TOKEN = os.getenv("ZABBIX_TOKEN", "21c16f09a9934e3ffdb602273c73603da0f463d6e7ea4ae1c244d382bfe3a64d")
+ZABBIX_API_URL = os.getenv("ZABBIX_API_URL", "http://zabbix.com/api_jsonrpc.php")
+ZABBIX_TOKEN = os.getenv("ZABBIX_TOKEN", "")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini").strip().lower()  # "gemini" | "openai"
 
 # OpenAI Configuration
@@ -48,8 +48,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "")
 
 # Gemini Configuration
-GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY", "AIzaSyDUZRcs89RqQJbtIy2EER8_iRWesmHXP7A")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "")
 
 # ----- AI Initialization -----
 openai_client = None
@@ -257,7 +257,7 @@ class ZabbixAPI:
         result = self._make_request("hostgroup.get", params)
         
         if "error" in result:
-            logger.error(f"Error searching groups: {result['error']}"}
+            logger.error(f"Error searching groups: {result['error']}")
             return []
             
         return result.get("result", [])
