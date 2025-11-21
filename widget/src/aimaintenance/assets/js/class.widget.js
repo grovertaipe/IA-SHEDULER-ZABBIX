@@ -9,8 +9,7 @@ class WidgetAIMaintenance extends CWidget {
         this.request_timeout = 60000; // 60 seconds
         this.retry_count = 0;
         this.max_retries = 2;
-        this.translations = {};
-        this.currentLang = 'en';
+        this.currentLang = this.getZabbixLocale();
     }
 
     processUpdateResponse(response) {
@@ -31,18 +30,6 @@ class WidgetAIMaintenance extends CWidget {
 
     setContents(response) {
         super.setContents(response);
-        this.loadTranslations();
-    }
-
-    async loadTranslations() {
-        this.currentLang = this.getZabbixLocale();
-        try {
-            const response = await fetch(`widgets/aimaintenance/locale/${this.currentLang}.json`);
-            this.translations = await response.json();
-        } catch (error) {
-            // Fallback translations
-            this.translations = this.getFallbackTranslations();
-        }
         this.setupEventListeners();
         this.loadMaintenanceTemplates();
         this.checkBackendConnection();
@@ -61,10 +48,9 @@ class WidgetAIMaintenance extends CWidget {
         return 'en';
     }
 
-    getFallbackTranslations() {
+    t(key) {
         const isSpanish = this.currentLang === 'es';
-        return {
-            'system_status': isSpanish ? 'Estado del Sistema' : 'System Status',
+        const translations = {
             'backend_unavailable': isSpanish ? 'Backend no disponible' : 'Backend unavailable',
             'connected': isSpanish ? 'Conectado' : 'Connected',
             'disconnected': isSpanish ? 'Desconectado' : 'Disconnected',
@@ -75,8 +61,6 @@ class WidgetAIMaintenance extends CWidget {
             'system_connected': isSpanish ? 'Sistema Conectado' : 'System Connected',
             'routines': isSpanish ? 'Rutinarios' : 'Routines',
             'tickets': isSpanish ? 'Tickets' : 'Tickets',
-            'could_not_verify_backend': isSpanish ? 'No se pudo verificar la conexión con el backend.' : 'Could not verify backend connection.',
-            'functions_may_be_limited': isSpanish ? 'Las funciones pueden estar limitadas hasta que se restablezca la conexión.' : 'Functions may be limited until connection is restored.',
             'templates_not_available': isSpanish ? 'Las plantillas no están disponibles en este momento.' : 'Templates are not available at this time.',
             'routine_maintenance_examples': isSpanish ? 'Ejemplos de mantenimientos rutinarios:' : 'Routine maintenance examples:',
             'daily': isSpanish ? 'Diario' : 'Daily',
@@ -95,54 +79,9 @@ class WidgetAIMaintenance extends CWidget {
             'connection_error': isSpanish ? 'Error de conexión (intento' : 'Connection error (attempt',
             'retrying': isSpanish ? 'Reintentando...' : 'Retrying...',
             'could_not_connect_backend': isSpanish ? 'No se pudo conectar con el backend. Verifica que el servicio esté funcionando.' : 'Could not connect to backend. Verify that the service is running.',
-            'invalid_server_response': isSpanish ? 'Respuesta inválida del servidor' : 'Invalid server response',
-            'unknown_response': isSpanish ? 'Recibí una respuesta que no pude procesar completamente.' : 'Received a response that could not be processed completely.',
-            'detected_information': isSpanish ? 'Información detectada:' : 'Detected information:',
-            'analysis_completed': isSpanish ? 'Análisis completado' : 'Analysis completed',
-            'ticket': isSpanish ? 'Ticket' : 'Ticket',
-            'type': isSpanish ? 'Tipo' : 'Type',
-            'routine': isSpanish ? 'Rutinario' : 'Routine',
-            'unique': isSpanish ? 'Único' : 'Unique',
-            'configuration': isSpanish ? 'Configuración' : 'Configuration',
-            'summary': isSpanish ? 'Resumen:' : 'Summary:',
-            'hosts_found': isSpanish ? 'Hosts encontrados' : 'Hosts found',
-            'groups_found': isSpanish ? 'Grupos encontrados' : 'Groups found',
-            'hosts_by_tags': isSpanish ? 'Hosts por tags' : 'Hosts by tags',
-            'with_ticket': isSpanish ? 'Con ticket' : 'With ticket',
-            'routine_maintenance': isSpanish ? 'Mantenimiento rutinario' : 'Routine maintenance',
-            'yes': isSpanish ? 'Sí' : 'Yes',
-            'servers_found': isSpanish ? 'Servidores encontrados' : 'Servers found',
-            'groups_found_list': isSpanish ? 'Grupos encontrados' : 'Groups found',
-            'trigger_tags': isSpanish ? 'Tags de triggers:' : 'Trigger tags:',
-            'servers_not_found': isSpanish ? 'Servidores NO encontrados:' : 'Servers NOT found:',
-            'groups_not_found': isSpanish ? 'Grupos NO encontrados:' : 'Groups NOT found:',
-            'period': isSpanish ? 'Período:' : 'Period:',
-            'from': isSpanish ? 'Desde' : 'From',
-            'to': isSpanish ? 'Hasta' : 'To',
-            'description': isSpanish ? 'Descripción' : 'Description',
-            'confidence': isSpanish ? 'Confianza' : 'Confidence',
-            'no_valid_hosts_groups': isSpanish ? 'No se encontraron hosts ni grupos válidos para crear el mantenimiento' : 'No valid hosts or groups found to create maintenance',
-            'no_maintenance_data': isSpanish ? 'No hay datos de mantenimiento para confirmar' : 'No maintenance data to confirm',
-            'creating_maintenance': isSpanish ? 'Creando mantenimiento...' : 'Creating maintenance...',
-            'error_creating_maintenance': isSpanish ? 'Error al crear mantenimiento' : 'Error creating maintenance',
-            'routine_maintenance_configured': isSpanish ? 'Mantenimiento Rutinario Configurado' : 'Routine Maintenance Configured',
-            'id': isSpanish ? 'ID' : 'ID',
-            'auto_generated': isSpanish ? 'Generado automáticamente' : 'Auto generated',
-            'will_run_automatically': isSpanish ? 'Se ejecutará automáticamente según la configuración' : 'Will run automatically according to configuration',
-            'uses_internal_bitmasks': isSpanish ? 'Usa bitmasks internos para programación precisa' : 'Uses internal bitmasks for precise scheduling',
-            'maintenance_summary': isSpanish ? 'Resumen de mantenimientos:' : 'Maintenance summary:',
-            'unique_maintenances': isSpanish ? 'Únicos' : 'Unique',
-            'routine_maintenances': isSpanish ? 'Rutinarios' : 'Routine',
-            'daily_maintenances': isSpanish ? 'Diarios' : 'Daily',
-            'weekly_maintenances': isSpanish ? 'Semanales' : 'Weekly',
-            'monthly_maintenances': isSpanish ? 'Mensuales' : 'Monthly',
-            'with_tickets': isSpanish ? 'Con tickets' : 'With tickets',
-            'total': isSpanish ? 'Total' : 'Total'
+            'creating_maintenance': isSpanish ? 'Creando mantenimiento...' : 'Creating maintenance...'
         };
-    }
-
-    t(key) {
-        return this.translations[key] || key;
+        return translations[key] || key;
     }
 
     async checkBackendConnection() {
@@ -153,7 +92,7 @@ class WidgetAIMaintenance extends CWidget {
             });
             
             if (!response.ok) {
-                throw new Error(`${this.t('backend_unavailable')} (${response.status})`);
+                throw new Error(`Backend no disponible (${response.status})`);
             }
             
             const data = await response.json();
@@ -161,21 +100,21 @@ class WidgetAIMaintenance extends CWidget {
             if (data.status === 'unhealthy' || data.status === 'degraded') {
                 this.addMessage(
                     `Sistema reporta estado: ${data.status}\n` +
-                    `Estado de Zabbix: ${data.zabbix_connected ? this.t('connected') : this.t('disconnected')}\n` +
-                    `Proveedor IA: ${data.ai_provider || this.t('not_available')}\n` +
-                    `Soporte bitmask: ${data.features?.includes('bitmask_support') ? this.t('enabled') : this.t('disabled')}\n` +
-                    `${data.status === 'degraded' ? this.t('some_functions_limited') : ''}`,
+                    `Estado de Zabbix: ${data.zabbix_connected ? 'Conectado' : 'Desconectado'}\n` +
+                    `Proveedor IA: ${data.ai_provider || 'No disponible'}\n` +
+                    `Soporte bitmask: ${data.features?.includes('bitmask_support') ? 'Habilitado' : 'Deshabilitado'}\n` +
+                    `${data.status === 'degraded' ? 'Algunas funciones pueden estar limitadas.' : ''}`,
                     'warning'
                 );
             } else {
                 const features = data.features || [];
                 this.addMessage(
-                    `${this.t('system_connected')} - v${data.version}\n` +
-                    `Zabbix: ${data.zabbix_connected ? this.t('connected') : this.t('disconnected')}\n` +
+                    `Sistema Conectado - v${data.version}\n` +
+                    `Zabbix: ${data.zabbix_connected ? 'Conectado' : 'Desconectado'}\n` +
                     `IA: ${data.ai_provider}\n` +
-                    `Funciones: ${features.includes('routine_maintenance') ? this.t('routines') : ''} ` +
+                    `Funciones: ${features.includes('routine_maintenance') ? 'Rutinarios' : ''} ` +
                     `${features.includes('bitmask_support') ? 'Bitmask' : ''} ` +
-                    `${features.includes('ticket_support') ? this.t('tickets') : ''}`,
+                    `${features.includes('ticket_support') ? 'Tickets' : ''}`,
                     'success'
                 );
             }
@@ -183,10 +122,10 @@ class WidgetAIMaintenance extends CWidget {
         } catch (error) {
             console.warn("Error verificando conexión con backend:", error);
             this.addMessage(
-                `${this.t('system_status')}:\n` +
-                `${this.t('could_not_verify_backend')}\n` +
+                `Estado del Sistema:\n` +
+                `No se pudo verificar la conexión con el backend.\n` +
                 `URL: ${this.api_url}\n` +
-                `${this.t('functions_may_be_limited')}`,
+                `Las funciones pueden estar limitadas hasta que se restablezca la conexión.`,
                 'info'
             );
         }
@@ -224,10 +163,8 @@ class WidgetAIMaintenance extends CWidget {
 
     clearPlaceholderOnce(event) {
         const input = event.target;
-        if (input.value === '' && input.placeholder.includes('Ex:')) {
-            input.placeholder = this.currentLang === 'es' ? 
-                'Describe el mantenimiento que necesitas...' : 
-                'Describe the maintenance you need...';
+        if (input.value === '' && input.placeholder.includes('Ej:')) {
+            input.placeholder = 'Describe el mantenimiento que necesitas...';
         }
         input.removeEventListener('focus', this.clearPlaceholderOnce);
     }
@@ -272,15 +209,15 @@ class WidgetAIMaintenance extends CWidget {
             if (response.ok) {
                 const templates = await response.json();
                 this.templates = templates.templates;
-                console.log("Templates loaded:", Object.keys(this.templates || {}).length);
+                console.log("Plantillas cargadas:", Object.keys(this.templates || {}).length);
             } else {
-                console.warn(`Error loading templates: ${response.status}`);
+                console.warn(`Error cargando plantillas: ${response.status}`);
             }
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.warn("Timeout loading templates");
+                console.warn("Timeout cargando plantillas");
             } else {
-                console.error("Error loading templates:", error);
+                console.error("Error cargando plantillas:", error);
             }
         }
     }
@@ -288,37 +225,37 @@ class WidgetAIMaintenance extends CWidget {
     showTemplates() {
         if (!this.templates) {
             this.addMessage(
-                `${this.t('templates_not_available')}\n\n` +
-                `**${this.t('routine_maintenance_examples')}**\n` +
-                `• **${this.t('daily')}:** '${this.currentLang === 'es' ? 'backup diario a las 2 AM con ticket 100-178306' : 'daily backup 2 AM ticket 100-178306'}'\n` +
-                `• **${this.t('weekly')}:** '${this.currentLang === 'es' ? 'mantenimiento domingos de 1-3 AM ticket 200-8341' : 'Sunday maintenance 1-3 AM ticket 200-8341'}'\n` +
-                `• **${this.t('monthly_specific_day')}:** '${this.currentLang === 'es' ? 'limpieza día 5 cada mes con ticket 500-43116' : 'cleanup day 5 each month ticket 500-43116'}'\n` +
-                `• **${this.t('monthly_weekday')}:** '${this.currentLang === 'es' ? 'actualización primer domingo cada mes ticket 600-78901' : 'update first Sunday each month ticket 600-78901'}'`,
+                "Las plantillas no están disponibles en este momento.\n\n" +
+                "**Ejemplos de mantenimientos rutinarios:**\n" +
+                "• **Diario:** 'backup diario a las 2 AM con ticket 100-178306'\n" +
+                "• **Semanal:** 'mantenimiento domingos de 1-3 AM ticket 200-8341'\n" +
+                "• **Mensual día específico:** 'limpieza día 5 cada mes con ticket 500-43116'\n" +
+                "• **Mensual día de semana:** 'actualización primer domingo cada mes ticket 600-78901'",
                 'info'
             );
             return;
         }
         
-        let templateMsg = `**${this.t('routine_maintenance_templates')}**\n\n`;
+        let templateMsg = "**Plantillas de Mantenimientos Rutinarios**\n\n";
         
         Object.entries(this.templates).forEach(([type, info]) => {
-            const icon = type === 'daily' ? this.t('daily') : type === 'weekly' ? this.t('weekly') : 'Monthly';
+            const icon = type === 'daily' ? 'Diario' : type === 'weekly' ? 'Semanal' : 'Mensual';
             templateMsg += `${icon} **${info.name}**\n`;
             templateMsg += `${info.description}\n`;
-            templateMsg += `**${this.t('examples')}:**\n`;
+            templateMsg += "**Ejemplos:**\n";
             info.examples.forEach(example => {
                 templateMsg += `• "${example}"\n`;
             });
             templateMsg += "\n";
         });
         
-        templateMsg += `**${this.t('tips_routine_maintenance')}**\n`;
-        templateMsg += `• **${this.t('daily')}:** '${this.currentLang === 'es' ? 'cada día, todos los días, diariamente' : 'every day, daily, each day'}'\n`;
-        templateMsg += `• **${this.t('weekly')}:** '${this.currentLang === 'es' ? 'cada lunes, todos los domingos, semanalmente' : 'every Monday, all Sundays, weekly'}'\n`;
-        templateMsg += `• **Monthly (day):** '${this.currentLang === 'es' ? 'día 5 cada mes, el día 15, día 1 mensualmente' : 'day 5 each month, day 15, day 1 monthly'}'\n`;
-        templateMsg += `• **Monthly (week):** '${this.currentLang === 'es' ? 'primer domingo, segunda semana, último viernes' : 'first Sunday, second week, last Friday'}'\n`;
-        templateMsg += `• **${this.t('tickets')}:** ${this.currentLang === 'es' ? "Incluye siempre números como '100-178306', '200-8341'" : "Always include numbers like '100-178306', '200-8341'"}\n`;
-        templateMsg += `\n**Tip:** ${this.t('routine_bitmask_tip')}`;
+        templateMsg += "**Consejos para mantenimientos rutinarios:**\n";
+        templateMsg += "• **Diarios:** 'cada día', 'todos los días', 'diariamente'\n";
+        templateMsg += "• **Semanales:** 'cada lunes', 'todos los domingos', 'semanalmente'\n";
+        templateMsg += "• **Mensuales (día):** 'día 5 cada mes', 'el día 15', 'día 1 mensualmente'\n";
+        templateMsg += "• **Mensuales (semana):** 'primer domingo', 'segunda semana', 'último viernes'\n";
+        templateMsg += "• **Tickets:** Incluye siempre números como '100-178306', '200-8341'\n";
+        templateMsg += "\n**Tip:** Los mantenimientos rutinarios usan bitmasks internos para una programación precisa.";
         
         this.addMessage(templateMsg, 'info');
     }
@@ -334,13 +271,13 @@ class WidgetAIMaintenance extends CWidget {
         }
 
         if (message.length < 5) {
-            this.addMessage(this.t('message_too_short'), 'warning');
+            this.addMessage("El mensaje es muy corto. Describe qué tipo de mantenimiento necesitas crear.", 'warning');
             this.highlightInput(input);
             return;
         }
 
         if (message.length > 1000) {
-            this.addMessage(this.t('message_too_long'), 'warning');
+            this.addMessage("El mensaje es muy largo. Por favor, sé más conciso.", 'warning');
             return;
         }
 
@@ -352,7 +289,7 @@ class WidgetAIMaintenance extends CWidget {
         input.value = '';
         input.style.height = 'auto';
         this.addMessage(message, 'user');
-        this.showLoading(true, this.t('analyzing_request'));
+        this.showLoading(true, 'Analizando solicitud...');
 
         try {
             const requestData = { 
@@ -368,7 +305,7 @@ class WidgetAIMaintenance extends CWidget {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `${this.t('server_error')} (${response.status})`);
+                throw new Error(errorData.message || `Error del servidor (${response.status})`);
             }
 
             const data = await response.json();
@@ -376,7 +313,7 @@ class WidgetAIMaintenance extends CWidget {
             this.retry_count = 0;
 
         } catch (error) {
-            console.error("Error in onSendMessage:", error);
+            console.error("Error en onSendMessage:", error);
             this.handleRequestError(error, message);
         } finally {
             this.showLoading(false);
@@ -400,7 +337,7 @@ class WidgetAIMaintenance extends CWidget {
         } catch (error) {
             clearTimeout(timeoutId);
             if (error.name === 'AbortError') {
-                throw new Error(this.t('request_timeout'));
+                throw new Error('La solicitud tardó demasiado tiempo. Intenta de nuevo.');
             }
             throw error;
         }
@@ -423,7 +360,7 @@ class WidgetAIMaintenance extends CWidget {
             
             this.retry_count++;
             this.addMessage(
-                `${this.t('connection_error')} ${this.retry_count}/${this.max_retries + 1}). ${this.t('retrying')}`,
+                `Error de conexión (intento ${this.retry_count}/${this.max_retries + 1}). Reintentando...`,
                 'warning'
             );
             
@@ -437,7 +374,7 @@ class WidgetAIMaintenance extends CWidget {
         } else {
             this.retry_count = 0;
             const errorMessage = error.message.includes('fetch') 
-                ? this.t('could_not_connect_backend')
+                ? "No se pudo conectar con el backend. Verifica que el servicio esté funcionando."
                 : `Error: ${error.message}`;
             
             this.addMessage(`${errorMessage}`, 'error');
@@ -446,7 +383,7 @@ class WidgetAIMaintenance extends CWidget {
 
     handleInteractiveResponse(data) {
         if (!data || typeof data !== 'object') {
-            this.addMessage(this.t('invalid_server_response'), 'error');
+            this.addMessage("Respuesta inválida del servidor", 'error');
             return;
         }
 
@@ -481,9 +418,9 @@ class WidgetAIMaintenance extends CWidget {
                 break;
                 
             default:
-                console.warn(`Unknown response type: ${responseType}`);
+                console.warn(`Tipo de respuesta desconocido: ${responseType}`);
                 this.addMessage(
-                    data.message || this.t('unknown_response'), 
+                    data.message || 'Recibí una respuesta que no pude procesar completamente.', 
                     'assistant'
                 );
                 break;
@@ -640,18 +577,18 @@ class WidgetAIMaintenance extends CWidget {
 
     async onConfirmMaintenance() {
         if (!this.current_parsed_data) {
-            this.addMessage(this.t('no_maintenance_data'), 'error');
+            this.addMessage("No hay datos de mantenimiento para confirmar", 'error');
             return;
         }
         
         const hasValidTargets = this.hasValidTargets(this.current_parsed_data);
         
         if (!hasValidTargets) {
-            this.addMessage(this.t('no_valid_hosts_groups'), 'error');
+            this.addMessage('No hay hosts ni grupos válidos para crear el mantenimiento', 'error');
             return;
         }
         
-        this.showLoading(true, this.t('creating_maintenance'));
+        this.showLoading(true, 'Creando mantenimiento...');
         
         try {
             const maintenanceData = {
@@ -676,7 +613,7 @@ class WidgetAIMaintenance extends CWidget {
                 maintenanceData.groups = this.current_parsed_data.found_groups.map(g => g.name);
             }
 
-            console.log("Maintenance data to send:", maintenanceData);
+            console.log("Datos de mantenimiento a enviar:", maintenanceData);
 
             const response = await this.makeRequest('/create_maintenance', {
                 method: 'POST',
@@ -686,7 +623,7 @@ class WidgetAIMaintenance extends CWidget {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `${this.t('server_error')} (${response.status})`);
+                throw new Error(errorData.message || `Error del servidor (${response.status})`);
             }
 
             const data = await response.json();            
@@ -695,11 +632,11 @@ class WidgetAIMaintenance extends CWidget {
             
             if (data.is_routine) {
                 this.addMessage(
-                    `**${this.t('routine_maintenance_configured')}**\n` +
-                    `• ${this.t('type')}: ${data.recurrence_type}\n` +
-                    `• ${this.t('id')}: ${data.maintenance_id || this.t('auto_generated')}\n` +
-                    `• ${this.t('will_run_automatically')}\n` +
-                    `• ${this.t('uses_internal_bitmasks')}`,
+                    `**Mantenimiento Rutinario Configurado**\n` +
+                    `• Tipo: ${data.recurrence_type}\n` +
+                    `• ID: ${data.maintenance_id || 'Generado automáticamente'}\n` +
+                    `• Se ejecutará automáticamente según la configuración\n` +
+                    `• Usa bitmasks internos para programación precisa`,
                     'info'
                 );
             }
@@ -707,9 +644,9 @@ class WidgetAIMaintenance extends CWidget {
             this.updateMaintenanceList();
 
         } catch (error) {
-            console.error("Error creating maintenance:", error);
+            console.error("Error creando mantenimiento:", error);
             this.addMessage(
-                `${this.t('error_creating_maintenance')}: ${error.message}`,
+                `Error al crear mantenimiento: ${error.message}`,
                 'error'
             );
         } finally {
@@ -723,12 +660,12 @@ class WidgetAIMaintenance extends CWidget {
             const response = await this.makeRequest('/maintenance/list');
             
             if (!response.ok) {
-                console.warn(`Error getting maintenance list: ${response.status}`);
+                console.warn(`Error obteniendo lista de mantenimientos: ${response.status}`);
                 return;
             }
 
             const data = await response.json();
-            console.log("Maintenances updated:", data.maintenances?.length || 0);
+            console.log("Mantenimientos actualizados:", data.maintenances?.length || 0);
             
             const maintenances = data.maintenances || [];
             if (maintenances.length > 0) {
@@ -741,19 +678,19 @@ class WidgetAIMaintenance extends CWidget {
                 const monthlyCount = maintenances.filter(m => m.routine_type === 'monthly').length;
                 
                 this.addMessage(
-                    `**${this.t('maintenance_summary')}**\n` +
-                    `• ${this.t('unique_maintenances')}: ${oneTimeCount}\n` + 
-                    `• ${this.t('routine_maintenances')}: ${routineCount}\n` +
-                    `  - ${this.t('daily_maintenances')}: ${dailyCount}\n` +
-                    `  - ${this.t('weekly_maintenances')}: ${weeklyCount}\n` +
-                    `  - ${this.t('monthly_maintenances')}: ${monthlyCount}\n` +
-                    `• ${this.t('with_tickets')}: ${withTickets}\n` +
-                    `• ${this.t('total')}: ${maintenances.length}`, 
+                    `**Resumen de mantenimientos:**\n` +
+                    `• Únicos: ${oneTimeCount}\n` + 
+                    `• Rutinarios: ${routineCount}\n` +
+                    `  - Diarios: ${dailyCount}\n` +
+                    `  - Semanales: ${weeklyCount}\n` +
+                    `  - Mensuales: ${monthlyCount}\n` +
+                    `• Con tickets: ${withTickets}\n` +
+                    `• Total: ${maintenances.length}`, 
                     'info'
                 );
             }
         } catch (error) {
-            console.error("Error updating list:", error);
+            console.error("Error actualizando lista:", error);
         }
     }
 
@@ -927,7 +864,7 @@ class WidgetAIMaintenance extends CWidget {
         const details = this._body.querySelector('#maintenance-details');
         
         if (!confirmation || !details) {
-            console.error("Confirmation elements not found");
+            console.error("Elementos de confirmación no encontrados");
             return;
         }
 
