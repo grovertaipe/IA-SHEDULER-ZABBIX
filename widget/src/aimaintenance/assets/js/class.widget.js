@@ -160,15 +160,15 @@ class WidgetAIMaintenance extends CWidget {
             if (response.ok) {
                 const templates = await response.json();
                 this.templates = templates.templates;
-                console.log("Plantillas cargadas:", Object.keys(this.templates || {}).length);
+                console.log("Templates loaded:", Object.keys(this.templates || {}).length);
             } else {
                 console.warn(`Error cargando plantillas: ${response.status}`);
             }
         } catch (error) {
             if (error.name === 'AbortError') {
-                console.warn("Timeout cargando plantillas");
+                console.warn("Timeout loading templates");
             } else {
-                console.error("Error cargando plantillas:", error);
+                console.error("Error loading templates:", error);
             }
         }
     }
@@ -259,7 +259,7 @@ class WidgetAIMaintenance extends CWidget {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Error del servidor (${response.status})`);
+                throw new Error(errorData.message || `${t('Server error')} (${response.status})`);
             }
 
             const data = await response.json();
@@ -267,7 +267,7 @@ class WidgetAIMaintenance extends CWidget {
             this.retry_count = 0;
 
         } catch (error) {
-            console.error("Error en onSendMessage:", error);
+            console.error("Error in onSendMessage:", error);
             this.handleRequestError(error, message);
         } finally {
             this.showLoading(false);
@@ -291,7 +291,7 @@ class WidgetAIMaintenance extends CWidget {
         } catch (error) {
             clearTimeout(timeoutId);
             if (error.name === 'AbortError') {
-                throw new Error('La solicitud tardó demasiado tiempo. Intenta de nuevo.');
+                throw new Error(t('Request timeout'));
             }
             throw error;
         }
@@ -593,7 +593,7 @@ class WidgetAIMaintenance extends CWidget {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Error del servidor (${response.status})`);
+                throw new Error(errorData.message || `${t('Server error')} (${response.status})`);
             }
 
             const data = await response.json();            
@@ -603,11 +603,11 @@ class WidgetAIMaintenance extends CWidget {
             // Mostrar información adicional para mantenimientos rutinarios
             if (data.is_routine) {
                 this.addMessage(
-                    `**Mantenimiento Rutinario Configurado**\n` +
-                    `• Tipo: ${data.recurrence_type}\n` +
-                    `• ID: ${data.maintenance_id || 'Generado automáticamente'}\n` +
-                    `• Se ejecutará automáticamente según la configuración\n` +
-                    `• Usa bitmasks internos para programación precisa`,
+                    `**${t('Routine Maintenance Configured')}**\n` +
+                    `• ${t('Type')}: ${data.recurrence_type}\n` +
+                    `• ${t('ID')}: ${data.maintenance_id || t('Auto generated')}\n` +
+                    `• ${t('Will run automatically')}\n` +
+                    `• ${t('Uses internal bitmasks')}`,
                     'info'
                 );
             }
@@ -616,7 +616,7 @@ class WidgetAIMaintenance extends CWidget {
             this.updateMaintenanceList();
 
         } catch (error) {
-            console.error("Error creando mantenimiento:", error);
+            console.error("Error creating maintenance:", error);
             this.addMessage(
                 `Error al crear mantenimiento: ${error.message}`,
                 'error'
@@ -1085,7 +1085,9 @@ const TRANSLATIONS = {
         'Weekly': 'Weekly', 
         'Monthly': 'Monthly',
         'With tickets': 'With tickets',
-        'Total': 'Total'
+        'Total': 'Total',
+        'Request timeout': 'Request took too long. Try again.',
+        'Server error': 'Server error'
     },
     'es': {
         'Templates are not available at this time': 'Las plantillas no están disponibles en este momento',
@@ -1148,15 +1150,30 @@ const TRANSLATIONS = {
         'Weekly': 'Semanales',
         'Monthly': 'Mensuales',
         'With tickets': 'Con tickets',
-        'Total': 'Total'
+        'Total': 'Total',
+        'Request timeout': 'La solicitud tardó demasiado tiempo. Intenta de nuevo.',
+        'Server error': 'Error del servidor'
     }
 };
 
-// Función de traducción que detecta el idioma del navegador
+// Función de traducción que usa el idioma del perfil de Zabbix
 function t(key) {
-    // Detectar idioma del navegador
-    const lang = navigator.language.toLowerCase();
-    const langCode = lang.startsWith('es') ? 'es' : 'en';
+    // Obtener idioma del perfil de Zabbix
+    let langCode = 'en'; // Default
+    
+    // Intentar obtener el idioma de diferentes fuentes de Zabbix
+    if (typeof locale !== 'undefined' && locale.length >= 2) {
+        langCode = locale.substring(0, 2).toLowerCase();
+    } else if (typeof PHP !== 'undefined' && PHP.ZBX_LANG) {
+        langCode = PHP.ZBX_LANG.substring(0, 2).toLowerCase();
+    } else if (document.documentElement.lang) {
+        langCode = document.documentElement.lang.substring(0, 2).toLowerCase();
+    }
+    
+    // Solo soportamos 'es' y 'en'
+    if (langCode !== 'es') {
+        langCode = 'en';
+    }
     
     // Buscar traducción
     if (TRANSLATIONS[langCode] && TRANSLATIONS[langCode][key]) {
