@@ -242,7 +242,7 @@ class WidgetAIMaintenance extends CWidget {
         input.value = '';
         input.style.height = 'auto';
         this.addMessage(message, 'user');
-        this.showLoading(true, 'Analizando solicitud...');
+        this.showLoading(true, t('Processing...'));
 
         try {
             const requestData = { 
@@ -641,7 +641,7 @@ class WidgetAIMaintenance extends CWidget {
             return;
         }
         
-        this.showLoading(true, 'Creando mantenimiento...');
+        this.showLoading(true, t('Creating maintenance...'));
         
         try {
             // Preparar datos para enviar
@@ -861,7 +861,7 @@ class WidgetAIMaintenance extends CWidget {
         });
     }
 
-    showLoading(show, message = 'Procesando...') {
+    showLoading(show, message = t('Loading...')) {
         const loading = this._body.querySelector('#ai-loading');
         if (!loading) return;
 

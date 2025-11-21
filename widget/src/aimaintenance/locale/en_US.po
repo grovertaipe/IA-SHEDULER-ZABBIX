@@ -1,0 +1,33 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "AI Maintenance Assistant"
+msgstr "AI Maintenance Assistant"
+
+msgid "Generate Maintenance"
+msgstr "Generate Maintenance"
+
+msgid "Host"
+msgstr "Host"
+
+msgid "Duration (hours)"
+msgstr "Duration (hours)"
+
+msgid "Loading..."
+msgstr "Loading..."
+
+msgid "Error generating maintenance"
+msgstr "Error generating maintenance"
+
+msgid "Processing..."
+msgstr "Processing..."
+
+msgid "Creating maintenance..."
+msgstr "Creating maintenance..."
+
+msgid "Confirm maintenance"
+msgstr "Confirm maintenance"
+
+msgid "Cancel"
+msgstr "Cancel"
