@@ -84,7 +84,28 @@ class WidgetAIMaintenance extends CWidget {
             'connection_error': isSpanish ? 'Error de conexión (intento' : 'Connection error (attempt',
             'retrying': isSpanish ? 'Reintentando...' : 'Retrying...',
             'could_not_connect_backend': isSpanish ? 'No se pudo conectar con el backend. Verifica que el servicio esté funcionando.' : 'Could not connect to backend. Verify that the service is running.',
-            'creating_maintenance': isSpanish ? 'Creando mantenimiento...' : 'Creating maintenance...'
+            'creating_maintenance': isSpanish ? 'Creando mantenimiento...' : 'Creating maintenance...',
+            'system_status': isSpanish ? 'Estado del Sistema' : 'System Status',
+            'could_not_verify_backend': isSpanish ? 'No se pudo verificar la conexión con el backend.' : 'Could not verify backend connection.',
+            'functions_may_be_limited': isSpanish ? 'Las funciones pueden estar limitadas hasta que se restablezca la conexión.' : 'Functions may be limited until connection is restored.',
+            'system_reports_status': isSpanish ? 'Sistema reporta estado' : 'System reports status',
+            'zabbix_status': isSpanish ? 'Estado de Zabbix' : 'Zabbix Status',
+            'ai_provider': isSpanish ? 'Proveedor IA' : 'AI Provider',
+            'bitmask_support': isSpanish ? 'Soporte bitmask' : 'Bitmask Support',
+            'functions': isSpanish ? 'Funciones' : 'Functions',
+            'daily_example': isSpanish ? 'backup diario a las 2 AM con ticket 100-178306' : 'daily backup 2 AM ticket 100-178306',
+            'weekly_example': isSpanish ? 'mantenimiento domingos de 1-3 AM ticket 200-8341' : 'Sunday maintenance 1-3 AM ticket 200-8341',
+            'monthly_day_example': isSpanish ? 'limpieza día 5 cada mes con ticket 500-43116' : 'cleanup day 5 each month ticket 500-43116',
+            'monthly_weekday_example': isSpanish ? 'actualización primer domingo cada mes ticket 600-78901' : 'update first Sunday each month ticket 600-78901',
+            'monthly': isSpanish ? 'Mensual' : 'Monthly',
+            'daily_keywords': isSpanish ? 'cada día, todos los días, diariamente' : 'every day, daily, each day',
+            'weekly_keywords': isSpanish ? 'cada lunes, todos los domingos, semanalmente' : 'every Monday, all Sundays, weekly',
+            'monthly_day': isSpanish ? 'Mensuales (día)' : 'Monthly (day)',
+            'monthly_day_keywords': isSpanish ? 'día 5 cada mes, el día 15, día 1 mensualmente' : 'day 5 each month, day 15, day 1 monthly',
+            'monthly_week': isSpanish ? 'Mensuales (semana)' : 'Monthly (week)',
+            'monthly_week_keywords': isSpanish ? 'primer domingo, segunda semana, último viernes' : 'first Sunday, second week, last Friday',
+            'ticket_tip': isSpanish ? "Incluye siempre números como '100-178306', '200-8341'" : "Always include numbers like '100-178306', '200-8341'",
+            'tip': isSpanish ? 'Tip' : 'Tip'
         };
         return translations[key] || key;
     }
@@ -97,29 +118,29 @@ class WidgetAIMaintenance extends CWidget {
             });
             
             if (!response.ok) {
-                throw new Error(`Backend no disponible (${response.status})`);
+                throw new Error(`${this.t('backend_unavailable')} (${response.status})`);
             }
             
             const data = await response.json();
             
             if (data.status === 'unhealthy' || data.status === 'degraded') {
                 this.addMessage(
-                    `Sistema reporta estado: ${data.status}\n` +
-                    `Estado de Zabbix: ${data.zabbix_connected ? 'Conectado' : 'Desconectado'}\n` +
-                    `Proveedor IA: ${data.ai_provider || 'No disponible'}\n` +
-                    `Soporte bitmask: ${data.features?.includes('bitmask_support') ? 'Habilitado' : 'Deshabilitado'}\n` +
-                    `${data.status === 'degraded' ? 'Algunas funciones pueden estar limitadas.' : ''}`,
+                    `${this.t('system_reports_status')}: ${data.status}\n` +
+                    `${this.t('zabbix_status')}: ${data.zabbix_connected ? this.t('connected') : this.t('disconnected')}\n` +
+                    `${this.t('ai_provider')}: ${data.ai_provider || this.t('not_available')}\n` +
+                    `${this.t('bitmask_support')}: ${data.features?.includes('bitmask_support') ? this.t('enabled') : this.t('disabled')}\n` +
+                    `${data.status === 'degraded' ? this.t('some_functions_limited') : ''}`,
                     'warning'
                 );
             } else {
                 const features = data.features || [];
                 this.addMessage(
-                    `Sistema Conectado - v${data.version}\n` +
-                    `Zabbix: ${data.zabbix_connected ? 'Conectado' : 'Desconectado'}\n` +
-                    `IA: ${data.ai_provider}\n` +
-                    `Funciones: ${features.includes('routine_maintenance') ? 'Rutinarios' : ''} ` +
+                    `${this.t('system_connected')} - v${data.version}\n` +
+                    `Zabbix: ${data.zabbix_connected ? this.t('connected') : this.t('disconnected')}\n` +
+                    `${this.t('ai_provider')}: ${data.ai_provider}\n` +
+                    `${this.t('functions')}: ${features.includes('routine_maintenance') ? this.t('routines') : ''} ` +
                     `${features.includes('bitmask_support') ? 'Bitmask' : ''} ` +
-                    `${features.includes('ticket_support') ? 'Tickets' : ''}`,
+                    `${features.includes('ticket_support') ? this.t('tickets') : ''}`,
                     'success'
                 );
             }
@@ -127,10 +148,10 @@ class WidgetAIMaintenance extends CWidget {
         } catch (error) {
             console.warn("Error verificando conexión con backend:", error);
             this.addMessage(
-                `Estado del Sistema:\n` +
-                `No se pudo verificar la conexión con el backend.\n` +
+                `${this.t('system_status')}:\n` +
+                `${this.t('could_not_verify_backend')}\n` +
                 `URL: ${this.api_url}\n` +
-                `Las funciones pueden estar limitadas hasta que se restablezca la conexión.`,
+                `${this.t('functions_may_be_limited')}`,
                 'info'
             );
         }
@@ -230,37 +251,37 @@ class WidgetAIMaintenance extends CWidget {
     showTemplates() {
         if (!this.templates) {
             this.addMessage(
-                "Las plantillas no están disponibles en este momento.\n\n" +
-                "**Ejemplos de mantenimientos rutinarios:**\n" +
-                "• **Diario:** 'backup diario a las 2 AM con ticket 100-178306'\n" +
-                "• **Semanal:** 'mantenimiento domingos de 1-3 AM ticket 200-8341'\n" +
-                "• **Mensual día específico:** 'limpieza día 5 cada mes con ticket 500-43116'\n" +
-                "• **Mensual día de semana:** 'actualización primer domingo cada mes ticket 600-78901'",
+                `${this.t('templates_not_available')}\n\n` +
+                `**${this.t('routine_maintenance_examples')}**\n` +
+                `• **${this.t('daily')}:** '${this.t('daily_example')}'\n` +
+                `• **${this.t('weekly')}:** '${this.t('weekly_example')}'\n` +
+                `• **${this.t('monthly_specific_day')}:** '${this.t('monthly_day_example')}'\n` +
+                `• **${this.t('monthly_weekday')}:** '${this.t('monthly_weekday_example')}'`,
                 'info'
             );
             return;
         }
         
-        let templateMsg = "**Plantillas de Mantenimientos Rutinarios**\n\n";
+        let templateMsg = `**${this.t('routine_maintenance_templates')}**\n\n`;
         
         Object.entries(this.templates).forEach(([type, info]) => {
-            const icon = type === 'daily' ? 'Diario' : type === 'weekly' ? 'Semanal' : 'Mensual';
+            const icon = type === 'daily' ? this.t('daily') : type === 'weekly' ? this.t('weekly') : this.t('monthly');
             templateMsg += `${icon} **${info.name}**\n`;
             templateMsg += `${info.description}\n`;
-            templateMsg += "**Ejemplos:**\n";
+            templateMsg += `**${this.t('examples')}:**\n`;
             info.examples.forEach(example => {
                 templateMsg += `• "${example}"\n`;
             });
             templateMsg += "\n";
         });
         
-        templateMsg += "**Consejos para mantenimientos rutinarios:**\n";
-        templateMsg += "• **Diarios:** 'cada día', 'todos los días', 'diariamente'\n";
-        templateMsg += "• **Semanales:** 'cada lunes', 'todos los domingos', 'semanalmente'\n";
-        templateMsg += "• **Mensuales (día):** 'día 5 cada mes', 'el día 15', 'día 1 mensualmente'\n";
-        templateMsg += "• **Mensuales (semana):** 'primer domingo', 'segunda semana', 'último viernes'\n";
-        templateMsg += "• **Tickets:** Incluye siempre números como '100-178306', '200-8341'\n";
-        templateMsg += "\n**Tip:** Los mantenimientos rutinarios usan bitmasks internos para una programación precisa.";
+        templateMsg += `**${this.t('tips_routine_maintenance')}**\n`;
+        templateMsg += `• **${this.t('daily')}:** '${this.t('daily_keywords')}'\n`;
+        templateMsg += `• **${this.t('weekly')}:** '${this.t('weekly_keywords')}'\n`;
+        templateMsg += `• **${this.t('monthly_day')}:** '${this.t('monthly_day_keywords')}'\n`;
+        templateMsg += `• **${this.t('monthly_week')}:** '${this.t('monthly_week_keywords')}'\n`;
+        templateMsg += `• **${this.t('tickets')}:** ${this.t('ticket_tip')}\n`;
+        templateMsg += `\n**${this.t('tip')}:** ${this.t('routine_bitmask_tip')}`;
         
         this.addMessage(templateMsg, 'info');
     }
