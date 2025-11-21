@@ -223,13 +223,13 @@ class WidgetAIMaintenance extends CWidget {
 
         // Validación de longitud
         if (message.length < 5) {
-            this.addMessage("El mensaje es muy corto. Describe qué tipo de mantenimiento necesitas crear.", 'warning');
+            this.addMessage(t('Message too short'), 'warning');
             this.highlightInput(input);
             return;
         }
 
         if (message.length > 1000) {
-            this.addMessage("El mensaje es muy largo. Por favor, sé más conciso.", 'warning');
+            this.addMessage(t('Message too long'), 'warning');
             return;
         }
 
@@ -314,7 +314,7 @@ class WidgetAIMaintenance extends CWidget {
             
             this.retry_count++;
             this.addMessage(
-                `Error de conexión (intento ${this.retry_count}/${this.max_retries + 1}). Reintentando...`,
+                `${t('Connection error')} ${this.retry_count}/${this.max_retries + 1}). ${t('Retrying')}`,
                 'warning'
             );
             
@@ -328,7 +328,7 @@ class WidgetAIMaintenance extends CWidget {
         } else {
             this.retry_count = 0;
             const errorMessage = error.message.includes('fetch') 
-                ? "No se pudo conectar con el backend. Verifica que el servicio esté funcionando."
+                ? t('Could not connect to backend')
                 : `Error: ${error.message}`;
             
             this.addMessage(`${errorMessage}`, 'error');
@@ -337,7 +337,7 @@ class WidgetAIMaintenance extends CWidget {
 
     handleInteractiveResponse(data) {
         if (!data || typeof data !== 'object') {
-            this.addMessage("Respuesta inválida del servidor", 'error');
+            this.addMessage(t('Invalid server response'), 'error');
             return;
         }
 
@@ -400,43 +400,43 @@ class WidgetAIMaintenance extends CWidget {
         if (data.message && data.message.trim()) {
             message = data.message + '\n\n';
         } else {
-            message = `**Análisis completado**\n\n`;
+            message = `**${t('Analysis completed')}**\n\n`;
         }
         
         // Mostrar información de ticket si está presente
         if (data.ticket_number && data.ticket_number.trim()) {
-            message += `**Ticket:** ${data.ticket_number}\n\n`;
+            message += `**${t('Ticket')}:** ${data.ticket_number}\n\n`;
         }
         
         // Mostrar tipo de mantenimiento
         const recurrenceLabel = this.getRecurrenceTypeLabel(data.recurrence_type);
         const isRoutine = data.recurrence_type !== 'once';
         
-        const typeIcon = isRoutine ? 'Rutinario' : 'Único';
-        message += `**Tipo:** ${recurrenceLabel} (${typeIcon})\n\n`;
+        const typeIcon = isRoutine ? t('Routine') : t('Unique');
+        message += `**${t('Type')}:** ${recurrenceLabel} (${typeIcon})\n\n`;
         
         // Configuración de recurrencia si aplica
         if (isRoutine && data.recurrence_config) {
             const configInfo = this.formatRecurrenceConfig(data.recurrence_type, data.recurrence_config);
             if (configInfo) {
-                message += `**Configuración:** ${configInfo}\n\n`;
+                message += `**${t('Configuration')}:** ${configInfo}\n\n`;
             }
         }
         
         // Mostrar resumen de búsqueda si está disponible
         if (data.search_summary) {
             const summary = data.search_summary;
-            message += `**Resumen:**\n`;
-            message += `• Hosts encontrados: ${summary.total_hosts_found}\n`;
-            message += `• Grupos encontrados: ${summary.total_groups_found}\n`;
+            message += `**${t('Summary')}:**\n`;
+            message += `• ${t('Hosts found')}: ${summary.total_hosts_found}\n`;
+            message += `• ${t('Groups found')}: ${summary.total_groups_found}\n`;
             if (summary.hosts_by_tags > 0) {
-                message += `• Hosts por tags: ${summary.hosts_by_tags}\n`;
+                message += `• ${t('Hosts by tags')}: ${summary.hosts_by_tags}\n`;
             }
             if (summary.has_ticket) {
-                message += `• Con ticket: Sí\n`;
+                message += `• ${t('With ticket')}: ${t('Yes')}\n`;
             }
             if (summary.is_routine) {
-                message += `• Mantenimiento rutinario: Sí\n`;
+                message += `• ${t('Routine maintenance')}: ${t('Yes')}\n`;
             }
             message += '\n';
         }
@@ -1037,7 +1037,55 @@ const TRANSLATIONS = {
         'daily_backup_example': 'daily backup 2 AM ticket 100-178306',
         'weekly_maintenance_example': 'Sunday maintenance 1-3 AM ticket 200-8341',
         'monthly_day_example': 'cleanup day 5 each month ticket 500-43116',
-        'monthly_weekday_example': 'update first Sunday each month ticket 600-78901'
+        'monthly_weekday_example': 'update first Sunday each month ticket 600-78901',
+        'Message too short': 'Message is too short. Describe what type of maintenance you need to create.',
+        'Message too long': 'Message is too long. Please be more concise.',
+        'Could not connect to backend': 'Could not connect to backend. Verify that the service is running.',
+        'Connection error': 'Connection error (attempt',
+        'Retrying': 'Retrying...',
+        'Invalid server response': 'Invalid server response',
+        'Analysis completed': 'Analysis completed',
+        'Ticket': 'Ticket',
+        'Type': 'Type',
+        'Unique': 'Unique',
+        'Routine': 'Routine',
+        'Configuration': 'Configuration',
+        'Summary': 'Summary',
+        'Hosts found': 'Hosts found',
+        'Groups found': 'Groups found',
+        'Hosts by tags': 'Hosts by tags',
+        'With ticket': 'With ticket',
+        'Routine maintenance': 'Routine maintenance',
+        'Yes': 'Yes',
+        'Servers found': 'Servers found',
+        'Groups found': 'Groups found',
+        'Trigger tags': 'Trigger tags',
+        'Servers NOT found': 'Servers NOT found',
+        'Groups NOT found': 'Groups NOT found',
+        'Period': 'Period',
+        'From': 'From',
+        'To': 'To',
+        'Description': 'Description',
+        'Confidence': 'Confidence',
+        'No valid hosts or groups found': 'No valid hosts or groups found to create maintenance',
+        'Detected information': 'Detected information',
+        'Examples': 'Examples',
+        'No maintenance data to confirm': 'No maintenance data to confirm',
+        'No valid hosts or groups': 'No valid hosts or groups to create maintenance',
+        'Error creating maintenance': 'Error creating maintenance',
+        'Routine Maintenance Configured': 'Routine Maintenance Configured',
+        'ID': 'ID',
+        'Auto generated': 'Auto generated',
+        'Will run automatically': 'Will run automatically according to configuration',
+        'Uses internal bitmasks': 'Uses internal bitmasks for precise scheduling',
+        'Maintenance summary': 'Maintenance summary',
+        'Unique': 'Unique',
+        'Routine': 'Routine',
+        'Daily': 'Daily',
+        'Weekly': 'Weekly', 
+        'Monthly': 'Monthly',
+        'With tickets': 'With tickets',
+        'Total': 'Total'
     },
     'es': {
         'Templates are not available at this time': 'Las plantillas no están disponibles en este momento',
@@ -1052,7 +1100,55 @@ const TRANSLATIONS = {
         'daily_backup_example': 'backup diario a las 2 AM con ticket 100-178306',
         'weekly_maintenance_example': 'mantenimiento domingos de 1-3 AM ticket 200-8341',
         'monthly_day_example': 'limpieza día 5 cada mes con ticket 500-43116',
-        'monthly_weekday_example': 'actualización primer domingo cada mes ticket 600-78901'
+        'monthly_weekday_example': 'actualización primer domingo cada mes ticket 600-78901',
+        'Message too short': 'El mensaje es muy corto. Describe qué tipo de mantenimiento necesitas crear.',
+        'Message too long': 'El mensaje es muy largo. Por favor, sé más conciso.',
+        'Could not connect to backend': 'No se pudo conectar con el backend. Verifica que el servicio esté funcionando.',
+        'Connection error': 'Error de conexión (intento',
+        'Retrying': 'Reintentando...',
+        'Invalid server response': 'Respuesta inválida del servidor',
+        'Analysis completed': 'Análisis completado',
+        'Ticket': 'Ticket',
+        'Type': 'Tipo',
+        'Unique': 'Único',
+        'Routine': 'Rutinario',
+        'Configuration': 'Configuración',
+        'Summary': 'Resumen',
+        'Hosts found': 'Hosts encontrados',
+        'Groups found': 'Grupos encontrados',
+        'Hosts by tags': 'Hosts por tags',
+        'With ticket': 'Con ticket',
+        'Routine maintenance': 'Mantenimiento rutinario',
+        'Yes': 'Sí',
+        'Servers found': 'Servidores encontrados',
+        'Groups found': 'Grupos encontrados',
+        'Trigger tags': 'Tags de triggers',
+        'Servers NOT found': 'Servidores NO encontrados',
+        'Groups NOT found': 'Grupos NO encontrados',
+        'Period': 'Período',
+        'From': 'Desde',
+        'To': 'Hasta',
+        'Description': 'Descripción',
+        'Confidence': 'Confianza',
+        'No valid hosts or groups found': 'No se encontraron hosts ni grupos válidos para crear el mantenimiento',
+        'Detected information': 'Información detectada',
+        'Examples': 'Ejemplos',
+        'No maintenance data to confirm': 'No hay datos de mantenimiento para confirmar',
+        'No valid hosts or groups': 'No hay hosts ni grupos válidos para crear el mantenimiento',
+        'Error creating maintenance': 'Error al crear mantenimiento',
+        'Routine Maintenance Configured': 'Mantenimiento Rutinario Configurado',
+        'ID': 'ID',
+        'Auto generated': 'Generado automáticamente',
+        'Will run automatically': 'Se ejecutará automáticamente según la configuración',
+        'Uses internal bitmasks': 'Usa bitmasks internos para programación precisa',
+        'Maintenance summary': 'Resumen de mantenimientos',
+        'Unique': 'Únicos',
+        'Routine': 'Rutinarios',
+        'Daily': 'Diarios',
+        'Weekly': 'Semanales',
+        'Monthly': 'Mensuales',
+        'With tickets': 'Con tickets',
+        'Total': 'Total'
     }
 };
 
