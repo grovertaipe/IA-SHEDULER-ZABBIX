@@ -9,7 +9,7 @@ class WidgetAIMaintenance extends CWidget {
         this.request_timeout = 60000; // 60 seconds
         this.retry_count = 0;
         this.max_retries = 2;
-        this.currentLang = this.getZabbixLocale();
+        this.currentLang = 'es'; // Default to Spanish, will be updated in setContents
     }
 
     processUpdateResponse(response) {
@@ -30,22 +30,27 @@ class WidgetAIMaintenance extends CWidget {
 
     setContents(response) {
         super.setContents(response);
+        this.currentLang = this.getZabbixLocale(); // Update language after DOM is ready
         this.setupEventListeners();
         this.loadMaintenanceTemplates();
         this.checkBackendConnection();
     }
 
     getZabbixLocale() {
-        if (typeof locale !== 'undefined' && locale) {
-            return locale.substring(0, 2);
+        try {
+            if (typeof locale !== 'undefined' && locale) {
+                return locale.substring(0, 2);
+            }
+            if (typeof PHP !== 'undefined' && PHP.ZBX_LANG) {
+                return PHP.ZBX_LANG.substring(0, 2);
+            }
+            if (document.documentElement.lang) {
+                return document.documentElement.lang.substring(0, 2);
+            }
+        } catch (error) {
+            console.warn('Error detecting locale:', error);
         }
-        if (typeof PHP !== 'undefined' && PHP.ZBX_LANG) {
-            return PHP.ZBX_LANG.substring(0, 2);
-        }
-        if (document.documentElement.lang) {
-            return document.documentElement.lang.substring(0, 2);
-        }
-        return 'en';
+        return 'es'; // Default to Spanish
     }
 
     t(key) {
