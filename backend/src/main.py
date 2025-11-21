@@ -741,190 +741,190 @@ MONTH BITMASK CALCULATION EXAMPLES:
 
 SPECIFIC CONFIGURATION EXAMPLES:
 
-**"Mantenimiento rutinario semanal los días jueves y viernes de 5 a 7 am":**
+**"Weekly routine maintenance on Thursday and Friday from 5 to 7 AM":**
 ```json
 {{
   "recurrence_type": "weekly",
   "recurrence_config": {{
     "start_time": 18000,     // 5:00 AM = 5 * 3600
-    "duration": 7200,        // 2 horas = 2 * 3600  
-    "dayofweek": 24,         // jueves(8) + viernes(16) = 24
-    "every": 1               // cada semana
+    "duration": 7200,        // 2 hours = 2 * 3600  
+    "dayofweek": 24,         // thursday(8) + friday(16) = 24
+    "every": 1               // every week
   }}
 }}
 ```
 
-**"Mantenimiento mensual la primera semana de 1 a 5 am los meses enero, marzo, agosto y septiembre":**
+**"Monthly maintenance first week from 1 to 5 AM in January, March, August and September":**
 ```json
 {{
   "recurrence_type": "monthly", 
   "recurrence_config": {{
     "start_time": 3600,      // 1:00 AM = 1 * 3600
-    "duration": 14400,       // 4 horas = 4 * 3600
-    "dayofweek": 127,        // todos los días de la primera semana = 1+2+4+8+16+32+64
-    "every": 1,              // primera semana
-    "month": 389             // enero(1) + marzo(4) + agosto(128) + septiembre(256) = 389
+    "duration": 14400,       // 4 hours = 4 * 3600
+    "dayofweek": 127,        // all days of first week = 1+2+4+8+16+32+64
+    "every": 1,              // first week
+    "month": 389             // january(1) + march(4) + august(128) + september(256) = 389
   }}
 }}
 ```
 
-**"Mantenimiento el día 5 de cada mes de 2 a 4 AM":**
+**"Maintenance on day 5 of each month from 2 to 4 AM":**
 ```json
 {{
   "recurrence_type": "monthly",
   "recurrence_config": {{
     "start_time": 7200,      // 2:00 AM = 2 * 3600
-    "duration": 7200,        // 2 horas = 2 * 3600
-    "day": 5,                // día 5 del mes
-    "every": 1,              // cada mes
-    "month": 4095            // todos los meses
+    "duration": 7200,        // 2 hours = 2 * 3600
+    "day": 5,                // day 5 of month
+    "every": 1,              // every month
+    "month": 4095            // all months
   }}
 }}
 ```
 
-**"Primer lunes de cada mes de 3 a 5 AM":**
+**"First Monday of each month from 3 to 5 AM":**
 ```json
 {{
   "recurrence_type": "monthly",
   "recurrence_config": {{
     "start_time": 10800,     // 3:00 AM = 3 * 3600
-    "duration": 7200,        // 2 horas = 2 * 3600
-    "dayofweek": 1,          // lunes = 1
-    "every": 1,              // primera semana
-    "month": 4095            // todos los meses
+    "duration": 7200,        // 2 hours = 2 * 3600
+    "dayofweek": 1,          // monday = 1
+    "every": 1,              // first week
+    "month": 4095            // all months
   }}
 }}
 ```
 
-**"Último viernes de enero, abril, julio y octubre de 1 a 3 AM":**
+**"Last Friday of January, April, July and October from 1 to 3 AM":**
 ```json
 {{
   "recurrence_type": "monthly",
   "recurrence_config": {{
     "start_time": 3600,      // 1:00 AM = 1 * 3600
-    "duration": 7200,        // 2 horas = 2 * 3600
-    "dayofweek": 16,         // viernes = 16
-    "every": 5,              // última semana
-    "month": 585             // enero(1) + abril(8) + julio(64) + octubre(512) = 585
+    "duration": 7200,        // 2 hours = 2 * 3600
+    "dayofweek": 16,         // friday = 16
+    "every": 5,              // last week
+    "month": 585             // january(1) + april(8) + july(64) + october(512) = 585
   }}
 }}
 ```
 
-**"Día 15 solo en enero y julio de 2 a 4 AM":**
+**"Day 15 only in January and July from 2 to 4 AM":**
 ```json
 {{
   "recurrence_type": "monthly",
   "recurrence_config": {{
     "start_time": 7200,      // 2:00 AM = 2 * 3600
-    "duration": 7200,        // 2 horas = 2 * 3600
-    "day": 15,               // día 15 del mes
-    "every": 1,              // cada mes (donde aplique)
-    "month": 65              // enero(1) + julio(64) = 65
+    "duration": 7200,        // 2 hours = 2 * 3600
+    "day": 15,               // day 15 of month
+    "every": 1,              // every month (where applicable)
+    "month": 65              // january(1) + july(64) = 65
   }}
 }}
 ```
 
-**"Primer lunes de trimestre (enero, abril, julio, octubre)":**
+**"First Monday of quarter (January, April, July, October)":**
 ```json
 {{
   "recurrence_type": "monthly",
   "recurrence_config": {{
     "start_time": 32400,     // 9:00 AM = 9 * 3600
-    "duration": 3600,        // 1 hora = 1 * 3600
-    "dayofweek": 1,          // lunes = 1
-    "every": 1,              // primera semana
-    "month": 585             // enero(1) + abril(8) + julio(64) + octubre(512) = 585
+    "duration": 3600,        // 1 hour = 1 * 3600
+    "dayofweek": 1,          // monday = 1
+    "every": 1,              // first week
+    "month": 585             // january(1) + april(8) + july(64) + october(512) = 585
   }}
 }}
 ```
 
-**"Último día de cada mes solo en meses pares":**
+**"Last day of each month only in even months":**
 ```json
 {{
   "recurrence_type": "monthly",
   "recurrence_config": {{
     "start_time": 0,         // 00:00 = 0 * 3600
-    "duration": 3600,        // 1 hora = 1 * 3600
-    "day": 31,               // último día posible (se ajusta automáticamente)
-    "every": 1,              // cada mes (donde aplique)
-    "month": 2730            // feb(2) + abr(8) + jun(32) + ago(128) + oct(512) + dic(2048) = 2730
+    "duration": 3600,        // 1 hour = 1 * 3600
+    "day": 31,               // last possible day (auto-adjusts)
+    "every": 1,              // every month (where applicable)
+    "month": 2730            // feb(2) + apr(8) + jun(32) + aug(128) + oct(512) + dec(2048) = 2730
   }}
 }}
 ```
 
-**"Backup diario de 2 a 4 AM":**
+**"Daily backup from 2 to 4 AM":**
 ```json
 {{
   "recurrence_type": "daily",
   "recurrence_config": {{
     "start_time": 7200,      // 2:00 AM = 2 * 3600
-    "duration": 7200,        // 2 horas = 2 * 3600
-    "every": 1               // cada día
+    "duration": 7200,        // 2 hours = 2 * 3600
+    "every": 1               // every day
   }}
 }}
 ```
 
-**"Cada lunes de 2-5 AM":**
+**"Every Monday from 2-5 AM":**
 ```json
 {{
   "recurrence_type": "weekly",
   "recurrence_config": {{
     "start_time": 7200,      // 2:00 AM = 2 * 3600
-    "duration": 10800,       // 3 horas = 3 * 3600
-    "dayofweek": 1,          // solo lunes = 1
-    "every": 1               // cada semana
+    "duration": 10800,       // 3 hours = 3 * 3600
+    "dayofweek": 1,          // only monday = 1
+    "every": 1               // every week
   }}
 }}
 ```
 
 IMPORTANT RULES:
-- Siempre calcula los bitmasks directamente en el JSON
-- Para múltiples días, suma los valores de bitmask
-- Para múltiples meses, suma los valores de bitmask de meses
-- Convierte las horas a segundos desde medianoche (hora * 3600)
-- Convierte la duración a segundos (horas * 3600)
-- Si detectas "mañana" usar {tomorrow_date}, si detectas "hoy" usar {current_date}
+- Always calculate bitmasks directly in JSON
+- For multiple days, sum the bitmask values
+- For multiple months, sum the month bitmask values
+- Convert hours to seconds from midnight (hour * 3600)
+- Convert duration to seconds (hours * 3600)
+- If you detect "tomorrow/mañana" use {tomorrow_date}, if you detect "today/hoy" use {current_date}
 
 
 DATE FORMATS YOU MUST RECOGNIZE:
 - "24/08/25 10:00am" = "2025-08-24 10:00"
 - "24/08/2025 16:50" = "2025-08-24 16:50" 
-- "desde 10:00 hasta 16:50" = usar fecha actual con esas horas
-- "mañana de 8 a 10" = usar {tomorrow_date} con esas horas
-- "hoy de 14 a 16" = usar {current_date} con esas horas
+- "from 10:00 to 16:50" = use current date with those hours
+- "tomorrow from 8 to 10" = use {tomorrow_date} with those hours
+- "today from 14 to 16" = use {current_date} with those hours
 
 EXAMPLES WITH INFRASTRUCTURE TERMINOLOGY:
-**"Programar mantenimiento del CI srv-tuxito desde 24/08/25 10:00am hasta 16:50":**
+**"Schedule maintenance for CI srv-tuxito from 24/08/25 10:00am to 16:50":**
 ```json
 {{
   "type": "maintenance_request",
   "hosts": ["srv-tuxito"],
   "start_time": "2025-08-24 10:00",
   "end_time": "2025-08-24 16:50", 
-  "description": "Mantenimiento a nivel de Monitoreo del CI",
+  "description": "CI monitoring level maintenance",
   "recurrence_type": "once",
   "confidence": 90,
-  "message": "Perfecto! He preparado el mantenimiento para el CI srv-tuxito."
+  "message": "Perfect! I have prepared the maintenance for CI srv-tuxito."
 }}
 ```
 
-**"Mantenimiento de los equipos de red router01 y switch01 mañana 2-4 AM":**
+**"Network equipment maintenance router01 and switch01 tomorrow 2-4 AM":**
 ```json
 {{
   "type": "maintenance_request", 
   "hosts": ["router01", "switch01"],
   "start_time": "{tomorrow_date} 02:00",
   "end_time": "{tomorrow_date} 04:00",
-  "description": "Mantenimiento de equipos de red",
+  "description": "Network equipment maintenance",
   "recurrence_type": "once",
   "confidence": 95,
-  "message": "Listo! Mantenimiento programado para los equipos de red."
+  "message": "Ready! Maintenance scheduled for network equipment."
 }}
 ```
 
-- Sé conversacional y amigable en todos los mensajes
-- Siempre ofrece ayuda adicional al final de las respuestas
-- Usa emojis moderadamente para hacer más amigable la experiencia
+- Be conversational and friendly in all messages
+- Always offer additional help at the end of responses
+- Use emojis moderately to make the experience more friendly
 
 2. **EXAMPLE REQUEST**: If asking for examples, help or doesn't know how to formulate a request:
 
@@ -980,19 +980,19 @@ IF USER LANGUAGE IS ENGLISH:
 }}
 ```
 
-**RESPONDE ÚNICAMENTE CON EL JSON CORRESPONDIENTE AL TIPO DE MENSAJE DETECTADO.**
+**RESPOND ONLY WITH THE JSON CORRESPONDING TO THE DETECTED MESSAGE TYPE.**
 """
     
     @staticmethod
     def _call_openai(prompt: str) -> str:
-        """Llama a la API de OpenAI"""
+        """Call OpenAI API"""
         if not openai_client:
-            raise RuntimeError("OpenAI no está configurado correctamente")
+            raise RuntimeError("OpenAI is not configured correctly")
         
         response = openai_client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": "Eres un asistente amigable especializado en crear mantenimientos para Zabbix. Respondes de forma conversacional y útil."},
+                {"role": "system", "content": "You are a friendly assistant specialized in creating maintenances for Zabbix. You respond conversationally and helpfully."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.2,
@@ -1002,7 +1002,7 @@ IF USER LANGUAGE IS ENGLISH:
     
     @staticmethod
     def _call_gemini(prompt: str) -> str:
-        """Llama a la API de Gemini"""
+        """Call Gemini API"""
         if not gemini_model:
             raise RuntimeError("Gemini no está configurado correctamente")
         
