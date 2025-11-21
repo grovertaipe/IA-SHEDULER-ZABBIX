@@ -73,10 +73,10 @@ class WidgetAIMaintenance extends CWidget {
         } catch (error) {
             console.warn("Error verificando conexión con backend:", error);
             this.addMessage(
-                `Estado del Sistema:\n` +
-                `No se pudo verificar la conexión con el backend.\n` +
-                `URL: ${this.api_url}\n` +
-                `Las funciones pueden estar limitadas hasta que se restablezca la conexión.`,
+                t('System Status') + ':\n' +
+                t('Could not verify backend connection') + '.\n' +
+                'URL: ' + this.api_url + '\n' +
+                t('Functions may be limited until connection is restored') + '.',
                 'info'
             );
         }
@@ -176,12 +176,12 @@ class WidgetAIMaintenance extends CWidget {
     showTemplates() {
         if (!this.templates) {
             this.addMessage(
-                "Las plantillas no están disponibles en este momento.\n\n" +
-                "**Ejemplos de mantenimientos rutinarios:**\n" +
-                "• **Diario:** 'backup diario a las 2 AM con ticket 100-178306'\n" +
-                "• **Semanal:** 'mantenimiento domingos de 1-3 AM ticket 200-8341'\n" +
-                "• **Mensual día específico:** 'limpieza día 5 cada mes con ticket 500-43116'\n" +
-                "• **Mensual día de semana:** 'actualización primer domingo cada mes ticket 600-78901'",
+                t('Templates are not available at this time') + '.\n\n' +
+                '**' + t('Routine maintenance examples') + ':**\n' +
+                '• **' + t('Daily') + ':** \'backup diario a las 2 AM con ticket 100-178306\'\n' +
+                '• **' + t('Weekly') + ':** \'mantenimiento domingos de 1-3 AM ticket 200-8341\'\n' +
+                '• **' + t('Monthly specific day') + ':** \'limpieza día 5 cada mes con ticket 500-43116\'\n' +
+                '• **' + t('Monthly weekday') + ':** \'actualización primer domingo cada mes ticket 600-78901\'',
                 'info'
             );
             return;
@@ -243,7 +243,7 @@ class WidgetAIMaintenance extends CWidget {
         input.value = '';
         input.style.height = 'auto';
         this.addMessage(message, 'user');
-        this.showLoading(true, 'Analizando solicitud...');
+        this.showLoading(true, t('Processing request...'));
 
         try {
             const requestData = { 
@@ -554,7 +554,7 @@ class WidgetAIMaintenance extends CWidget {
             return;
         }
         
-        this.showLoading(true, 'Creando mantenimiento...');
+        this.showLoading(true, t('Creating maintenance...'));
         
         try {
             // Preparar datos para enviar
@@ -1020,4 +1020,50 @@ function toggleWelcomeDetails() {
         details.classList.remove('show');
         toggle.classList.remove('expanded');
     }
+}
+
+// Sistema de traducciones integrado
+const TRANSLATIONS = {
+    'en': {
+        'Templates are not available at this time': 'Templates are not available at this time',
+        'Routine maintenance examples': 'Routine maintenance examples',
+        'Daily': 'Daily',
+        'Weekly': 'Weekly', 
+        'Monthly specific day': 'Monthly specific day',
+        'Monthly weekday': 'Monthly weekday',
+        'System Status': 'System Status',
+        'Could not verify backend connection': 'Could not verify backend connection',
+        'Functions may be limited until connection is restored': 'Functions may be limited until connection is restored'
+    },
+    'es': {
+        'Templates are not available at this time': 'Las plantillas no están disponibles en este momento',
+        'Routine maintenance examples': 'Ejemplos de mantenimientos rutinarios',
+        'Daily': 'Diario',
+        'Weekly': 'Semanal',
+        'Monthly specific day': 'Mensual día específico', 
+        'Monthly weekday': 'Mensual día de semana',
+        'System Status': 'Estado del Sistema',
+        'Could not verify backend connection': 'No se pudo verificar la conexión con el backend',
+        'Functions may be limited until connection is restored': 'Las funciones pueden estar limitadas hasta que se restablezca la conexión'
+    }
+};
+
+// Función de traducción que detecta el idioma del navegador
+function t(key) {
+    // Detectar idioma del navegador
+    const lang = navigator.language.toLowerCase();
+    const langCode = lang.startsWith('es') ? 'es' : 'en';
+    
+    // Buscar traducción
+    if (TRANSLATIONS[langCode] && TRANSLATIONS[langCode][key]) {
+        return TRANSLATIONS[langCode][key];
+    }
+    
+    // Fallback a inglés
+    if (TRANSLATIONS['en'][key]) {
+        return TRANSLATIONS['en'][key];
+    }
+    
+    // Fallback al texto original
+    return key;
 }

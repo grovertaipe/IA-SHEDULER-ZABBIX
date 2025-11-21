@@ -1,0 +1,87 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "AI Maintenance Assistant"
+msgstr "AI Maintenance Assistant"
+
+msgid "Backend API URL"
+msgstr "Backend API URL"
+
+msgid "Chat height"
+msgstr "Chat height"
+
+msgid "✅ Confirm Maintenance"
+msgstr "✅ Confirm Maintenance"
+
+msgid "✅ Create Maintenance"
+msgstr "✅ Create Maintenance"
+
+msgid "❌ Cancel"
+msgstr "❌ Cancel"
+
+msgid "Processing request..."
+msgstr "Processing request..."
+
+msgid "🐧 With routine maintenance support"
+msgstr "🐧 With routine maintenance support"
+
+msgid "🎯 Maintenance Assistant"
+msgstr "🎯 Maintenance Assistant"
+
+msgid "Quick examples:"
+msgstr "Quick examples:"
+
+msgid "🖥️ Servers: \"srv-web01 tomorrow 8-10h ticket 100-178306\""
+msgstr "🖥️ Servers: \"srv-web01 tomorrow 8-10h ticket 100-178306\""
+
+msgid "👥 Groups: \"Cloud group today 14-16h ticket 200-8341\""
+msgstr "👥 Groups: \"Cloud group today 14-16h ticket 200-8341\""
+
+msgid "🔄 Daily: \"daily backup 2 AM ticket 500-43116\""
+msgstr "🔄 Daily: \"daily backup 2 AM ticket 500-43116\""
+
+msgid "📅 Weekly: \"every Sunday 1-3 AM ticket 100-12345\""
+msgstr "📅 Weekly: \"every Sunday 1-3 AM ticket 100-12345\""
+
+msgid "🗓️ Monthly: \"first day each month ticket 200-67890\""
+msgstr "🗓️ Monthly: \"first day each month ticket 200-67890\""
+
+msgid "💡 Click above to see examples. Button 📋 for complete templates."
+msgstr "💡 Click above to see examples. Button 📋 for complete templates."
+
+msgid "💬 Describe the maintenance... Ex: \"srv-web01 tomorrow 8-10h ticket 100-178306\", \"daily backup 2 AM ticket 200-8341\""
+msgstr "💬 Describe the maintenance... Ex: \"srv-web01 tomorrow 8-10h ticket 100-178306\", \"daily backup 2 AM ticket 200-8341\""
+
+msgid "View routine maintenance templates"
+msgstr "View routine maintenance templates"
+
+msgid "Send message (Enter to send)"
+msgstr "Send message (Enter to send)"
+
+msgid "System Status"
+msgstr "System Status"
+
+msgid "Could not verify backend connection"
+msgstr "Could not verify backend connection"
+
+msgid "Functions may be limited until connection is restored"
+msgstr "Functions may be limited until connection is restored"
+
+msgid "Templates are not available at this time"
+msgstr "Templates are not available at this time"
+
+msgid "Routine maintenance examples"
+msgstr "Routine maintenance examples"
+
+msgid "Daily"
+msgstr "Daily"
+
+msgid "Weekly"
+msgstr "Weekly"
+
+msgid "Monthly specific day"
+msgstr "Monthly specific day"
+
+msgid "Monthly weekday"
+msgstr "Monthly weekday"

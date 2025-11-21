@@ -1,0 +1,87 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgid "AI Maintenance Assistant"
+msgstr "Asistente de Mantenimiento IA"
+
+msgid "Backend API URL"
+msgstr "URL del API Backend"
+
+msgid "Chat height"
+msgstr "Altura del chat"
+
+msgid "✅ Confirm Maintenance"
+msgstr "✅ Confirmar Mantenimiento"
+
+msgid "✅ Create Maintenance"
+msgstr "✅ Crear Mantenimiento"
+
+msgid "❌ Cancel"
+msgstr "❌ Cancelar"
+
+msgid "Processing request..."
+msgstr "Procesando solicitud..."
+
+msgid "🐧 With routine maintenance support"
+msgstr "🐧 Con soporte para mantenimientos rutinarios"
+
+msgid "🎯 Maintenance Assistant"
+msgstr "🎯 Asistente de Mantenimientos"
+
+msgid "Quick examples:"
+msgstr "Ejemplos rápidos:"
+
+msgid "🖥️ Servers: \"srv-web01 tomorrow 8-10h ticket 100-178306\""
+msgstr "🖥️ Servidores: \"srv-web01 mañana 8-10h ticket 100-178306\""
+
+msgid "👥 Groups: \"Cloud group today 14-16h ticket 200-8341\""
+msgstr "👥 Grupos: \"grupo Cloud hoy 14-16h ticket 200-8341\""
+
+msgid "🔄 Daily: \"daily backup 2 AM ticket 500-43116\""
+msgstr "🔄 Diarios: \"backup diario 2 AM ticket 500-43116\""
+
+msgid "📅 Weekly: \"every Sunday 1-3 AM ticket 100-12345\""
+msgstr "📅 Semanales: \"cada domingo 1-3 AM ticket 100-12345\""
+
+msgid "🗓️ Monthly: \"first day each month ticket 200-67890\""
+msgstr "🗓️ Mensuales: \"primer día cada mes ticket 200-67890\""
+
+msgid "💡 Click above to see examples. Button 📋 for complete templates."
+msgstr "💡 Haz clic arriba para ver ejemplos. Botón 📋 para plantillas completas."
+
+msgid "💬 Describe the maintenance... Ex: \"srv-web01 tomorrow 8-10h ticket 100-178306\", \"daily backup 2 AM ticket 200-8341\""
+msgstr "💬 Describe el mantenimiento... Ej: \"srv-web01 mañana 8-10h ticket 100-178306\", \"backup diario 2 AM con ticket 200-8341\""
+
+msgid "View routine maintenance templates"
+msgstr "Ver plantillas de mantenimientos rutinarios"
+
+msgid "Send message (Enter to send)"
+msgstr "Enviar mensaje (Enter para enviar)"
+
+msgid "System Status"
+msgstr "Estado del Sistema"
+
+msgid "Could not verify backend connection"
+msgstr "No se pudo verificar la conexión con el backend"
+
+msgid "Functions may be limited until connection is restored"
+msgstr "Las funciones pueden estar limitadas hasta que se restablezca la conexión"
+
+msgid "Templates are not available at this time"
+msgstr "Las plantillas no están disponibles en este momento"
+
+msgid "Routine maintenance examples"
+msgstr "Ejemplos de mantenimientos rutinarios"
+
+msgid "Daily"
+msgstr "Diario"
+
+msgid "Weekly"
+msgstr "Semanal"
+
+msgid "Monthly specific day"
+msgstr "Mensual día específico"
+
+msgid "Monthly weekday"
+msgstr "Mensual día de semana"
