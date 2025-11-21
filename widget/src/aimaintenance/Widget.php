@@ -16,12 +16,6 @@ class Widget extends CWidget {
     public function getTranslationStrings(): array {
         return [
             'class.widget.js' => [
-                'AI Maintenance Assistant' => _('AI Maintenance Assistant'),
-                'Generate Maintenance' => _('Generate Maintenance'),
-                'Host' => _('Host'),
-                'Duration (hours)' => _('Duration (hours)'),
-                'Loading...' => _('Loading...'),
-                'Error generating maintenance' => _('Error generating maintenance'),
                 'Send message' => _('Send message'),
                 'Processing...' => _('Processing...'),
                 'Confirm maintenance' => _('Confirm maintenance'),
