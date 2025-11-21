@@ -46,7 +46,7 @@ class WidgetView extends CControllerDashboardWidgetView {
         $csrf_token = CCsrfTokenHelper::get('widget');
         
         $this->setResponse(new CControllerResponseData([
-            'name' => $this->getInput('name', $this->widget->getName()),
+            'name' => $this->getInput('name', 'AI Maintenance Assistant'),
             'fields_values' => $this->fields_values,
             'csrf_token' => $csrf_token,
             'user_info' => [
