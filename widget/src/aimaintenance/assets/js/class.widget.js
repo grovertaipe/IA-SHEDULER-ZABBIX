@@ -178,10 +178,10 @@ class WidgetAIMaintenance extends CWidget {
             this.addMessage(
                 t('Templates are not available at this time') + '.\n\n' +
                 '**' + t('Routine maintenance examples') + ':**\n' +
-                '• **' + t('Daily') + ':** \'backup diario a las 2 AM con ticket 100-178306\'\n' +
-                '• **' + t('Weekly') + ':** \'mantenimiento domingos de 1-3 AM ticket 200-8341\'\n' +
-                '• **' + t('Monthly specific day') + ':** \'limpieza día 5 cada mes con ticket 500-43116\'\n' +
-                '• **' + t('Monthly weekday') + ':** \'actualización primer domingo cada mes ticket 600-78901\'',
+                '• **' + t('Daily') + ':** \'' + t('daily_backup_example') + '\'\n' +
+                '• **' + t('Weekly') + ':** \'' + t('weekly_maintenance_example') + '\'\n' +
+                '• **' + t('Monthly specific day') + ':** \'' + t('monthly_day_example') + '\'\n' +
+                '• **' + t('Monthly weekday') + ':** \'' + t('monthly_weekday_example') + '\'',
                 'info'
             );
             return;
@@ -1033,7 +1033,11 @@ const TRANSLATIONS = {
         'Monthly weekday': 'Monthly weekday',
         'System Status': 'System Status',
         'Could not verify backend connection': 'Could not verify backend connection',
-        'Functions may be limited until connection is restored': 'Functions may be limited until connection is restored'
+        'Functions may be limited until connection is restored': 'Functions may be limited until connection is restored',
+        'daily_backup_example': 'daily backup 2 AM ticket 100-178306',
+        'weekly_maintenance_example': 'Sunday maintenance 1-3 AM ticket 200-8341',
+        'monthly_day_example': 'cleanup day 5 each month ticket 500-43116',
+        'monthly_weekday_example': 'update first Sunday each month ticket 600-78901'
     },
     'es': {
         'Templates are not available at this time': 'Las plantillas no están disponibles en este momento',
@@ -1044,7 +1048,11 @@ const TRANSLATIONS = {
         'Monthly weekday': 'Mensual día de semana',
         'System Status': 'Estado del Sistema',
         'Could not verify backend connection': 'No se pudo verificar la conexión con el backend',
-        'Functions may be limited until connection is restored': 'Las funciones pueden estar limitadas hasta que se restablezca la conexión'
+        'Functions may be limited until connection is restored': 'Las funciones pueden estar limitadas hasta que se restablezca la conexión',
+        'daily_backup_example': 'backup diario a las 2 AM con ticket 100-178306',
+        'weekly_maintenance_example': 'mantenimiento domingos de 1-3 AM ticket 200-8341',
+        'monthly_day_example': 'limpieza día 5 cada mes con ticket 500-43116',
+        'monthly_weekday_example': 'actualización primer domingo cada mes ticket 600-78901'
     }
 };
 
