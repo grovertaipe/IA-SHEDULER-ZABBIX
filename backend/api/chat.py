@@ -48,7 +48,7 @@ from flask import Blueprint, jsonify, request
 from api.auth import validate_user
 from config import AppConfig
 from core.domain import RecurrenceType, TimePeriod
-from core.recurrence import RecurrenceError, build_timeperiod, once_window_from_date
+from core.recurrence import RecurrenceError, build_timeperiod
 from i18n.locale import resolve_locale
 from services.chat_service import (
     INTENT_HELP,
@@ -61,6 +61,7 @@ from services.chat_service import (
 from services.maintenance_service import (
     MaintenanceService,
     ResolvedResources,
+    active_window,
     recurrence_config_from,
 )
 from zabbix.client import ZabbixClient
@@ -148,60 +149,15 @@ def _resolution_fields(resolved: ResolvedResources) -> dict[str, Any]:
     }
 
 
-def _once_display_window(rec: Any) -> tuple[str, str] | None:
-    """Return the ``once`` window as ``("%Y-%m-%d %H:%M", ...)`` display strings.
-
-    Honours the design principle "AI extrae, backend calcula" (Req 3.2): the AI
-    only supplies the structured recurrence; the backend derives the display
-    strings deterministically here so the widget's confirmation preview can show
-    the period of a one-time (``once``) maintenance (Req 14.6).
-
-    Resolution mirrors the recurrence engine's own ``once`` window order:
-
-    1. explicit ``start_ts`` **and** ``end_ts`` → use them directly;
-    2. else a structured ``start_date`` (ISO ``YYYY-MM-DD``) + ``start_hour`` +
-       ``duration_hours`` → compute the epochs with
-       :func:`~core.recurrence.once_window_from_date`;
-    3. else → ``None`` (the request would not have been complete).
-
-    Both epochs are formatted as **local** datetimes (``datetime.fromtimestamp``),
-    matching how :func:`once_window_from_date` builds them from a local
-    ``strptime(...).timestamp()``. Returns ``None`` — never raising — when the
-    window cannot be derived, so the caller simply omits the fields on bad input
-    (a :class:`~core.recurrence.RecurrenceError` is logged, not propagated).
-    """
-    if rec.start_ts is not None and rec.end_ts is not None:
-        start_ts, end_ts = rec.start_ts, rec.end_ts
-    elif (
-        rec.start_date is not None
-        and rec.start_hour is not None
-        and rec.duration_hours is not None
-    ):
-        try:
-            start_ts, end_ts = once_window_from_date(
-                rec.start_date, rec.start_hour, rec.duration_hours
-            )
-        except RecurrenceError:
-            logger.exception("Could not derive the 'once' display window for a chat request")
-            return None
-    else:
-        return None
-
-    fmt = "%Y-%m-%d %H:%M"
-    return (
-        datetime.fromtimestamp(start_ts).strftime(fmt),
-        datetime.fromtimestamp(end_ts).strftime(fmt),
-    )
-
-
-def _recurrence_config_fields(rec: Any) -> dict[str, Any] | None:
-    """Return the ``recurrence_config`` dict for a RECURRING maintenance (Req 14.6).
+def _recurrence_config_fields(tp: TimePeriod) -> dict[str, Any]:
+    """Serialize a computed :class:`TimePeriod` into the ``recurrence_config`` dict.
 
     Honours "AI extrae, backend calcula" (Req 3.2): the AI only supplies the
-    structured recurrence; the backend computes every Zabbix field with
-    :func:`~core.recurrence.build_timeperiod` and this function only *serializes*
-    the already-computed :class:`~core.domain.TimePeriod` into the exact keys the
-    widget's confirmation popup reads for daily/weekly/monthly schedules:
+    structured recurrence; the backend has already computed every Zabbix field
+    with :func:`~core.recurrence.build_timeperiod`, and this function only
+    *serializes* the resulting :class:`~core.domain.TimePeriod` into the exact
+    keys the widget's confirmation popup reads for daily/weekly/monthly
+    schedules:
 
     * daily   -- ``every``, ``start_time``;
     * weekly  -- ``dayofweek`` (Zabbix day bitmask), ``every``, ``start_time``;
@@ -212,18 +168,7 @@ def _recurrence_config_fields(rec: Any) -> dict[str, Any] | None:
     ``{start_time, every, dayofweek, day, month}`` (the scheduling fields the
     widget consumes), so a single rule covers all three recurring types.
     ``timeperiod_type`` / ``period`` / ``start_date`` are intentionally omitted.
-
-    Returns ``None`` — never raising — when the period cannot be computed (a
-    :class:`~core.recurrence.RecurrenceError`, e.g. an incomplete request that
-    still reached this branch), so the caller simply omits ``recurrence_config``
-    rather than crashing the response.
     """
-    try:
-        tp: TimePeriod = build_timeperiod(recurrence_config_from(rec))
-    except RecurrenceError:
-        logger.exception("Could not compute the recurrence_config for a chat request")
-        return None
-
     fields: dict[str, Any] = {}
     for key in ("start_time", "every", "dayofweek", "day", "month"):
         value = getattr(tp, key)
@@ -371,25 +316,33 @@ def make_chat_blueprint(
             req.recurrence.recurrence_type.value if req.recurrence else "once"
         )
 
-        # For a one-time (``once``) maintenance the widget renders the period
-        # from ``start_time``/``end_time`` display strings (recurring types are
-        # rendered from ``recurrence_config`` instead). Derive them here so the
-        # confirmation preview no longer shows "Period: -" (Req 14.6). No
-        # timestamp arithmetic in the AI layer: the backend computes them.
+        # The widget renders the "Period" line from the top-level
+        # ``start_time``/``end_time`` display strings for EVERY maintenance type
+        # (they are the maintenance ACTIVE WINDOW — Zabbix ``active_since`` /
+        # ``active_till`` — exactly as the legacy v1 monolith emitted them), so
+        # recurring types no longer show "Period: -" (Req 14.6). Recurring types
+        # ADDITIONALLY carry ``recurrence_config`` for the schedule detail.
+        #
+        # "AI extrae, backend calcula" (Req 3.2): the backend computes the
+        # window and every Zabbix field; we only format/serialize them. The
+        # ``TimePeriod`` is computed ONCE and reused for both the active window
+        # and the recurrence config. A RecurrenceError is logged and swallowed
+        # so the response never crashes.
         rec = req.recurrence
-        if rec is not None and rec.recurrence_type == RecurrenceType.ONCE:
-            window = _once_display_window(rec)
-            if window is not None:
-                response["start_time"], response["end_time"] = window
-        elif rec is not None and rec.recurrence_type != RecurrenceType.ONCE:
-            # RECURRING (daily/weekly/monthly): the widget renders the schedule
-            # from ``recurrence_config`` (the once-only ``start_time``/``end_time``
-            # display strings do not apply). The backend computes every Zabbix
-            # field; we only serialize them (Req 14.6, 3.2). A RecurrenceError is
-            # logged and swallowed so the response never crashes.
-            config = _recurrence_config_fields(rec)
-            if config is not None:
-                response["recurrence_config"] = config
+        if rec is not None:
+            try:
+                tp: TimePeriod = build_timeperiod(recurrence_config_from(rec))
+            except RecurrenceError:
+                logger.exception(
+                    "Could not compute the active window for a chat request"
+                )
+            else:
+                start_ts, end_ts = active_window(rec, tp)
+                fmt = "%Y-%m-%d %H:%M"
+                response["start_time"] = datetime.fromtimestamp(start_ts).strftime(fmt)
+                response["end_time"] = datetime.fromtimestamp(end_ts).strftime(fmt)
+                if rec.recurrence_type != RecurrenceType.ONCE:
+                    response["recurrence_config"] = _recurrence_config_fields(tp)
 
         if resolved.is_empty:
             # Nothing matched: ask the user to verify the names (legacy behaviour).

@@ -486,6 +486,18 @@ def _recurrence_config_from(rec: ExtractedRecurrence) -> RecurrenceConfig:
     )
 
 
+def active_window(rec: ExtractedRecurrence, timeperiod: TimePeriod) -> tuple[int, int]:
+    """Public wrapper over :func:`_active_window` (reused by the ``/chat`` reshaper).
+
+    Exposed so other layers (e.g. the ``/chat`` reshaper in :mod:`api.chat`) can
+    reuse the exact same active-window computation the service feeds into the
+    Zabbix payload — the maintenance ACTIVE WINDOW (``active_since`` /
+    ``active_till``) the widget renders as the "Period" for every maintenance
+    type — without importing a private helper. Pure and deterministic.
+    """
+    return _active_window(rec, timeperiod)
+
+
 def _active_window(rec: ExtractedRecurrence, timeperiod: TimePeriod) -> tuple[int, int]:
     """Compute the maintenance active window ``(active_since, active_till)``.
 

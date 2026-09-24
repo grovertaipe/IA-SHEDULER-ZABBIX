@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] - 2026
+
+### Fixed
+- **Confirmation popup now shows the Period for recurring maintenances too.**
+  The `/chat` (and `/parse`) response now returns the top-level `start_time` /
+  `end_time` display strings (`YYYY-MM-DD HH:MM`) for EVERY maintenance type,
+  not just `once`. These are the maintenance active window (Zabbix
+  `active_since` / `active_till`), exactly as the legacy monolith emitted them,
+  so daily / weekly / monthly maintenances no longer show "Period: -". Recurring
+  types still additionally carry `recurrence_config` for the schedule detail.
+- Unified the window computation on a single code path: the backend core builds
+  the time period once and derives the active window deterministically; the AI
+  never computes timestamps or bitmasks.
+
 ## [2.4.2] - 2026
 
 ### Fixed
