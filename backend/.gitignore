@@ -1,8 +1,10 @@
+﻿# Backend-local ignores (the root .gitignore already covers caches/venv).
 .env
+*.env.local
 __pycache__/
-*.pyc
-
-.env
-__pycache__/
-*.pyc
-
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage

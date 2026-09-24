@@ -59,7 +59,7 @@ jobs:
 
       - name: Create widget zip
         run: |
-          cd zabbix-widget
+          cd widget
           zip -r ../zabbix-widget-aimaintenance-${{ github.ref_name }}.zip aimaintenance
           ls -lh ../zabbix-widget-aimaintenance-${{ github.ref_name }}.zip
 

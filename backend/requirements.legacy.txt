@@ -1,0 +1,9 @@
+# Preserved legacy dependency pins (from the monolithic backend/main.py).
+# Kept as a reference for the v2 migration and parity oracle work.
+# See requirements.txt for the v2 pinned dependency set.
+flask==3.0.3
+flask-cors==4.0.1
+requests==2.32.3
+google-generativeai==0.7.2
+openai==1.45.0
+gunicorn==22.0.0

@@ -1,7 +1,42 @@
+﻿# Python
 __pycache__/
-*.pyc
-*.log
-.env
+*.py[cod]
+*.egg-info/
+.Python
+
+# Virtual environments
 .venv/
-.zabbix-widget-*.zip
-# node_modules/ si algún día lo usas
+venv/
+env/
+
+# Test / type / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Secrets / local config
+.env
+*.env.local
+
+# Logs
+*.log
+
+# Build artifacts (widget package zips)
+zabbix-widget-aimaintenance-*.zip
+widget/zabbix-widget-aimaintenance-*.zip
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Node (si algún día se usa)
+node_modules/
+
+# Kiro specs / internal working docs (local only, not published)
+.kiro/
