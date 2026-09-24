@@ -169,5 +169,68 @@ def test_provider_error_uses_catalog_ai_unavailable_in_browser_locale() -> None:
     assert result.message == get_message("error.ai_unavailable", "en")
 
 
+# --------------------------------------------------------------------------- #
+# once completeness via structured start_date (Req 3.2 — AI extracts, backend  #
+# computes). "mañana 22:00-23:00" -> start_date + start_hour + duration is a    #
+# COMPLETE once request (maintenance_request, no missing fields).               #
+# --------------------------------------------------------------------------- #
+def test_once_with_structured_date_is_complete() -> None:
+    req = ExtractedRequest(
+        intent="maintenance_request",
+        groups=["Applications"],
+        recurrence=ExtractedRecurrence(
+            recurrence_type=RecurrenceType.ONCE,
+            start_date="2026-01-02",
+            start_hour=22,
+            duration_hours=1.0,
+        ),
+        assistant_message="Listo para revisar.",
+    )
+    svc = _service(req)
+    result = svc.interpret(
+        "mantenimiento para el grupo Applications mañana de 22:00 a 23:00",
+        locale="es",
+        base_date=_BASE,
+    )
+    assert result.intent == INTENT_MAINTENANCE
+    assert result.missing_fields == []
+    assert result.request is not None
+
+
+def test_once_with_explicit_epochs_is_complete() -> None:
+    req = ExtractedRequest(
+        intent="maintenance_request",
+        hosts=["web01"],
+        recurrence=ExtractedRecurrence(
+            recurrence_type=RecurrenceType.ONCE,
+            start_ts=1_700_000_000,
+            end_ts=1_700_003_600,
+        ),
+    )
+    svc = _service(req)
+    result = svc.interpret("web01 once", locale="es", base_date=_BASE)
+    assert result.intent == INTENT_MAINTENANCE
+    assert result.missing_fields == []
+
+
+def test_once_without_any_timing_degrades_to_clarification() -> None:
+    req = ExtractedRequest(
+        intent="maintenance_request",
+        groups=["Applications"],
+        recurrence=ExtractedRecurrence(recurrence_type=RecurrenceType.ONCE),
+    )
+    svc = _service(req)
+    result = svc.interpret(
+        "mantenimiento para el grupo Applications una vez",
+        locale="es",
+        base_date=_BASE,
+    )
+    assert result.intent == INTENT_CLARIFICATION
+    # Sensible structured missing-field names (not the epoch names).
+    assert "start_date" in result.missing_fields
+    assert "start_hour" in result.missing_fields
+    assert "duration" in result.missing_fields
+
+
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(pytest.main([__file__, "-v"]))

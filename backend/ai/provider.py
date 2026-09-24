@@ -214,6 +214,20 @@ def _as_str_set(value: Any) -> set[str]:
     return {item.lower() for item in _as_str_list(value)}
 
 
+def _as_opt_str(value: Any) -> str | None:
+    """Coerce a value into a trimmed string, or ``None`` when absent/blank.
+
+    Used for the ``once`` ``start_date`` (ISO ``YYYY-MM-DD``): the model returns
+    a string or ``null``. Any non-string/blank value degrades to ``None`` so the
+    recurrence engine's structured-date path only fires with real data. No date
+    format validation happens here (that stays in the engine, Req 3.2).
+    """
+    if isinstance(value, str):
+        stripped = value.strip()
+        return stripped or None
+    return None
+
+
 def _as_int(value: Any) -> int | None:
     """Coerce a value into an int, or ``None`` when absent/uncoercible."""
     if value is None or isinstance(value, bool):
@@ -324,6 +338,7 @@ def _parse_recurrence(data: dict[str, Any]) -> ExtractedRecurrence | None:
         start_hour=_as_int(source.get("start_hour")),
         duration_hours=_as_float(source.get("duration_hours")),
         every=_as_int(source.get("every")),
+        start_date=_as_opt_str(source.get("start_date")),
         start_ts=_as_int(source.get("start_ts")),
         end_ts=_as_int(source.get("end_ts")),
     )

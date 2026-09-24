@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026
+
+### Fixed
+- **One-time ("once") maintenances now create correctly from natural language.**
+  The AI returns a structured `start_date` (ISO `YYYY-MM-DD`, resolved from
+  today/tomorrow) plus `start_hour` and `duration_hours`, and the backend core
+  computes the epoch `start_ts` / `end_ts` deterministically. Previously the
+  once path required the AI to return epoch timestamps it was explicitly told
+  not to compute, so once requests stalled with
+  `missing_fields=["start_ts","end_ts"]`.
+- The confirmation detail popup reappears for once maintenances now that the
+  schedule resolves to a complete, valid window before the create step.
+
+### Changed
+- `ONCE` completeness is satisfied by either explicit epochs
+  (`start_ts` + `end_ts`) or the structured trio
+  (`start_date` + `start_hour` + `duration_hours`).
+
+### Unchanged (invariant)
+- The AI never computes timestamps or bitmasks; it extracts intent and the
+  backend core computes all numeric schedule values.
+
 ## [2.3.0] - 2026
 
 ### Added

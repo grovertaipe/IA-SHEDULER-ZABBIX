@@ -187,9 +187,10 @@ def _missing_recurrence_fields(rec: ExtractedRecurrence | None) -> list[str]:
     The checks mirror the recurrence engine's *required inputs* per type without
     duplicating its validation logic:
 
-    * every type needs ``start_hour`` and ``duration_hours`` (except ``once``,
-      which uses ``start_ts`` / ``end_ts``);
-    * ``once`` needs both ``start_ts`` and ``end_ts``;
+    * every recurring type needs ``start_hour`` and ``duration_hours``;
+    * ``once`` needs EITHER both ``start_ts`` / ``end_ts`` (explicit epochs)
+      OR ``start_date`` + ``start_hour`` + ``duration_hours`` (structured date
+      the backend converts to epochs, Req 3.2);
     * ``weekly`` / monthly-by-weekday need at least one ``days`` name;
     * ``monthly`` needs either ``day_of_month`` or (``days`` + ``occurrences``).
     """
@@ -200,10 +201,35 @@ def _missing_recurrence_fields(rec: ExtractedRecurrence | None) -> list[str]:
     rec_type = rec.recurrence_type
 
     if rec_type == RecurrenceType.ONCE:
-        if rec.start_ts is None:
-            missing.append("start_ts")
-        if rec.end_ts is None:
-            missing.append("end_ts")
+        # A ``once`` request is complete when EITHER the explicit epochs
+        # (start_ts + end_ts) OR the structured date form (start_date +
+        # start_hour + duration_hours) are present. The backend computes the
+        # epochs from the structured date (design "AI extrae, backend calcula",
+        # Req 3.2), so the AI never needs to emit epoch seconds. Only when
+        # NEITHER combination is satisfied do we report missing fields.
+        has_epochs = rec.start_ts is not None and rec.end_ts is not None
+        has_structured = (
+            rec.start_date is not None
+            and rec.start_hour is not None
+            and rec.duration_hours is not None
+        )
+        if has_epochs or has_structured:
+            return missing
+        # Neither form is complete: report the structured fields that are
+        # absent (the preferred AI-facing shape). If the client was going the
+        # explicit-epoch route, surface those too so clarification is accurate.
+        if rec.start_ts is not None or rec.end_ts is not None:
+            if rec.start_ts is None:
+                missing.append("start_ts")
+            if rec.end_ts is None:
+                missing.append("end_ts")
+            return missing
+        if rec.start_date is None:
+            missing.append("start_date")
+        if rec.start_hour is None:
+            missing.append("start_hour")
+        if rec.duration_hours is None:
+            missing.append("duration")
         return missing
 
     # Recurrent types (daily/weekly/monthly) share start_hour + duration_hours.

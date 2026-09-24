@@ -469,6 +469,7 @@ def _recurrence_config_from(rec: ExtractedRecurrence) -> RecurrenceConfig:
         start_hour=rec.start_hour,
         duration_hours=rec.duration_hours,
         every=rec.every,
+        start_date=rec.start_date,
         start_ts=rec.start_ts,
         end_ts=rec.end_ts,
     )

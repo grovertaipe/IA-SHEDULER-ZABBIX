@@ -71,6 +71,7 @@ Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 4.1, 4.2, 4.3, 4.4,
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 
 from .domain import (
     ProblemTag,
@@ -429,6 +430,55 @@ def _require_recurring_time(cfg: RecurrenceConfig) -> tuple[int, int]:
     return start_time, period
 
 
+def once_window_from_date(
+    start_date: str, start_hour: int, duration_hours: float
+) -> tuple[int, int]:
+    """Derive the ``once`` epoch window from a structured date/hour/duration.
+
+    Pure and deterministic implementation of the design principle "AI extrae,
+    backend calcula" (Req 3.2): the AI resolves the calendar date to an ISO
+    ``YYYY-MM-DD`` string (mapping "hoy"/"mañana" from the prompt context) and
+    supplies the start hour and duration; this helper — never the AI — computes
+    the epoch seconds.
+
+    ``start_date`` is parsed with ``strptime("%Y-%m-%d")`` and combined with the
+    given ``start_hour`` (minutes/seconds = 0) as a **local** datetime, matching
+    how the rest of the system uses local epochs (and the widget's legacy once
+    path which parsed ``"%Y-%m-%d %H:%M"`` locally). The hour and duration reuse
+    the Task 3.1 converters' validation semantics (hour ``0..23`` via
+    :func:`hours_to_seconds_from_midnight`, duration ``> 0`` via
+    :func:`duration_hours_to_seconds`) so invalid values raise the same
+    :class:`RecurrenceError` as today.
+
+    Args:
+        start_date: resolved calendar date as ISO ``YYYY-MM-DD``.
+        start_hour: hour of the day in ``0..23``.
+        duration_hours: duration in hours; must be strictly positive.
+
+    Returns:
+        ``(start_ts, end_ts)`` epoch seconds with ``end_ts = start_ts +
+        duration_hours * 3600``.
+
+    Raises:
+        RecurrenceError: on a malformed ``start_date`` (field ``"start_date"``),
+            an out-of-range ``start_hour`` or a non-positive ``duration_hours``.
+    """
+    # Validate hour/duration through the shared converters so the single
+    # validation path (and its error fields) is preserved (Req 2.4, 2.5, 2.9).
+    hours_to_seconds_from_midnight(start_hour)
+    duration_seconds = duration_hours_to_seconds(duration_hours)
+    try:
+        base = datetime.strptime(start_date, "%Y-%m-%d")
+    except (ValueError, TypeError) as exc:
+        raise RecurrenceError(
+            "start_date",
+            f"Fecha 'once' inválida (se esperaba YYYY-MM-DD): {start_date!r}.",
+        ) from exc
+    start_dt = base.replace(hour=start_hour, minute=0, second=0, microsecond=0)
+    start_ts = int(start_dt.timestamp())
+    return start_ts, start_ts + duration_seconds
+
+
 def _build_once(cfg: RecurrenceConfig) -> TimePeriod:
     """Build the ``once`` time period (timeperiod_type=0, Req 4).
 
@@ -437,12 +487,39 @@ def _build_once(cfg: RecurrenceConfig) -> TimePeriod:
     ``active_till=end``; those are recoverable as ``start_date`` and
     ``start_date + period`` by the maintenance assembler (Req 4.4). Rejects
     ``end <= start`` on the ``end_ts`` field (Req 4.3).
+
+    Window resolution order (design "AI extrae, backend calcula", Req 3.2):
+
+    1. explicit ``start_ts`` **and** ``end_ts`` → use them directly (unchanged
+       legacy behaviour, a client may still pass epochs);
+    2. else a structured ``start_date`` (ISO ``YYYY-MM-DD``) + ``start_hour`` +
+       ``duration_hours`` → compute the epochs deterministically with
+       :func:`once_window_from_date`;
+    3. else → raise the missing-``once``-data :class:`RecurrenceError`.
+
+    All three paths feed the SAME validation/flooring: the period (end - start)
+    is range-validated with :func:`validate_period_seconds` and both ``period``
+    and ``start_date`` are floored to whole minutes (Req 31).
     """
-    if cfg.start_ts is None:
-        raise RecurrenceError("start_ts", "Falta el timestamp de inicio para 'once'.")
-    if cfg.end_ts is None:
+    if cfg.start_ts is not None and cfg.end_ts is not None:
+        start_ts, end_ts = cfg.start_ts, cfg.end_ts
+    elif (
+        cfg.start_date is not None
+        and cfg.start_hour is not None
+        and cfg.duration_hours is not None
+    ):
+        start_ts, end_ts = once_window_from_date(
+            cfg.start_date, cfg.start_hour, cfg.duration_hours
+        )
+    else:
+        # Neither explicit epochs nor a structured date/hour/duration.
+        if cfg.start_ts is None:
+            raise RecurrenceError(
+                "start_ts", "Falta el timestamp de inicio para 'once'."
+            )
         raise RecurrenceError("end_ts", "Falta el timestamp de fin para 'once'.")
-    if cfg.end_ts <= cfg.start_ts:
+
+    if end_ts <= start_ts:
         raise RecurrenceError(
             "end_ts", "El timestamp de fin debe ser mayor que el de inicio."
         )
@@ -451,8 +528,8 @@ def _build_once(cfg: RecurrenceConfig) -> TimePeriod:
     # `start_date` down to whole minutes for Zabbix consistency (Req 31.3). The
     # enclosing window's active_since/active_till are floored by the assembler
     # from these same floored values (start_date and start_date + period).
-    period = floor_to_minute(validate_period_seconds(cfg.end_ts - cfg.start_ts))
-    start_date = floor_to_minute(cfg.start_ts)
+    period = floor_to_minute(validate_period_seconds(end_ts - start_ts))
+    start_date = floor_to_minute(start_ts)
     return TimePeriod(timeperiod_type=0, period=period, start_date=start_date)
 
 

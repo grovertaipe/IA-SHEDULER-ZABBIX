@@ -49,6 +49,10 @@ _RECURRENCE_SCHEMA: dict = {
         "start_hour": {"type": ["integer", "null"]},
         "duration_hours": {"type": ["number", "null"]},
         "every": {"type": ["integer", "null"]},
+        # ISO YYYY-MM-DD resolved calendar date for a ``once`` maintenance, or
+        # null. The backend computes the epochs from it (Req 3.2); the date
+        # format itself is validated in the recurrence engine, not here.
+        "start_date": {"type": ["string", "null"]},
         "start_ts": {"type": ["integer", "null"]},
         "end_ts": {"type": ["integer", "null"]},
     },

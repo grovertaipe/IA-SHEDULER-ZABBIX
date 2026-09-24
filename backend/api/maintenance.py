@@ -247,6 +247,18 @@ def _as_float(value: Any) -> float | None:
         return None
 
 
+def _as_opt_str(value: Any) -> str | None:
+    """Coerce ``value`` to a trimmed string, or ``None`` when absent/blank.
+
+    Used for the ``once`` structured ``start_date`` (ISO ``YYYY-MM-DD``); the
+    recurrence engine validates the actual date format (Req 3.2).
+    """
+    if isinstance(value, str):
+        stripped = value.strip()
+        return stripped or None
+    return None
+
+
 def _parse_recurrence(data: dict[str, Any]) -> ExtractedRecurrence:
     """Build an :class:`ExtractedRecurrence` from the request body.
 
@@ -265,6 +277,11 @@ def _parse_recurrence(data: dict[str, Any]) -> ExtractedRecurrence:
     start_ts = _as_int(rec_obj.get("start_ts"))
     end_ts = _as_int(rec_obj.get("end_ts"))
 
+    # Structured once date (v2): the widget sends back the AI-parsed ISO date
+    # (start_date) + start_hour + duration_hours; the recurrence engine computes
+    # the epochs (design "AI extrae, backend calcula", Req 3.2).
+    start_date = _as_opt_str(rec_obj.get("start_date"))
+
     # Legacy once payload: start_time / end_time as "%Y-%m-%d %H:%M" strings.
     if rec_type == RecurrenceType.ONCE and (start_ts is None or end_ts is None):
         start_ts = start_ts if start_ts is not None else _parse_legacy_ts(data.get("start_time"))
@@ -279,6 +296,7 @@ def _parse_recurrence(data: dict[str, Any]) -> ExtractedRecurrence:
         start_hour=_as_int(rec_obj.get("start_hour")),
         duration_hours=_as_float(rec_obj.get("duration_hours")),
         every=_as_int(rec_obj.get("every")),
+        start_date=start_date,
         start_ts=start_ts,
         end_ts=end_ts,
     )
@@ -741,6 +759,7 @@ def _test_config_from(data: dict[str, Any]) -> RecurrenceConfig:
         start_hour=start_hour,
         duration_hours=duration_hours,
         every=rec.every if rec.every is not None else _as_int(legacy.get("every")),
+        start_date=rec.start_date,
         start_ts=rec.start_ts,
         end_ts=rec.end_ts,
         day_bitmask=day_bitmask,

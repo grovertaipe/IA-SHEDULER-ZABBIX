@@ -75,6 +75,7 @@ class ExtractedRecurrence:
     duration_hours: float | None = None  # > 0
     every: int | None = None  # interval (days/weeks/months)
     # once:
+    start_date: str | None = None  # ISO "YYYY-MM-DD" resolved calendar date (once)
     start_ts: int | None = None
     end_ts: int | None = None
 
@@ -161,6 +162,10 @@ class RecurrenceConfig:
     start_hour: int | None = None
     duration_hours: float | None = None
     every: int | None = None
+    # once: either the explicit epochs OR a structured ISO date + start_hour +
+    # duration_hours (the backend computes the epochs from the structured date,
+    # mirroring ExtractedRecurrence.start_date).
+    start_date: str | None = None
     start_ts: int | None = None
     end_ts: int | None = None
     # bitmasks optionally precomputed by a client (validated, Req 2.7)
