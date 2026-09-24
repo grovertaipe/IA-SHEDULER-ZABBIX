@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2] - 2026
+
+### Fixed
+- **Confirmation popup now shows the schedule for recurring maintenances.**
+  The `/chat` (and `/parse`) response now includes a `recurrence_config` object
+  for daily / weekly / monthly maintenances, carrying the Zabbix fields the
+  widget renders (`start_time`, `every`, `dayofweek`, `day`, `month`). These are
+  computed deterministically by the backend core (`build_timeperiod`); the AI
+  never computes bitmasks. Previously the response only carried
+  `recurrence_type`, so the widget skipped the recurrence/technical-configuration
+  line and a routine maintenance showed no schedule at all.
+
 ## [2.4.1] - 2026
 
 ### Fixed

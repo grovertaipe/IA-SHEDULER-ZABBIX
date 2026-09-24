@@ -453,6 +453,17 @@ def _build_confirmation_message(
     ).strip()
 
 
+def recurrence_config_from(rec: ExtractedRecurrence) -> RecurrenceConfig:
+    """Public wrapper over :func:`_recurrence_config_from` (Req 3.2).
+
+    Exposed so other layers (e.g. the ``/chat`` reshaper in :mod:`api.chat`)
+    can reuse the exact same AI-extraction → :class:`RecurrenceConfig` mapping
+    that feeds :func:`build_timeperiod`, without importing a private helper or
+    duplicating the field copy. Pure and deterministic.
+    """
+    return _recurrence_config_from(rec)
+
+
 def _recurrence_config_from(rec: ExtractedRecurrence) -> RecurrenceConfig:
     """Map an :class:`ExtractedRecurrence` to a :class:`RecurrenceConfig`.
 

@@ -24,9 +24,9 @@ from flask import Flask
 
 from api.chat import make_chat_blueprint
 from core.domain import ExtractedRecurrence, ExtractedRequest, RecurrenceType
-from core.recurrence import once_window_from_date
+from core.recurrence import build_timeperiod, once_window_from_date
 from services.chat_service import ChatResult
-from services.maintenance_service import ResolvedResources
+from services.maintenance_service import ResolvedResources, recurrence_config_from
 
 
 # --------------------------------------------------------------------------- #
@@ -162,10 +162,12 @@ def test_once_from_explicit_epochs_uses_those() -> None:
 
 
 def test_recurring_weekly_has_no_display_window() -> None:
-    """A recurring (weekly) request → no start_time/end_time; recurrence_type set.
+    """A recurring (weekly) request → no top-level window; ``recurrence_config`` set.
 
     The widget renders recurring periods from ``recurrence_config`` (Req 14.6),
-    so the reshaper must not add the once-only display strings here.
+    so the reshaper must NOT add the once-only display strings at the top level;
+    instead it emits ``recurrence_config`` with the engine-computed ``dayofweek``
+    bitmask, ``every`` and ``start_time`` (seconds from midnight).
     """
     rec = ExtractedRecurrence(
         recurrence_type=RecurrenceType.WEEKLY,
@@ -176,10 +178,80 @@ def test_recurring_weekly_has_no_display_window() -> None:
     app = _build_app(_maintenance_result(rec), _resolved_one_host())
     data = _post_chat(app)
 
+    tp = build_timeperiod(recurrence_config_from(rec))
     assert data["type"] == "maintenance_request"
     assert data["recurrence_type"] == "weekly"
+    # Top-level once-only display strings must remain absent.
     assert "start_time" not in data
     assert "end_time" not in data
+    # The schedule now lives inside recurrence_config (a different key).
+    config = data["recurrence_config"]
+    assert config["dayofweek"] == tp.dayofweek
+    assert config["every"] == tp.every
+    assert config["start_time"] == tp.start_time
+
+
+def test_recurring_daily_sets_recurrence_config() -> None:
+    """A recurring (daily) request → ``recurrence_config`` with every + start_time.
+
+    Expected values are computed via the engine so the test stays in lock-step
+    with :func:`build_timeperiod` rather than hard-coding derived fields.
+    """
+    rec = ExtractedRecurrence(
+        recurrence_type=RecurrenceType.DAILY,
+        every=1,
+        start_hour=2,
+        duration_hours=1.0,
+    )
+    app = _build_app(_maintenance_result(rec), _resolved_one_host())
+    data = _post_chat(app)
+
+    tp = build_timeperiod(recurrence_config_from(rec))
+    assert data["type"] == "maintenance_request"
+    assert data["recurrence_type"] == "daily"
+    assert "start_time" not in data
+    assert "end_time" not in data
+    config = data["recurrence_config"]
+    assert config["every"] == tp.every
+    assert config["start_time"] == tp.start_time
+
+
+def test_recurring_monthly_by_day_of_month_sets_recurrence_config() -> None:
+    """A monthly-by-day-of-month request → ``recurrence_config`` with day + start_time."""
+    rec = ExtractedRecurrence(
+        recurrence_type=RecurrenceType.MONTHLY,
+        day_of_month=15,
+        start_hour=3,
+        duration_hours=2.0,
+    )
+    app = _build_app(_maintenance_result(rec), _resolved_one_host())
+    data = _post_chat(app)
+
+    tp = build_timeperiod(recurrence_config_from(rec))
+    assert data["type"] == "maintenance_request"
+    assert data["recurrence_type"] == "monthly"
+    assert "start_time" not in data
+    assert "end_time" not in data
+    config = data["recurrence_config"]
+    assert config["day"] == tp.day
+    assert config["start_time"] == tp.start_time
+
+
+def test_once_has_no_recurrence_config() -> None:
+    """A ``once`` request → top-level start_time/end_time and NO recurrence_config."""
+    rec = ExtractedRecurrence(
+        recurrence_type=RecurrenceType.ONCE,
+        start_date="2025-03-15",
+        start_hour=2,
+        duration_hours=3.0,
+    )
+    app = _build_app(_maintenance_result(rec), _resolved_one_host())
+    data = _post_chat(app)
+
+    assert data["recurrence_type"] == "once"
+    assert "start_time" in data
+    assert "end_time" in data
+    assert "recurrence_config" not in data
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -47,8 +47,8 @@ from flask import Blueprint, jsonify, request
 
 from api.auth import validate_user
 from config import AppConfig
-from core.domain import RecurrenceType
-from core.recurrence import RecurrenceError, once_window_from_date
+from core.domain import RecurrenceType, TimePeriod
+from core.recurrence import RecurrenceError, build_timeperiod, once_window_from_date
 from i18n.locale import resolve_locale
 from services.chat_service import (
     INTENT_HELP,
@@ -58,7 +58,11 @@ from services.chat_service import (
     ChatResult,
     ChatService,
 )
-from services.maintenance_service import MaintenanceService, ResolvedResources
+from services.maintenance_service import (
+    MaintenanceService,
+    ResolvedResources,
+    recurrence_config_from,
+)
 from zabbix.client import ZabbixClient
 
 logger = logging.getLogger(__name__)
@@ -188,6 +192,44 @@ def _once_display_window(rec: Any) -> tuple[str, str] | None:
         datetime.fromtimestamp(start_ts).strftime(fmt),
         datetime.fromtimestamp(end_ts).strftime(fmt),
     )
+
+
+def _recurrence_config_fields(rec: Any) -> dict[str, Any] | None:
+    """Return the ``recurrence_config`` dict for a RECURRING maintenance (Req 14.6).
+
+    Honours "AI extrae, backend calcula" (Req 3.2): the AI only supplies the
+    structured recurrence; the backend computes every Zabbix field with
+    :func:`~core.recurrence.build_timeperiod` and this function only *serializes*
+    the already-computed :class:`~core.domain.TimePeriod` into the exact keys the
+    widget's confirmation popup reads for daily/weekly/monthly schedules:
+
+    * daily   -- ``every``, ``start_time``;
+    * weekly  -- ``dayofweek`` (Zabbix day bitmask), ``every``, ``start_time``;
+    * monthly -- ``start_time``, ``every`` and whichever of ``day`` /
+      ``dayofweek`` / ``month`` the engine set.
+
+    The dict is assembled from the non-``None`` :class:`TimePeriod` fields among
+    ``{start_time, every, dayofweek, day, month}`` (the scheduling fields the
+    widget consumes), so a single rule covers all three recurring types.
+    ``timeperiod_type`` / ``period`` / ``start_date`` are intentionally omitted.
+
+    Returns ``None`` — never raising — when the period cannot be computed (a
+    :class:`~core.recurrence.RecurrenceError`, e.g. an incomplete request that
+    still reached this branch), so the caller simply omits ``recurrence_config``
+    rather than crashing the response.
+    """
+    try:
+        tp: TimePeriod = build_timeperiod(recurrence_config_from(rec))
+    except RecurrenceError:
+        logger.exception("Could not compute the recurrence_config for a chat request")
+        return None
+
+    fields: dict[str, Any] = {}
+    for key in ("start_time", "every", "dayofweek", "day", "month"):
+        value = getattr(tp, key)
+        if value is not None:
+            fields[key] = value
+    return fields
 
 
 def make_chat_blueprint(
@@ -339,6 +381,15 @@ def make_chat_blueprint(
             window = _once_display_window(rec)
             if window is not None:
                 response["start_time"], response["end_time"] = window
+        elif rec is not None and rec.recurrence_type != RecurrenceType.ONCE:
+            # RECURRING (daily/weekly/monthly): the widget renders the schedule
+            # from ``recurrence_config`` (the once-only ``start_time``/``end_time``
+            # display strings do not apply). The backend computes every Zabbix
+            # field; we only serialize them (Req 14.6, 3.2). A RecurrenceError is
+            # logged and swallowed so the response never crashes.
+            config = _recurrence_config_fields(rec)
+            if config is not None:
+                response["recurrence_config"] = config
 
         if resolved.is_empty:
             # Nothing matched: ask the user to verify the names (legacy behaviour).
