@@ -204,19 +204,6 @@ _TEMPLATES_MESSAGE_BY_LOCALE: dict[str, str] = {
 }
 
 
-def _read_user_payload(data: Any) -> Any:
-    """Return the user payload, accepting both ``user`` and ``user_info``.
-
-    The v2 contract sends ``user``; the legacy widget sent ``user_info``. Both
-    are accepted (``user`` wins) so existing widget builds keep working.
-    """
-    if not isinstance(data, dict):
-        return None
-    if data.get("user") is not None:
-        return data.get("user")
-    return data.get("user_info")
-
-
 def _read_locale(data: Any, config: AppConfig) -> str:
     """Resolve the effective locale for the request (Req 21.3)."""
     requested = data.get("locale") if isinstance(data, dict) else None
@@ -422,26 +409,25 @@ def _build_request(data: dict[str, Any]) -> ExtractedRequest:
     )
 
 
-def _read_user_from_query(args: Any) -> dict[str, Any] | None:
-    """Build a minimal user payload from a GET query string (Req 11).
+def _read_session_from_query(args: Any) -> dict[str, Any] | None:
+    """Build a minimal session payload from a GET query string (Req 11).
 
     ``/maintenance/list`` is a GET with no body, so the widget carries the
-    logged-in Zabbix user via ``?userid=<id>`` (and optionally ``?username=``).
-    Returns ``{"userid": ..., "username"?: ...}`` when a non-empty ``userid`` is
-    present, or ``None`` otherwise so the caller returns 401. The payload is
-    validated exactly like the body-carried user via :func:`validate_user`.
+    logged-in Zabbix **session id** via ``?sessionid=<sid>`` (alias
+    ``?session_id=``). Returns ``{"sessionid": ...}`` when a non-empty session id
+    is present, or ``None`` otherwise so the caller returns 401. The session is
+    verified exactly like the body-carried one via :func:`validate_user`
+    (``user.checkAuthentication``). The session id is a secret and is never
+    logged.
     """
-    raw_userid = args.get("userid")
-    if raw_userid is None:
-        return None
-    userid = str(raw_userid).strip()
-    if not userid:
-        return None
-    payload: dict[str, Any] = {"userid": userid}
-    username = args.get("username")
-    if username is not None and str(username).strip():
-        payload["username"] = str(username).strip()
-    return payload
+    for key in ("sessionid", "session_id"):
+        raw = args.get(key)
+        if raw is None:
+            continue
+        sid = str(raw).strip()
+        if sid:
+            return {"sessionid": sid}
+    return None
 
 
 def make_maintenance_blueprint(
@@ -458,10 +444,12 @@ def make_maintenance_blueprint(
     blueprint. Passing the dependencies explicitly keeps the blueprint free of
     global state and trivially testable with fakes.
 
-    Every endpoint that reads or writes Zabbix validates the ``Info_Usuario``
-    first (401 on failure, Req 11): ``create_maintenance`` (body), ``list`` (via
-    the ``?userid=`` query string) and ``test/routine`` (body). Only the static
-    ``templates`` endpoint stays public.
+    Every endpoint that reads or writes Zabbix authenticates the Zabbix
+    **session** first (401 on failure, Req 11): ``create_maintenance`` (body
+    ``sessionid``), ``list`` (via the ``?sessionid=`` query string) and
+    ``test/routine`` (body ``sessionid``). Only the static ``templates``
+    endpoint stays public. Identity always comes from Zabbix's verified user;
+    any client-supplied ``userid`` is never trusted for identity.
     """
     bp = Blueprint("maintenance", __name__)
 
@@ -481,8 +469,10 @@ def make_maintenance_blueprint(
                 400,
             )
 
-        # Validate the Info_Usuario before acting on Zabbix (Req 11).
-        auth = validate_user(_read_user_payload(data), client, cache)
+        # Authenticate against a REAL Zabbix session before acting (Req 11).
+        # Identity is whatever Zabbix verifies for the sessionid; any
+        # client-supplied user/userid is NOT trusted for identity.
+        auth = validate_user(data, client, cache)
         if not auth.ok or auth.user is None:
             return (
                 jsonify(
@@ -554,13 +544,14 @@ def make_maintenance_blueprint(
         ``active_till``, the derived ``is_routine`` / ``routine_type`` and the
         extracted ``ticket_number``.
 
-        This endpoint reads Zabbix, so it requires a validated logged-in user
-        (Req 11). Being a GET with no body, the user is carried in the query
-        string as ``?userid=<id>`` (optionally ``?username=``); a missing or
-        invalid user yields 401 without touching Zabbix.
+        This endpoint reads Zabbix, so it requires a valid logged-in Zabbix
+        session (Req 11). Being a GET with no body, the session id is carried in
+        the query string as ``?sessionid=<sid>`` (alias ``?session_id=``); a
+        missing/invalid/expired session yields 401 without listing anything.
         """
-        # Validate the Info_Usuario (from the query string) before acting (Req 11).
-        auth = validate_user(_read_user_from_query(request.args), client, cache)
+        # Authenticate the Zabbix session (from the query string) before acting
+        # (Req 11). Identity comes from Zabbix's verified user, not the client.
+        auth = validate_user(_read_session_from_query(request.args), client, cache)
         if not auth.ok or auth.user is None:
             return (
                 jsonify(
@@ -639,10 +630,10 @@ def make_maintenance_blueprint(
                 400,
             )
 
-        # Validate the Info_Usuario before doing anything (logged-in only policy,
-        # Req 11). This endpoint does not touch Zabbix but is protected for
-        # consistency with every other acting endpoint.
-        auth = validate_user(_read_user_payload(data), client, cache)
+        # Authenticate the Zabbix session before doing anything (logged-in only
+        # policy, Req 11). This endpoint does not touch Zabbix for its work but
+        # is protected for consistency with every other acting endpoint.
+        auth = validate_user(data, client, cache)
         if not auth.ok or auth.user is None:
             return (
                 jsonify(

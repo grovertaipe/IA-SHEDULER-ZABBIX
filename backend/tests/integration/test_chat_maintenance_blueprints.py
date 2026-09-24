@@ -39,13 +39,18 @@ from services.maintenance_service import (
 # Fakes                                                                       #
 # --------------------------------------------------------------------------- #
 class FakeClient:
-    """Minimal fake ZabbixClient: only ``user_exists`` is used by the auth edge."""
+    """Minimal fake ZabbixClient: ``check_authentication`` drives the auth edge.
 
-    def __init__(self, known_users: set[str]) -> None:
-        self._known = known_users
+    ``sessions`` maps a valid session id → the VERIFIED user object Zabbix would
+    return for it. Unknown session ids yield ``None`` (invalid/expired), so a
+    request without a known session fails closed (401).
+    """
 
-    def user_exists(self, userid: str) -> bool:
-        return userid in self._known
+    def __init__(self, sessions: dict[str, dict[str, Any]]) -> None:
+        self._sessions = sessions
+
+    def check_authentication(self, sessionid: str) -> dict[str, Any] | None:
+        return self._sessions.get(sessionid)
 
     def list_maintenance(self) -> list[dict[str, Any]]:
         return []
@@ -116,13 +121,26 @@ def _maintenance_request_result() -> ChatResult:
     )
 
 
+#: The verified user Zabbix returns for the valid session below.
+_VERIFIED_USER = {
+    "userid": "42",
+    "username": "operator",
+    "name": "Op",
+    "surname": "Erator",
+}
+#: A valid frontend session id the widget would send.
+_SESSION_ID = "sid-valid"
+
+
 def _build_app(
     chat_result: ChatResult,
     resolved: ResolvedResources,
     confirmation: MaintenanceConfirmation | None = None,
-    known_users: set[str] | None = None,
+    *,
+    authenticated: bool = True,
 ) -> Flask:
-    client = FakeClient(known_users if known_users is not None else {"42"})
+    sessions = {_SESSION_ID: _VERIFIED_USER} if authenticated else {}
+    client = FakeClient(sessions)
     chat_service = FakeChatService(chat_result)
     maint_service = FakeMaintenanceService(resolved, confirmation)
     config = FakeConfig()
@@ -137,6 +155,8 @@ def _build_app(
     return app
 
 
+#: A cosmetic user payload the widget still sends for display. The backend does
+#: NOT trust it for identity — authentication is the ``sessionid`` below.
 _USER = {"userid": "42", "username": "operator", "name": "Op", "surname": "Erator"}
 
 
@@ -152,7 +172,11 @@ def test_chat_and_parse_return_identical_shape() -> None:
     app = _build_app(_maintenance_request_result(), resolved)
     client = app.test_client()
 
-    body = {"message": "backup diario 2-4am srv-web01", "user": _USER}
+    body = {
+        "message": "backup diario 2-4am srv-web01",
+        "sessionid": _SESSION_ID,
+        "user": _USER,
+    }
     chat_resp = client.post("/chat", json=body)
     parse_resp = client.post("/parse", json=body)
 
@@ -176,7 +200,12 @@ def test_chat_message_is_ai_assistant_text() -> None:
     client = app.test_client()
 
     resp = client.post(
-        "/chat", json={"message": "backup diario 2-4am srv-web01", "user": _USER}
+        "/chat",
+        json={
+            "message": "backup diario 2-4am srv-web01",
+            "sessionid": _SESSION_ID,
+            "user": _USER,
+        },
     )
     assert resp.status_code == 200
     assert resp.get_json()["message"] == ai_text
@@ -200,6 +229,7 @@ def test_create_maintenance_confirmation_localized_en() -> None:
 
     body = {
         "message": "backup diario",
+        "sessionid": _SESSION_ID,
         "user": _USER,
         "locale": "en",
         "hosts": ["srv-web01"],
@@ -221,19 +251,71 @@ def test_chat_missing_message_is_400_no_state_change() -> None:
     app = _build_app(_maintenance_request_result(), ResolvedResources())
     client = app.test_client()
 
-    resp = client.post("/chat", json={"user": _USER})
+    resp = client.post("/chat", json={"sessionid": _SESSION_ID, "user": _USER})
     assert resp.status_code == 400
     assert resp.get_json()["type"] == "error"
 
 
-def test_chat_unauthorized_user_yields_401() -> None:
-    """An unknown user yields 401 (Req 11)."""
-    app = _build_app(_maintenance_request_result(), ResolvedResources(), known_users=set())
+def test_chat_invalid_session_yields_401() -> None:
+    """An invalid/expired session yields 401 (Req 11)."""
+    app = _build_app(
+        _maintenance_request_result(), ResolvedResources(), authenticated=False
+    )
     client = app.test_client()
 
+    resp = client.post(
+        "/chat", json={"message": "hola", "sessionid": _SESSION_ID, "user": _USER}
+    )
+    assert resp.status_code == 401
+    assert resp.get_json()["type"] == "error"
+
+
+def test_chat_missing_session_yields_401() -> None:
+    """A request with no sessionid at all yields 401 (Req 11)."""
+    app = _build_app(_maintenance_request_result(), ResolvedResources())
+    client = app.test_client()
+
+    # A client-claimed user without a session is NOT authenticated.
     resp = client.post("/chat", json={"message": "hola", "user": _USER})
     assert resp.status_code == 401
     assert resp.get_json()["type"] == "error"
+
+
+def test_chat_ignores_client_userid_uses_verified_identity() -> None:
+    """The echoed identity comes from Zabbix's verified session, not the client.
+
+    The client claims a different userid; the maintenance confirmation uses the
+    VERIFIED user (42/operator) that Zabbix returned for the session.
+    """
+    resolved = ResolvedResources(
+        hosts=[{"hostid": "1", "host": "srv-web01", "name": "srv-web01"}],
+        host_ids=["1"],
+    )
+    confirmation = MaintenanceConfirmation(
+        maintenanceid="777",
+        name="100-178306 - backup",
+        description="desc",
+        user=UserInfo(userid="42", username="operator", name="Op", surname="Erator"),
+        resolved=resolved,
+    )
+    app = _build_app(_maintenance_request_result(), resolved, confirmation)
+    client = app.test_client()
+
+    resp = client.post(
+        "/create_maintenance",
+        json={
+            "message": "backup diario",
+            "sessionid": _SESSION_ID,
+            # Attacker-claimed identity — must be ignored.
+            "user": {"userid": "1", "username": "admin"},
+            "hosts": ["srv-web01"],
+            "recurrence_type": "daily",
+            "recurrence": {"start_hour": 2, "duration_hours": 2.0},
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["user_info"]["userid"] == "42"
+    assert resp.get_json()["user_info"]["username"] == "operator"
 
 
 def test_create_maintenance_returns_confirmation_shape() -> None:
@@ -254,6 +336,7 @@ def test_create_maintenance_returns_confirmation_shape() -> None:
 
     body = {
         "message": "backup diario",
+        "sessionid": _SESSION_ID,
         "user": _USER,
         "hosts": ["srv-web01"],
         "recurrence_type": "daily",
@@ -272,14 +355,21 @@ def test_create_maintenance_returns_confirmation_shape() -> None:
     assert data["user_info"]["userid"] == "42"
 
 
-def test_create_maintenance_unauthorized_yields_401() -> None:
-    """An unknown user cannot create a maintenance (Req 11, 15.7)."""
-    app = _build_app(_maintenance_request_result(), ResolvedResources(), known_users=set())
+def test_create_maintenance_invalid_session_yields_401() -> None:
+    """An invalid session cannot create a maintenance (Req 11, 15.7)."""
+    app = _build_app(
+        _maintenance_request_result(), ResolvedResources(), authenticated=False
+    )
     client = app.test_client()
 
     resp = client.post(
         "/create_maintenance",
-        json={"user": _USER, "hosts": ["srv-web01"], "recurrence_type": "daily"},
+        json={
+            "sessionid": _SESSION_ID,
+            "user": _USER,
+            "hosts": ["srv-web01"],
+            "recurrence_type": "daily",
+        },
     )
     assert resp.status_code == 401
 
@@ -291,7 +381,7 @@ def test_create_maintenance_missing_target_is_400() -> None:
 
     resp = client.post(
         "/create_maintenance",
-        json={"user": _USER, "recurrence_type": "daily"},
+        json={"sessionid": _SESSION_ID, "user": _USER, "recurrence_type": "daily"},
     )
     assert resp.status_code == 400
     assert resp.get_json()["type"] == "error"
@@ -312,21 +402,21 @@ def test_maintenance_templates_shape() -> None:
 def test_maintenance_list_shape() -> None:
     """/maintenance/list returns the legacy maintenance_list shape (Req 15.4).
 
-    The endpoint hits Zabbix, so it requires a validated user carried in the
-    query string as ``?userid=`` (Req 11); a valid one yields the legacy shape.
+    The endpoint hits Zabbix, so it requires a valid session carried in the
+    query string as ``?sessionid=`` (Req 11); a valid one yields the legacy shape.
     """
     app = _build_app(_maintenance_request_result(), ResolvedResources())
     client = app.test_client()
 
-    resp = client.get("/maintenance/list?userid=42")
+    resp = client.get(f"/maintenance/list?sessionid={_SESSION_ID}")
     assert resp.status_code == 200
     data = resp.get_json()
     assert data["type"] == "maintenance_list"
     assert data["total"] == 0
 
 
-def test_maintenance_list_without_userid_yields_401() -> None:
-    """/maintenance/list requires a logged-in user via ?userid= (Req 11)."""
+def test_maintenance_list_without_session_yields_401() -> None:
+    """/maintenance/list requires a session via ?sessionid= (Req 11)."""
     app = _build_app(_maintenance_request_result(), ResolvedResources())
     client = app.test_client()
 
@@ -335,14 +425,14 @@ def test_maintenance_list_without_userid_yields_401() -> None:
     assert resp.get_json()["type"] == "error"
 
 
-def test_maintenance_list_unknown_userid_yields_401() -> None:
-    """An unknown ?userid= is rejected with 401 (Req 11)."""
+def test_maintenance_list_invalid_session_yields_401() -> None:
+    """An unknown ?sessionid= is rejected with 401 (Req 11)."""
     app = _build_app(
-        _maintenance_request_result(), ResolvedResources(), known_users=set()
+        _maintenance_request_result(), ResolvedResources(), authenticated=False
     )
     client = app.test_client()
 
-    resp = client.get("/maintenance/list?userid=99")
+    resp = client.get(f"/maintenance/list?sessionid={_SESSION_ID}")
     assert resp.status_code == 401
     assert resp.get_json()["type"] == "error"
 
@@ -354,6 +444,7 @@ def test_test_routine_valid_weekly() -> None:
 
     body = {
         "recurrence_type": "weekly",
+        "sessionid": _SESSION_ID,
         "user": _USER,
         "recurrence": {
             "days": ["monday", "friday"],
@@ -377,6 +468,7 @@ def test_test_routine_invalid_reports_error() -> None:
     # weekly with no days -> recurrence engine rejects it.
     body = {
         "recurrence_type": "weekly",
+        "sessionid": _SESSION_ID,
         "user": _USER,
         "recurrence": {"start_hour": 1, "duration_hours": 2.0},
     }
@@ -386,14 +478,15 @@ def test_test_routine_invalid_reports_error() -> None:
 
 
 def test_test_routine_unauthorized_yields_401() -> None:
-    """/test/routine requires a validated logged-in user (Req 11)."""
+    """/test/routine requires a valid logged-in Zabbix session (Req 11)."""
     app = _build_app(
-        _maintenance_request_result(), ResolvedResources(), known_users=set()
+        _maintenance_request_result(), ResolvedResources(), authenticated=False
     )
     client = app.test_client()
 
     body = {
         "recurrence_type": "weekly",
+        "sessionid": _SESSION_ID,
         "user": _USER,
         "recurrence": {"days": ["monday"], "start_hour": 1, "duration_hours": 2.0},
     }

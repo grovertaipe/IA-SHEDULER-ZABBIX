@@ -61,8 +61,8 @@ class _FakeClient:
     def is_connected(self) -> bool:
         return self._connected
 
-    def user_exists(self, userid: str) -> bool:
-        return True
+    def check_authentication(self, sessionid: str) -> dict[str, object] | None:
+        return {"userid": "1", "username": "admin"}
 
 
 def _build(monkeypatch, **cfg_overrides: object) -> app_module.Flask:

@@ -83,6 +83,7 @@ class AIMaintenanceI18n {
             'Features may be limited until the connection is restored.': { es: 'Las funciones pueden estar limitadas hasta que se restablezca la conexión.', en: 'Features may be limited until the connection is restored.', pt: 'Os recursos podem ficar limitados até que a conexão seja restabelecida.' },
             'Could not connect to the backend. Verify the service is running.': { es: 'No se pudo conectar con el backend. Verifica que el servicio esté en ejecución.', en: 'Could not connect to the backend. Verify the service is running.', pt: 'Não foi possível conectar ao backend. Verifique se o serviço está em execução.' },
             'The request took too long. You can try again.': { es: 'La solicitud tardó demasiado. Puedes intentarlo de nuevo.', en: 'The request took too long. You can try again.', pt: 'A solicitação demorou demais. Você pode tentar novamente.' },
+            'Your Zabbix session expired. Please reload the page.': { es: 'Tu sesión de Zabbix expiró. Por favor recarga la página.', en: 'Your Zabbix session expired. Please reload the page.', pt: 'Sua sessão do Zabbix expirou. Por favor, recarregue a página.' },
 
             // ---- Validation / errors ------------------------------------
             'Error': { es: 'Error', en: 'Error', pt: 'Erro' },

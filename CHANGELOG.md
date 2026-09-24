@@ -4,6 +4,37 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026
+
+### Security
+- **Real Zabbix session authentication (breaking change).** Every acting request
+  is now authenticated against Zabbix via `user.checkAuthentication`: the client
+  must send the logged-in user's Zabbix **session id**, and the backend uses the
+  identity Zabbix returns for that session. Previously the backend only checked
+  that a client-supplied `userid` existed, which meant anyone who guessed a valid
+  id (e.g. `1` = Admin) could act. That path is removed (fail-closed): a missing,
+  invalid or expired session → HTTP 401, and a client-claimed `userid` is never
+  trusted for identity.
+- The session-validation cache is now keyed on the session id (a validated
+  credential); cache failures still never block validation. The session id is a
+  secret and is never written to logs or error messages.
+- Added secure-deployment guidance to the README: run the backend behind
+  TLS/HTTPS (the session id travels to it), restrict network access so only the
+  Zabbix frontend host can reach the backend, and keep all secrets in runtime
+  env (never baked into the image).
+
+### Changed (breaking)
+- `/chat`, `/parse`, `/create_maintenance`, `/maintenance/list`, `/test/routine`,
+  `/search_hosts`, `/search_groups` now require a valid Zabbix `sessionid`
+  (`/maintenance/list` reads `?sessionid=`). The widget sends the frontend
+  session id automatically; on a 401 it prompts the user to reload the expired
+  Zabbix session.
+
+### Upgrade notes
+- Redeploy BOTH the backend and the widget. Reinstall the widget in Zabbix and
+  hard-refresh the browser so it sends the session id; older widget builds (no
+  session id) will receive 401.
+
 ## [2.6.1] - 2026
 
 ### Fixed

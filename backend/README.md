@@ -129,6 +129,36 @@ Ejemplo de health check:
 curl http://localhost:5005/health
 ```
 
+## Seguridad / despliegue seguro
+
+- **Autenticación real por sesión de Zabbix.** El backend autentica **cada
+  solicitud que actúa** (chat, creación/listado de mantenimientos, búsquedas)
+  contra Zabbix mediante `user.checkAuthentication`: el widget envía el
+  identificador de **sesión** del usuario logueado en el frontend de Zabbix y el
+  backend le pregunta a Zabbix a quién pertenece esa sesión, confiando **solo**
+  en la identidad que Zabbix verifica. Ninguna solicitud se confía en un
+  `userid` provisto por el cliente. Si la sesión falta, es inválida o expiró, la
+  respuesta es **HTTP 401** (fail-closed).
+- **Usa TLS/HTTPS.** El identificador de sesión viaja del navegador al backend,
+  por lo que el backend **debe** exponerse detrás de un proxy inverso con
+  **TLS/HTTPS**. Nunca lo expongas por HTTP plano en una red no confiable: un
+  observador podría capturar la sesión.
+- **Restringe el acceso de red al backend (defensa en profundidad).** Limita
+  quién puede alcanzar el backend para que **solo el host del frontend de
+  Zabbix** pueda hacerlo (firewall / security group, o enlazándolo a una
+  interfaz interna). El backend no debe ser accesible públicamente.
+- **Secretos por entorno, nunca en la imagen.** El token de Zabbix y las claves
+  de IA se proveen en tiempo de ejecución vía variables de entorno y nunca se
+  hornean en la imagen ni se registran en logs. El identificador de sesión
+  tampoco se escribe en logs.
+
+> Cambio de seguridad importante (v2): se eliminó el mecanismo previo que solo
+> comprobaba que un `userid` existiera en Zabbix. Ese esquema permitía que
+> cualquiera que adivinara un `userid` válido (p. ej. `1` = Admin) actuara. El
+> nuevo esquema exige una sesión válida de Zabbix. Este cambio requiere
+> **redesplegar backend y widget**, **reinstalar el widget** y **refrescar el
+> navegador**.
+
 ## Pruebas y calidad
 
 El proyecto usa **pytest + Hypothesis** (con `pytest-cov`), **ruff** y **mypy**,

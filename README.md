@@ -46,8 +46,9 @@ mediante una URL configurable.
   los extrae y se incluyen en el nombre y la descripción del mantenimiento.
 - 🌐 Interfaz multilenguaje (español, inglés, portugués) que sigue el idioma del
   usuario de Zabbix.
-- 🔒 Seguridad: solo usuarios autenticados en Zabbix pueden operar; límite de
-  peticiones y validación de usuario incluidos.
+- 🔒 Seguridad: cada solicitud que actúa se autentica contra Zabbix mediante la
+  **sesión** del usuario (`user.checkAuthentication`); solo quienes tienen una
+  sesión válida de Zabbix pueden operar. Incluye límite de peticiones.
 - 🎯 Búsqueda de hosts y grupos (exacta, flexible y por tags).
 - 🩺 Observabilidad: `GET /health` y `GET /metrics` (Prometheus).
 
@@ -67,6 +68,23 @@ docker compose up --build -d
 ```
 
 Esto levanta las instancias `aima1..aima5` en los puertos **5005–5009**.
+
+## Seguridad / despliegue seguro
+
+- **Autenticación real por sesión.** El backend autentica cada solicitud que
+  actúa contra Zabbix con `user.checkAuthentication`: el widget envía el
+  identificador de **sesión** del usuario logueado y el backend confía solo en
+  la identidad que Zabbix verifica. Ninguna solicitud se confía en un `userid`
+  provisto por el cliente; sin sesión válida la respuesta es **HTTP 401**.
+- **Ejecuta el backend detrás de TLS/HTTPS.** El identificador de sesión viaja
+  al backend, así que usa un proxy inverso con HTTPS y nunca lo expongas por
+  HTTP plano en una red no confiable.
+- **Restringe el acceso de red** para que solo el host del frontend de Zabbix
+  alcance el backend (firewall / security group o interfaz interna).
+- **Secretos por entorno**, nunca horneados en la imagen ni en logs.
+
+Detalles y guía completa en **[`backend/README.md`](backend/README.md)** →
+sección "Seguridad / despliegue seguro".
 
 ## Estructura del repositorio
 

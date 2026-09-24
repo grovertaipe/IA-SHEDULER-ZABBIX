@@ -39,11 +39,14 @@ Requirements: 11.2, 14.1, 14.2, 14.3, 14.4, 16.2, 16.3, 32.1, 32.2.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import requests
 
 from core.domain import MaintenancePayload, ProblemTag, TimePeriod
+
+logger = logging.getLogger(__name__)
 
 #: Default network timeout (seconds) for every JSON-RPC request. Mirrors the
 #: legacy monolith's 30 s ceiling; kept generous because ``maintenance.create``
@@ -193,6 +196,58 @@ class ZabbixClient:
             {"output": ["userid", "username"], "userids": [userid]},
         )
         return bool(result)
+
+    def check_authentication(self, sessionid: str) -> dict[str, Any] | None:
+        """Verify a frontend session via ``user.checkAuthentication`` (Req 11).
+
+        This is the REAL authentication mechanism (Zabbix 7.2): given the
+        frontend **session id** (the token the logged-in Zabbix frontend holds),
+        ``user.checkAuthentication`` returns the VERIFIED user object
+        (``userid`` / ``username`` / ``name`` / ``surname`` / ``type`` / ...) on
+        a valid session, or reports an error on an invalid/expired one. It is
+        called with ``extend=false`` so merely checking a session does NOT
+        prolong it.
+
+        The caller must trust ONLY the identity returned here — never a
+        client-supplied ``userid`` — since the session id is the credential the
+        user actually possesses.
+
+        Deliberate fail-closed behaviour: :meth:`_rpc` raises
+        :class:`ZabbixError` for BOTH an invalid/expired session ("Session
+        terminated..." / "Not authorized") AND a genuine transport failure
+        (timeout, connection refused, malformed body). Cleanly distinguishing
+        the two from the error text is brittle, and for AUTHENTICATION the safe
+        outcome in every case is the same: treat the request as NOT
+        authenticated. So this method swallows ANY :class:`ZabbixError` into
+        ``None`` (do NOT re-raise), logging only that a session check failed and
+        NEVER the session id (a secret, Req 18.4). This is the ONLY client
+        method that swallows :class:`ZabbixError`; the maintenance/host calls
+        keep propagating it so their callers can surface real Zabbix errors.
+
+        Args:
+            sessionid: The Zabbix frontend session token to verify. Never logged.
+
+        Returns:
+            The verified user object (dict) on a valid session, or ``None`` when
+            the session is invalid/expired OR Zabbix could not be reached. In
+            both ``None`` cases the auth layer fails closed (HTTP 401).
+        """
+        try:
+            result = self._rpc(
+                "user.checkAuthentication",
+                {"sessionid": sessionid, "extend": False},
+            )
+        except ZabbixError:
+            # Invalid/expired session OR Zabbix unreachable — both fail closed.
+            # Never log the session id (secret, Req 18.4); log only the failure.
+            logger.warning(
+                "Zabbix session check failed (invalid session or Zabbix "
+                "unreachable); treating request as unauthenticated"
+            )
+            return None
+        if isinstance(result, dict):
+            return result
+        return None
 
     # ------------------------------------------------------------------ #
     # Host resolution (Req 14.1, 14.2, 14.4)                              #

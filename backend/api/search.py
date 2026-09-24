@@ -1,15 +1,17 @@
 """Search blueprint: ``POST /search_hosts`` and ``POST /search_groups`` (Req 15.1).
 
 Thin HTTP adapter over the :class:`~zabbix.client.ZabbixClient` search methods.
-It contains no business logic (Req 1.2): it validates the ``Info_Usuario`` (Req
-11), reads the search term from the JSON body, delegates to the client and
+It contains no business logic (Req 1.2): it authenticates the Zabbix session
+(Req 11), reads the search term from the JSON body, delegates to the client and
 shapes the response into the exact contract the widget already consumes (Req
 15.3, 15.4).
 
-Both endpoints hit Zabbix, so each requires a validated logged-in Zabbix user:
-the ``user`` / ``user_info`` payload is validated with :func:`api.auth.validate_user`
-before the search term is read, and a missing/invalid user maps to HTTP **401**
-without touching Zabbix (Req 11, 15.7).
+Both endpoints hit Zabbix, so each requires a valid logged-in Zabbix session:
+the ``sessionid`` is verified with :func:`api.auth.authenticate_session`
+(``user.checkAuthentication``) before the search term is read, and a
+missing/invalid/expired session maps to HTTP **401** without touching Zabbix
+(Req 11, 15.7). Identity comes from Zabbix's verified user, not a client-claimed
+``userid``.
 
 Response contract (preserved verbatim from the legacy monolith so the widget
 keeps working):
@@ -36,21 +38,6 @@ from cache.user_cache import UserValidationCache
 from zabbix.client import ZabbixClient, ZabbixError
 
 logger = logging.getLogger(__name__)
-
-
-def _read_user_payload(data: Any) -> Any:
-    """Return the user payload, accepting both ``user`` and ``user_info``.
-
-    The v2 contract sends ``user``; the legacy widget sent ``user_info``. Both
-    are accepted (``user`` wins) so existing widget builds keep working. Mirrors
-    the helper used by the chat / maintenance blueprints so the auth edge stays
-    consistent across the API.
-    """
-    if not isinstance(data, dict):
-        return None
-    if data.get("user") is not None:
-        return data.get("user")
-    return data.get("user_info")
 
 
 def _read_search_term(data: Any) -> str | None:
@@ -81,23 +68,23 @@ def make_search_blueprint(
     the blueprint decoupled from global state and trivially testable with a fake
     client.
 
-    Both ``/search_hosts`` and ``/search_groups`` hit Zabbix, so each validates
-    the ``Info_Usuario`` first (401 on failure, Req 11) before reading the
-    search term or calling the client.
+    Both ``/search_hosts`` and ``/search_groups`` hit Zabbix, so each
+    authenticates the Zabbix session first (401 on failure, Req 11) before
+    reading the search term or calling the client.
     """
     bp = Blueprint("search", __name__)
 
     def _require_user() -> Any | None:
-        """Validate the request user; return a 401 response tuple on failure.
+        """Authenticate the Zabbix session; return a 401 response tuple on failure.
 
-        Reads ``user`` / ``user_info`` from the JSON body and validates it via
-        :func:`validate_user` (interposing the shared cache when present, Req
-        27). Returns ``None`` when the user is valid so the caller proceeds, or
-        the ``(json, 401)`` tuple the view should return otherwise (Req 11).
+        Reads the ``sessionid`` from the JSON body and verifies it against
+        Zabbix via :func:`validate_user` / ``user.checkAuthentication``
+        (interposing the shared cache when present, Req 27). Returns ``None``
+        when the session is valid so the caller proceeds, or the ``(json, 401)``
+        tuple the view should return otherwise (Req 11). Identity comes from
+        Zabbix's verified user, never a client-supplied ``userid``.
         """
-        auth = validate_user(
-            _read_user_payload(request.get_json(silent=True)), client, cache
-        )
+        auth = validate_user(request.get_json(silent=True), client, cache)
         if not auth.ok or auth.user is None:
             return (
                 jsonify(

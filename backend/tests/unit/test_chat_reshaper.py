@@ -62,13 +62,17 @@ def _expected_window(rec: ExtractedRecurrence) -> tuple[str, str]:
 # Fakes (mirror tests/integration/test_chat_maintenance_blueprints.py)        #
 # --------------------------------------------------------------------------- #
 class FakeClient:
-    """Minimal fake ZabbixClient: only ``user_exists`` is used by the auth edge."""
+    """Minimal fake ZabbixClient: ``check_authentication`` drives the auth edge.
 
-    def __init__(self, known_users: set[str]) -> None:
-        self._known = known_users
+    ``sessions`` maps a valid session id → the VERIFIED user object Zabbix would
+    return; unknown session ids yield ``None`` (invalid/expired).
+    """
 
-    def user_exists(self, userid: str) -> bool:
-        return userid in self._known
+    def __init__(self, sessions: dict[str, dict[str, Any]]) -> None:
+        self._sessions = sessions
+
+    def check_authentication(self, sessionid: str) -> dict[str, Any] | None:
+        return self._sessions.get(sessionid)
 
 
 class FakeChatService:
@@ -103,6 +107,14 @@ class FakeConfig:
 
 
 _USER = {"userid": "42", "username": "operator", "name": "Op", "surname": "Erator"}
+#: A valid frontend session id and the verified user Zabbix returns for it.
+_SESSION_ID = "sid-valid"
+_VERIFIED_USER = {
+    "userid": "42",
+    "username": "operator",
+    "name": "Op",
+    "surname": "Erator",
+}
 
 
 def _resolved_one_host() -> ResolvedResources:
@@ -113,7 +125,7 @@ def _resolved_one_host() -> ResolvedResources:
 
 
 def _build_app(chat_result: ChatResult, resolved: ResolvedResources) -> Flask:
-    client = FakeClient({"42"})
+    client = FakeClient({_SESSION_ID: _VERIFIED_USER})
     chat_service = FakeChatService(chat_result)
     maint_service = FakeMaintenanceService(resolved)
     config = FakeConfig()
@@ -151,7 +163,10 @@ def _maintenance_result(
 
 def _post_chat(app: Flask) -> dict[str, Any]:
     client = app.test_client()
-    resp = client.post("/chat", json={"message": "mantenimiento", "user": _USER})
+    resp = client.post(
+        "/chat",
+        json={"message": "mantenimiento", "sessionid": _SESSION_ID, "user": _USER},
+    )
     assert resp.status_code == 200
     return resp.get_json()
 

@@ -24,10 +24,14 @@ Legacy ``type`` vocabulary preserved so the widget keeps working (Req 15.3):
 * ``error``                -- bad input / unauthorized / internal error; carries
   the appropriate HTTP status and never changes state (Req 15.7).
 
-Auth: ``/chat`` acts on Zabbix (it resolves hosts/groups), so it validates the
-``Info_Usuario`` with :func:`api.auth.validate_user` and maps a failure to HTTP
-**401** (Req 11). On any missing/invalid input it returns an ``error`` response
-WITHOUT changing state (Req 15.7).
+Auth: ``/chat`` acts on Zabbix (it resolves hosts/groups), so it authenticates
+the request against a real Zabbix **session** with
+:func:`api.auth.authenticate_session` (which verifies the ``sessionid`` via
+``user.checkAuthentication``) and maps a failure to HTTP **401** (Req 11). The
+verified identity comes from Zabbix; any client-supplied ``user``/``userid`` is
+cosmetic (echoed back for display) and never trusted for identity. On any
+missing/invalid input it returns an ``error`` response WITHOUT changing state
+(Req 15.7).
 
 Flask coupling is confined to this layer; the blueprint is built by the factory
 :func:`make_chat_blueprint`, which receives the :class:`ChatService`, the
@@ -99,11 +103,16 @@ def _read_message(data: Any) -> str | None:
 
 
 def _read_user_payload(data: Any) -> Any:
-    """Return the user payload, accepting both ``user`` and ``user_info``.
+    """Return the COSMETIC user payload, accepting both ``user`` and ``user_info``.
 
     The v2 contract sends ``user``; the legacy widget sent ``user_info``. Both
     are accepted so existing widget builds keep working (Req 15.6). ``user``
     takes precedence when both are present.
+
+    IMPORTANT: this payload is echoed back for display continuity ONLY. It is
+    NOT trusted for identity — authentication is done exclusively against the
+    Zabbix session (see :func:`api.auth.authenticate_session`), and the verified
+    user (``auth.user``) is what identity-bearing logic must use.
     """
     if not isinstance(data, dict):
         return None
@@ -308,8 +317,10 @@ def make_chat_blueprint(
                 400,
             )
 
-        # Validate the Info_Usuario before acting on Zabbix (Req 11).
-        auth = validate_user(_read_user_payload(data), client)
+        # Authenticate the request against a REAL Zabbix session before acting
+        # (Req 11). The identity is whatever Zabbix verifies for the sessionid;
+        # any client-supplied user/userid is NOT trusted for identity.
+        auth = validate_user(data, client)
         if not auth.ok or auth.user is None:
             return (
                 jsonify(

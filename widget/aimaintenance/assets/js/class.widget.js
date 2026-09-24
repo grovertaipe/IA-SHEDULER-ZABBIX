@@ -26,6 +26,12 @@ class WidgetAIMaintenance extends CWidget {
         this.api_url = '';
         this.current_parsed_data = null;
         this.user_info = null;
+        // The Zabbix frontend SESSION id, provided server-side by WidgetView.php
+        // (CWebUser::$data['sessionid']). This — NOT the userid — is what the
+        // backend uses to authenticate every acting request against Zabbix via
+        // user.checkAuthentication. It is a session credential: sent only to the
+        // trusted backend, never displayed or persisted.
+        this.session_id = null;
         this.templates = null;
         this.locale = this._detectLocale();
 
@@ -63,6 +69,29 @@ class WidgetAIMaintenance extends CWidget {
             // i18n not available in this context — fall through.
         }
         return key;
+    }
+
+    /**
+     * Detect whether an error from the HTTP client is an authentication
+     * failure (HTTP 401). The http client maps non-2xx responses to an Error
+     * carrying `.status`; a 401 means the Zabbix session is missing or expired,
+     * so the user must reload the page to obtain a fresh session.
+     * @param {*} error
+     * @returns {boolean}
+     */
+    _isSessionExpired(error) {
+        return !!(error && (error.status === 401 || error.status === '401'));
+    }
+
+    /**
+     * Show a clear, localized notice that the Zabbix session expired and the
+     * page should be reloaded. Used wherever a backend call can return 401.
+     */
+    _notifySessionExpired() {
+        this.ui.addMessage(
+            this._t('Your Zabbix session expired. Please reload the page.'),
+            'error'
+        );
     }
 
     /** Construct an AIMaintenanceI18n instance for the given language, safely. */
@@ -107,6 +136,13 @@ class WidgetAIMaintenance extends CWidget {
                 surname: response.user_info.surname || '',
                 userid: response.user_info.userid || ''
             };
+        }
+
+        // Capture the Zabbix session id the view exposes. This is the credential
+        // the backend verifies (user.checkAuthentication); it is the source of
+        // truth for identity. user_info is now display-only.
+        if (response.sessionid) {
+            this.session_id = response.sessionid;
         }
 
         super.processUpdateResponse(response);
@@ -391,6 +427,9 @@ class WidgetAIMaintenance extends CWidget {
         try {
             const data = await this.http.postJson('/chat', {
                 message: message,
+                // sessionid is the authenticated credential; user_info is
+                // display-only (the backend no longer trusts it for identity).
+                sessionid: this.session_id,
                 user_info: this.user_info,
                 history: this.conversation_history
             }, {
@@ -415,7 +454,13 @@ class WidgetAIMaintenance extends CWidget {
             // turn we optimistically pushed so a manual retry re-adds it exactly
             // once instead of duplicating it in the resent history.
             this._dropLastUserTurn(message);
-            this._handleFailure(error, message);
+            // A 401 means the Zabbix session expired — a retry won't help, so
+            // tell the user to reload instead of offering the retry action.
+            if (this._isSessionExpired(error)) {
+                this._notifySessionExpired();
+            } else {
+                this._handleFailure(error, message);
+            }
         } finally {
             this.ui.showLoading(false);
             this.ui.setThinking(false);
@@ -545,6 +590,8 @@ class WidgetAIMaintenance extends CWidget {
                 trigger_tags: parsed.trigger_tags || [],
                 recurrence_type: parsed.recurrence_type || 'once',
                 ticket_number: parsed.ticket_number || '',
+                // sessionid authenticates the create; user_info is display-only.
+                sessionid: this.session_id,
                 user_info: this.user_info
             };
             if (parsed.recurrence_config) {
@@ -590,7 +637,11 @@ class WidgetAIMaintenance extends CWidget {
             this.updateMaintenanceList();
         } catch (error) {
             console.error('Error creating maintenance:', error);
-            this.ui.addMessage(`${this._t('Error creating maintenance')}: ${error.message}`, 'error');
+            if (this._isSessionExpired(error)) {
+                this._notifySessionExpired();
+            } else {
+                this.ui.addMessage(`${this._t('Error creating maintenance')}: ${error.message}`, 'error');
+            }
         } finally {
             this.ui.showLoading(false);
             // Clear the pending confirmation WITHOUT resetting history here: on
@@ -602,13 +653,13 @@ class WidgetAIMaintenance extends CWidget {
 
     async updateMaintenanceList() {
         try {
-            // /maintenance/list now requires a validated logged-in Zabbix user.
-            // Being a GET, the user is carried via ?userid= (Req 11). When we
-            // have no user the backend replies 401; the catch below just logs
-            // it and skips the summary — the widget never crashes.
-            const userid = this.user_info?.userid;
-            const endpoint = userid
-                ? `/maintenance/list?userid=${encodeURIComponent(userid)}`
+            // /maintenance/list now requires a valid logged-in Zabbix session.
+            // Being a GET, the session id is carried via ?sessionid= (Req 11).
+            // When we have no session the backend replies 401; the catch below
+            // handles it (session-expired notice) — the widget never crashes.
+            const sid = this.session_id;
+            const endpoint = sid
+                ? `/maintenance/list?sessionid=${encodeURIComponent(sid)}`
                 : '/maintenance/list';
             const data = await this.http.getJson(endpoint);
             const maintenances = data.maintenances || [];
@@ -628,6 +679,11 @@ class WidgetAIMaintenance extends CWidget {
             }
         } catch (error) {
             console.error('Error updating list:', error);
+            // A 401 here means the session expired between creating the
+            // maintenance and fetching the summary; surface the reload notice.
+            if (this._isSessionExpired(error)) {
+                this._notifySessionExpired();
+            }
         }
     }
 
