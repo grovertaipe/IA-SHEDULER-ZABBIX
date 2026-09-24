@@ -43,7 +43,7 @@ Variables **base** (obligatorias para operar):
 | `GOOGLE_API_KEY` / `GEMINI_MODEL` | Credencial y modelo de Gemini |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | Credencial y modelo de OpenAI |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, explícitos (nunca `*`) |
-| `APP_VERSION` | Versión reportada por `/health` (opcional) |
+| `APP_VERSION` | Versión reportada por `/health`. **Opcional**: se inyecta automáticamente al construir la imagen desde el tag de git (build-arg de Docker en CI); definirla en `.env` solo la sobreescribe |
 
 Variables **extendidas** (con valores por defecto seguros): localización
 (`SUPPORTED_LOCALES`, `DEFAULT_LOCALE`), failover de IA

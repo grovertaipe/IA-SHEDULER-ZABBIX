@@ -32,7 +32,9 @@ Base configuration:
   region is still required. Read but never logged, Req 18.4)
 * ``CORS_ALLOWED_ORIGINS``    -> ``cors_allowed_origins`` (comma-separated,
   explicit origins only; the wildcard ``*`` is rejected, Req 15.5)
-* ``APP_VERSION``             -> ``version`` (falls back to ``backend.__version__``)
+* ``APP_VERSION``             -> ``version`` (authoritative value injected at
+  image build time from the git tag; falls back to the ``APP_VERSION`` module
+  constant, then ``DEFAULT_VERSION``)
 
 Extended configuration (all non-secret; documented in ``.env.example``,
 Req 18.3). Numeric values are parsed defensively and fall back to their safe
@@ -77,8 +79,14 @@ DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 DEFAULT_BEDROCK_MODEL = "amazon.nova-lite-v1:0"
 DEFAULT_VERSION = "unknown"
 
-#: Single source of truth for the application version (Req 16.1).
-APP_VERSION = "2.0.0"
+#: Last-resort fallback for the application version (Req 16.1). The
+#: AUTHORITATIVE version is injected at image build time via the ``APP_VERSION``
+#: environment variable (Dockerfile ``ARG``/``ENV`` fed by the CI build-arg,
+#: which uses the git tag). ``_resolve_version()`` reads env ``APP_VERSION``
+#: first, so this constant only applies when neither the baked env value nor a
+#: manual override is present (e.g. local runs). Kept in step with the current
+#: release so a bare local run is not misleading.
+APP_VERSION = "2.5.1"
 
 # --- Extended configuration defaults (safe fallbacks) ---------------------
 
@@ -163,8 +171,11 @@ def _parse_float(key: str, default: float) -> float:
 def _resolve_version() -> str:
     """Resolve the application version defensively.
 
-    Prefers the ``APP_VERSION`` environment override, then the packaged
-    ``backend.__version__``, and finally a safe fallback. Never raises.
+    Prefers the ``APP_VERSION`` environment variable — the AUTHORITATIVE source
+    in normal operation, baked into the image at build time from the git tag
+    (Dockerfile build-arg fed by CI). Falls back to the :data:`APP_VERSION`
+    module constant (a last-resort default for local runs), then to the safe
+    :data:`DEFAULT_VERSION`. Never raises.
     """
     env_version = os.environ.get("APP_VERSION", "").strip()
     if env_version:

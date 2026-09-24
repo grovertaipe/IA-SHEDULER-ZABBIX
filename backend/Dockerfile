@@ -6,10 +6,17 @@
 # at runtime via environment variables / env_file (Req 18.4, 18.5).
 FROM python:3.12-slim
 
+# Authoritative application version, injected at build time by CI from the git
+# tag (see .github/workflows/docker-publish.yml -> build-args APP_VERSION).
+# This is a plain version string, NOT a secret. It flows into
+# config._resolve_version() (which reads env APP_VERSION first) -> /health.
+ARG APP_VERSION=unknown
+
 # Avoid .pyc files and unbuffer stdout/stderr for clean container logs.
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=5005
+    PORT=5005 \
+    APP_VERSION=${APP_VERSION}
 
 # Create an unprivileged user; the app never runs as root.
 RUN useradd -m -u 10001 appuser

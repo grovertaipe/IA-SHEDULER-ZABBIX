@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2] - 2026
+
+### Changed
+- **`/health` now reports the real released version automatically.** The
+  application version is baked into the Docker image at build time from the git
+  tag (a `APP_VERSION` Docker build-arg set by CI, exposed as an `ENV` the
+  backend reads), so no manual `.env` editing is needed per release. Setting
+  `APP_VERSION` in the environment still works as an explicit override.
+- Bumped the module-constant version fallback to the current release and
+  documented that the authoritative version comes from the image build. Note:
+  a deployment whose `.env` pins `APP_VERSION` will keep overriding the baked
+  value — remove that line to let the image version show through.
+
 ## [2.5.1] - 2026
 
 ### Fixed
