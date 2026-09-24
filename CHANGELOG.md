@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026
+
+### Added
+- **Maintenance problem tags from natural language.** You can now scope a
+  maintenance to specific problems — e.g. "maintenance for NBJOSCCMA01 tomorrow
+  22:00-23:00 but only CPU" or "group Virtual machines, only problems with
+  class=os". The AI extracts `problem_tags` (`tag`/`value`/`operator`),
+  `tags_evaltype` (And-Or / Or) and `maintenance_type` (with / without data
+  collection). Colloquial resources map to `component=*` (CPU→`component=cpu`,
+  disk/memory/network), and explicit `key=value` tags are kept literally.
+  Problem tags are only applied with data collection enabled (Zabbix constraint).
+- The AI also distinguishes **host discovery by tag** (`trigger_tags` — "all
+  hosts with tag X=Y") from problem-suppression tags, so both use cases work.
+
+### Notes
+- This is a prompt-only enhancement; the backend already validated and forwarded
+  these fields to Zabbix. The AI never computes anything — it only extracts the
+  tags; the backend builds the `maintenance.create` payload.
+
 ## [2.5.2] - 2026
 
 ### Changed

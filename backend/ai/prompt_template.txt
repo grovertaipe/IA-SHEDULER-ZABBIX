@@ -26,6 +26,9 @@ FORMATO DE SALIDA (devuelve SOLO este JSON, sin texto adicional):
   "hosts": ["<nombre de host>"],
   "groups": ["<nombre de grupo>"],
   "trigger_tags": [{{"tag": "<clave>", "value": "<valor>"}}],
+  "problem_tags": [{{"tag": "<clave>", "value": "<valor>", "operator": <0=Equals|2=Contains, por defecto 2>}}],
+  "tags_evaltype": <0=And/Or (por defecto) | 2=Or>,
+  "maintenance_type": <0=con recolección de datos (por defecto) | 1=sin recolección>,
   "ticket": "<identificador de ticket/incidente/cambio/solicitud, CUALQUIER formato, o null>",
   "recurrence": {{
     "recurrence_type": "once|daily|weekly|monthly",
@@ -77,6 +80,30 @@ REGLAS:
   elimina una etiqueta inicial "ticket:" / "ticket" / "#" pero CONSERVA el
   identificador tal cual (p. ej. de "ticket #INC0012345" devuelve "INC0012345").
   Usa null cuando no se mencione ninguno. No inventes tickets.
+- problem_tags (SUPRESIÓN POR RECURSO/TAG): cuando el usuario pide poner un host
+  o grupo en mantenimiento PERO limitado a un recurso o categoría específica
+  —p. ej. "solo la CPU", "solo problemas de disco", "únicamente component=cpu",
+  "solo la etiqueta class=os", "nada más lo de memoria"— extrae esos pares en
+  "problem_tags" como {{tag, value, operator}}. "operator": usa 2 (Contains) por
+  defecto; usa 0 (Equals) solo si el usuario pide coincidencia exacta. Si el
+  usuario da varios tags y dice "o"/"cualquiera", pon "tags_evaltype"=2 (Or); si
+  dice "y"/"todos" o no lo especifica, deja 0 (And/Or, por defecto). Mapea
+  recursos coloquiales comunes a component=<recurso> cuando el usuario NO da la
+  clave del tag explícita: "CPU" -> component=cpu, "disco" -> component=disk,
+  "memoria" -> component=memory, "red" -> component=network; si el usuario da
+  explícitamente clave=valor o clave: valor (p. ej. class=os, scope=availability,
+  target=windows), respétalo literal. IMPORTANTE: "problem_tags" SOLO es válido
+  con "maintenance_type"=0 (con recolección); si el usuario pide "sin recolección
+  de datos" ("maintenance_type"=1), NO incluyas problem_tags (deja la lista
+  vacía) — son mutuamente excluyentes. Cuando el usuario no menciona ningún
+  recurso/tag, deja "problem_tags" en [] y "tags_evaltype" en 0.
+- trigger_tags (DESCUBRIR HOSTS POR TAG): cuando el usuario NO nombra
+  hosts/grupos concretos sino que dice "los hosts CON el tag X=Y", "todos los
+  equipos etiquetados como …", extrae "trigger_tags" para descubrir esos hosts.
+  Distínguelo claramente de problem_tags: problem_tags = host/grupo YA elegido +
+  filtrar QUÉ problemas se silencian; trigger_tags = elegir LOS HOSTS por su tag.
+- maintenance_type: "sin recolección de datos" / "sin recolectar datos" ->
+  "maintenance_type"=1; por defecto o "con recolección" -> 0.
 - Si faltan datos para un mantenimiento, usa intent "clarification".
 
 EJEMPLOS (salida ESTRUCTURADA, sin bitmasks):
@@ -92,6 +119,17 @@ Usuario: "Daily backup for srv-backup from 2 to 4 AM ticket 100-178306"
 
 Usuario: "Mantenimiento semanal los jueves y viernes de 5 a 7 am para los switches de red"
 {{"intent":"maintenance_request","assistant_message":"Listo, programé un mantenimiento semanal los jueves y viernes de 05:00 a 07:00 para los switches de red. Revísalo y confírmalo para crearlo en Zabbix.","hosts":[],"groups":["switches de red"],"trigger_tags":[],"ticket":null,"recurrence":{{"recurrence_type":"weekly","days":["thursday","friday"],"months":[],"occurrences":[],"day_of_month":null,"start_hour":5,"duration_hours":2,"every":1,"start_date":null,"start_ts":null,"end_ts":null}}}}
+
+Usuario: "Mantenimiento del servidor NBJOSCCMA01 mañana de 22:00 a 23:00 pero solo la CPU, ticket INC0012390"
+(En este ejemplo "start_date" es un valor ILUSTRATIVO; usa SIEMPRE el valor real
+de FECHA DE MAÑANA (tomorrow_iso) para "mañana".)
+{{"intent":"maintenance_request","assistant_message":"Listo, preparé un mantenimiento para NBJOSCCMA01 mañana de 22:00 a 23:00 que silencia solo los problemas de CPU (component=cpu), con el ticket INC0012390. Revísalo y confírmalo para crearlo en Zabbix.","hosts":["NBJOSCCMA01"],"groups":[],"trigger_tags":[],"problem_tags":[{{"tag":"component","value":"cpu","operator":2}}],"tags_evaltype":0,"maintenance_type":0,"ticket":"INC0012390","recurrence":{{"recurrence_type":"once","days":[],"months":[],"occurrences":[],"day_of_month":null,"start_hour":22,"duration_hours":1,"every":null,"start_date":"2026-01-02","start_ts":null,"end_ts":null}}}}
+
+Usuario: "Mantenimiento del grupo 'Virtual machines' hoy de 01:00 a 03:00, solo problemas con class=os"
+{{"intent":"maintenance_request","assistant_message":"Perfecto, programé un mantenimiento para el grupo 'Virtual machines' hoy de 01:00 a 03:00 que silencia solo los problemas etiquetados class=os. Revísalo y confírmalo para crearlo en Zabbix.","hosts":[],"groups":["Virtual machines"],"trigger_tags":[],"problem_tags":[{{"tag":"class","value":"os","operator":2}}],"tags_evaltype":0,"maintenance_type":0,"ticket":null,"recurrence":{{"recurrence_type":"once","days":[],"months":[],"occurrences":[],"day_of_month":null,"start_hour":1,"duration_hours":2,"every":null,"start_date":"2026-01-01","start_ts":null,"end_ts":null}}}}
+
+Usuario: "Mantenimiento mañana de 22:00 a 23:00 para los hosts con el tag environment=production"
+{{"intent":"maintenance_request","assistant_message":"Entendido, preparé un mantenimiento mañana de 22:00 a 23:00 para los hosts que tengan el tag environment=production. Revísalo y confírmalo para crearlo en Zabbix.","hosts":[],"groups":[],"trigger_tags":[{{"tag":"environment","value":"production"}}],"problem_tags":[],"tags_evaltype":0,"maintenance_type":0,"ticket":null,"recurrence":{{"recurrence_type":"once","days":[],"months":[],"occurrences":[],"day_of_month":null,"start_hour":22,"duration_hours":1,"every":null,"start_date":"2026-01-02","start_ts":null,"end_ts":null}}}}
 
 Usuario: "necesito ayuda"
 {{"intent":"help","assistant_message":"¡Hola! Te ayudo a programar ventanas de mantenimiento en Zabbix. Dime los hosts o grupos, cuándo (una vez, diario, semanal o mensual), la hora de inicio y la duración; por ejemplo: «mantenimiento para web01 mañana de 22:00 a 23:00».","hosts":[],"groups":[],"trigger_tags":[],"ticket":null,"recurrence":null}}

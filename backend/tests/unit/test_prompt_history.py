@@ -69,6 +69,26 @@ def test_build_prompt_with_braces_in_current_message_does_not_raise() -> None:
     assert "{config}" in prompt
 
 
+def test_build_prompt_renders_problem_tag_fields_and_rules() -> None:
+    # The prompt must instruct the model to emit maintenance problem tags so the
+    # user's "put host X in maintenance but only for CPU" use case works.
+    prompt = build_prompt("solo la CPU de web01", CTX)
+    # Formats without raising (regression guard: every literal JSON brace in the
+    # new fields/examples must be doubled for str.format).
+    assert isinstance(prompt, str) and prompt
+    # New output-contract fields are advertised in the OUTPUT FORMAT block.
+    assert "problem_tags" in prompt
+    assert "tags_evaltype" in prompt
+    assert "maintenance_type" in prompt
+    # The problem-tag extraction rule and the colloquial CPU mapping are present.
+    assert "component=cpu" in prompt
+    assert "SUPRESIÓN POR RECURSO/TAG" in prompt
+    # The two tag concepts are kept distinct.
+    assert "DESCUBRIR HOSTS POR TAG" in prompt
+    # An example wires host + problem_tags together.
+    assert '"problem_tags":[{"tag":"component","value":"cpu","operator":2}]' in prompt
+
+
 def test_render_history_empty_returns_note() -> None:
     assert render_history(None) == _EMPTY_HISTORY
     assert render_history([]) == _EMPTY_HISTORY
