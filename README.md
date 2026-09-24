@@ -36,8 +36,9 @@ mediante una URL configurable.
 
 ## Características
 
-- 🤖 Chat conversacional con IA (Google Gemini u OpenAI) para crear
-  mantenimientos en lenguaje natural.
+- 🤖 Chat conversacional con IA para crear mantenimientos en lenguaje natural.
+  Proveedores soportados: **Google Gemini**, **OpenAI** y **Amazon Bedrock**
+  (Amazon Nova Lite), con failover configurable entre ellos.
 - 🔄 Mantenimientos únicos y rutinarios: diarios, semanales y mensuales (por día
   del mes o por día de la semana).
 - 🎫 Detección automática de tickets de **cualquier nomenclatura**

@@ -12,11 +12,19 @@ Base configuration:
 
 * ``ZABBIX_API_URL``          -> ``zabbix_url``
 * ``ZABBIX_TOKEN``            -> ``zabbix_token``
-* ``AI_PROVIDER``             -> ``ai_provider`` ("gemini" | "openai")
+* ``AI_PROVIDER``             -> ``ai_provider`` ("gemini" | "openai" | "bedrock")
 * ``GOOGLE_API_KEY``          -> ``gemini_api_key``
 * ``GEMINI_MODEL``            -> ``gemini_model``
 * ``OPENAI_API_KEY``          -> ``openai_api_key``
 * ``OPENAI_MODEL``            -> ``openai_model``
+* ``BEDROCK_MODEL``           -> ``bedrock_model`` (Converse API model id;
+  default ``amazon.nova-lite-v1:0``)
+* ``AWS_REGION``              -> ``aws_region`` (``AWS_DEFAULT_REGION`` accepted
+  as a fallback; where Bedrock + the model are enabled)
+* ``AWS_ACCESS_KEY_ID``       -> ``aws_access_key_id`` (optional; leave unset to
+  use the default AWS credential chain / IAM role)
+* ``AWS_SECRET_ACCESS_KEY``   -> ``aws_secret_access_key`` (optional)
+* ``AWS_SESSION_TOKEN``       -> ``aws_session_token`` (optional)
 * ``CORS_ALLOWED_ORIGINS``    -> ``cors_allowed_origins`` (comma-separated,
   explicit origins only; the wildcard ``*`` is rejected, Req 15.5)
 * ``APP_VERSION``             -> ``version`` (falls back to ``backend.__version__``)
@@ -53,10 +61,11 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-VALID_AI_PROVIDERS = ("gemini", "openai")
+VALID_AI_PROVIDERS = ("gemini", "openai", "bedrock")
 
 DEFAULT_GEMINI_MODEL = "gemini-flash-lite-latest"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+DEFAULT_BEDROCK_MODEL = "amazon.nova-lite-v1:0"
 DEFAULT_VERSION = "unknown"
 
 #: Single source of truth for the application version (Req 16.1).
@@ -169,11 +178,17 @@ class AppConfig:
 
     zabbix_url: str
     zabbix_token: str
-    ai_provider: str  # "gemini" | "openai" (Req 12.1)
+    ai_provider: str  # "gemini" | "openai" | "bedrock" (Req 12.1)
     gemini_api_key: str | None
     gemini_model: str
     openai_api_key: str | None
     openai_model: str
+    # --- Amazon Bedrock (Req 12.7) ---
+    bedrock_model: str  # Converse API model id (default amazon.nova-lite-v1:0)
+    aws_region: str | None  # region where Bedrock + the model are enabled
+    aws_access_key_id: str | None  # optional; default chain / IAM role otherwise
+    aws_secret_access_key: str | None  # optional
+    aws_session_token: str | None  # optional (temporary credentials)
     cors_allowed_origins: list[str]  # Req 15.5 (explicit origins, not wildcard)
     version: str
 
@@ -230,6 +245,19 @@ class AppConfig:
         openai_api_key = env.get("OPENAI_API_KEY", "").strip() or None
         openai_model = env.get("OPENAI_MODEL", "").strip() or DEFAULT_OPENAI_MODEL
 
+        # Amazon Bedrock (Req 12.7). AWS_REGION preferred; AWS_DEFAULT_REGION is
+        # accepted as a fallback. Keys/token are optional (default credential
+        # chain / IAM role). Secrets are read but never logged (Req 18.4).
+        bedrock_model = env.get("BEDROCK_MODEL", "").strip() or DEFAULT_BEDROCK_MODEL
+        aws_region = (
+            env.get("AWS_REGION", "").strip()
+            or env.get("AWS_DEFAULT_REGION", "").strip()
+            or None
+        )
+        aws_access_key_id = env.get("AWS_ACCESS_KEY_ID", "").strip() or None
+        aws_secret_access_key = env.get("AWS_SECRET_ACCESS_KEY", "").strip() or None
+        aws_session_token = env.get("AWS_SESSION_TOKEN", "").strip() or None
+
         # Validate that the selected provider has its API key configured. Log the
         # missing KEY name only, never the (absent) value (Req 18.4).
         if ai_provider == "gemini" and gemini_api_key is None:
@@ -239,6 +267,16 @@ class AppConfig:
         elif ai_provider == "openai" and openai_api_key is None:
             logger.error(
                 "Missing API key for AI provider 'openai': set OPENAI_API_KEY"
+            )
+        elif ai_provider == "bedrock" and aws_access_key_id is None and aws_region is None:
+            # Soft validation only (no raise): boto3 may still resolve creds and
+            # region from ~/.aws or an IAM role. Log the missing KEY names only,
+            # never any (absent) value (Req 18.4).
+            logger.error(
+                "AI provider 'bedrock' has no explicit AWS credentials nor a "
+                "region; set AWS_REGION (or AWS_DEFAULT_REGION) and optionally "
+                "AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, or rely on the "
+                "default AWS credential chain / IAM role"
             )
 
         raw_cors = env.get("CORS_ALLOWED_ORIGINS", "")
@@ -315,6 +353,11 @@ class AppConfig:
             gemini_model=gemini_model,
             openai_api_key=openai_api_key,
             openai_model=openai_model,
+            bedrock_model=bedrock_model,
+            aws_region=aws_region,
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            aws_session_token=aws_session_token,
             cors_allowed_origins=cors_allowed_origins,
             version=_resolve_version(),
             supported_locales=supported_locales,

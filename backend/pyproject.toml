@@ -100,6 +100,13 @@ ignore_missing_imports = true
 module = ["google.*", "openai.*"]
 ignore_missing_imports = true
 
+# boto3 / botocore (Amazon Bedrock provider, Req 12.7) ship partial/no bundled
+# type stubs; treat them as untyped rather than adding boto3-stubs as a hard
+# dependency.
+[[tool.mypy.overrides]]
+module = ["boto3.*", "botocore.*"]
+ignore_missing_imports = true
+
 # prometheus_client ships no bundled type stubs (observability / metrics,
 # Req 30); treat it as untyped rather than pulling in a separate stub package.
 [[tool.mypy.overrides]]

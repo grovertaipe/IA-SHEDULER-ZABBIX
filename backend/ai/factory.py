@@ -1,7 +1,8 @@
 """Provider factory: build the configured AI provider stack (Req 12, 26).
 
 :func:`build_provider` reads the :class:`~config.AppConfig`, constructs the
-**primary** provider selected by ``cfg.ai_provider`` (``gemini`` / ``openai``),
+**primary** provider selected by ``cfg.ai_provider`` (``gemini`` / ``openai`` /
+``bedrock``),
 optionally constructs a **secondary** provider from ``cfg.ai_secondary_provider``
 (when set and different), and wraps both in a :class:`~ai.failover.FailoverAIProvider`
 so callers always get a single :class:`~ai.provider.AIProvider` that transparently
@@ -27,6 +28,7 @@ from config import AppConfig
 from core.domain import ExtractedRequest, PromptContext
 from observability.logger import SecureLogger
 
+from .bedrock_provider import BedrockProvider
 from .failover import FailoverAIProvider
 from .gemini_provider import GeminiProvider
 from .openai_provider import OpenAIProvider
@@ -35,7 +37,7 @@ from .provider import AIProvider, AIProviderError
 __all__ = ["build_provider", "build_single_provider"]
 
 #: Recognized provider identifiers (Req 12.1).
-_VALID_PROVIDERS = ("gemini", "openai")
+_VALID_PROVIDERS = ("gemini", "openai", "bedrock")
 
 # Defaults applied when the extended failover/schema config fields are absent
 # (Task 17.1 not yet run). Kept conservative: one retry, a 30s best-effort
@@ -50,11 +52,12 @@ def build_single_provider(
 ) -> AIProvider | None:
     """Build one concrete provider by name, or ``None`` when unusable.
 
-    Returns a :class:`GeminiProvider` / :class:`OpenAIProvider` for a recognized
-    ``name``. An empty/``None`` name yields ``None`` (no provider configured for
-    that slot). An unrecognized name is logged as "unsupported provider" and
-    yields ``None`` (Req 12.6). The concrete providers stay *unavailable* when
-    their API key is missing (Req 12.5); the factory does not raise.
+    Returns a :class:`GeminiProvider` / :class:`OpenAIProvider` /
+    :class:`BedrockProvider` for a recognized ``name``. An empty/``None`` name
+    yields ``None`` (no provider configured for that slot). An unrecognized name
+    is logged as "unsupported provider" and yields ``None`` (Req 12.6). The
+    concrete providers stay *unavailable* when their credentials are missing
+    (Req 12.5); the factory does not raise.
     """
     if not name:
         return None
@@ -63,6 +66,14 @@ def build_single_provider(
         return GeminiProvider(cfg.gemini_api_key, cfg.gemini_model)
     if key == "openai":
         return OpenAIProvider(cfg.openai_api_key, cfg.openai_model)
+    if key == "bedrock":
+        return BedrockProvider(
+            cfg.bedrock_model,
+            cfg.aws_region,
+            cfg.aws_access_key_id,
+            cfg.aws_secret_access_key,
+            cfg.aws_session_token,
+        )
     logger.error("unsupported provider", provider=key, expected=list(_VALID_PROVIDERS))
     return None
 

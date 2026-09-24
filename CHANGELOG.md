@@ -4,6 +4,19 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026
+
+### Added
+- **Amazon Bedrock AI provider** (default model **Amazon Nova Lite**,
+  `amazon.nova-lite-v1:0`) alongside Gemini and OpenAI. Configure with
+  `AI_PROVIDER=bedrock` (or as failover with `AI_SECONDARY_PROVIDER=bedrock`).
+  Uses the Bedrock **Converse API** via `boto3` and the standard AWS credential
+  chain (IAM role / instance profile / environment / `~/.aws`), or explicit
+  `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` keys.
+- New configuration: `BEDROCK_MODEL`, `AWS_REGION` (falls back to
+  `AWS_DEFAULT_REGION`), `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
+  `AWS_SESSION_TOKEN` (documented in `backend/.env.example`).
+
 ## [2.0.0] - 2026
 
 Complete rewrite of the "AI Maintenance Assistant for Zabbix 7.2+" from a
