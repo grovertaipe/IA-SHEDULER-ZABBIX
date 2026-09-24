@@ -104,7 +104,7 @@ existentes (Req 19.1, 19.2, 19.4):
 
 Proyecto desarrollado por **Grover T.** bajo licencia **MIT**.
 
-- **Repository:** [GitHub](https://github.com/grovertaipe/ia-scheduler-zabbix)
+- **Repository:** [GitHub](https://github.com/grovertaipe/IA-SHEDULER-ZABBIX)
 - **Docker Image:** [ghcr.io/grovertaipe/ia-sheduler-zabbix](https://ghcr.io/grovertaipe/ia-sheduler-zabbix)
 - **Zabbix:** 7.2+ · **Python:** 3.11+
 
