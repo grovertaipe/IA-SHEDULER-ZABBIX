@@ -25,7 +25,12 @@ import pytest
 from flask import Flask
 
 from api.chat import make_chat_blueprint
-from core.domain import ExtractedRecurrence, ExtractedRequest, RecurrenceType
+from core.domain import (
+    ExtractedRecurrence,
+    ExtractedRequest,
+    ProblemTag,
+    RecurrenceType,
+)
 from core.recurrence import build_timeperiod, once_window_from_date
 from services.chat_service import ChatResult
 from services.maintenance_service import (
@@ -120,12 +125,21 @@ def _build_app(chat_result: ChatResult, resolved: ResolvedResources) -> Flask:
     return app
 
 
-def _maintenance_result(rec: ExtractedRecurrence) -> ChatResult:
+def _maintenance_result(
+    rec: ExtractedRecurrence,
+    *,
+    problem_tags: list[ProblemTag] | None = None,
+    tags_evaltype: int = 0,
+    maintenance_type: int = 0,
+) -> ChatResult:
     req = ExtractedRequest(
         intent="maintenance_request",
         hosts=["srv-web01"],
         recurrence=rec,
         raw_message="",
+        problem_tags=problem_tags or [],
+        tags_evaltype=tags_evaltype,
+        maintenance_type=maintenance_type,
     )
     return ChatResult(
         intent="maintenance_request",
@@ -305,6 +319,63 @@ def test_once_has_no_recurrence_config() -> None:
     assert "start_time" in data
     assert "end_time" in data
     assert "recurrence_config" not in data
+
+
+# --------------------------------------------------------------------------- #
+# Maintenance problem tags (Req 32) — the /chat reshaper must surface the     #
+# suppression config so the widget can preview it AND resend it on create.    #
+# --------------------------------------------------------------------------- #
+def test_problem_tags_present_are_emitted() -> None:
+    """A complete request with problem tags → problem_tags/tags_evaltype/maintenance_type.
+
+    ``problem_tags`` are emitted as a list of ``{tag, value, operator}`` dicts
+    with plain JSON ints; ``tags_evaltype`` accompanies them; ``maintenance_type``
+    is always present (Req 32).
+    """
+    rec = ExtractedRecurrence(
+        recurrence_type=RecurrenceType.ONCE,
+        start_date="2025-03-15",
+        start_hour=2,
+        duration_hours=3.0,
+    )
+    result = _maintenance_result(
+        rec,
+        problem_tags=[ProblemTag(tag="component", value="cpu", operator=2)],
+        tags_evaltype=0,
+        maintenance_type=0,
+    )
+    app = _build_app(result, _resolved_one_host())
+    data = _post_chat(app)
+
+    assert data["type"] == "maintenance_request"
+    assert data["problem_tags"] == [
+        {"tag": "component", "value": "cpu", "operator": 2}
+    ]
+    assert data["tags_evaltype"] == 0
+    assert data["maintenance_type"] == 0
+
+
+def test_no_problem_tags_omits_tags_but_keeps_maintenance_type() -> None:
+    """No problem tags → problem_tags/tags_evaltype absent; maintenance_type present.
+
+    ``maintenance_type`` is a standalone toggle and is ALWAYS emitted (here the
+    "without data collection" value 1 is preserved), while the tag fields are
+    omitted to keep the response lean (Req 32).
+    """
+    rec = ExtractedRecurrence(
+        recurrence_type=RecurrenceType.ONCE,
+        start_date="2025-03-15",
+        start_hour=2,
+        duration_hours=3.0,
+    )
+    result = _maintenance_result(rec, problem_tags=[], maintenance_type=1)
+    app = _build_app(result, _resolved_one_host())
+    data = _post_chat(app)
+
+    assert data["type"] == "maintenance_request"
+    assert "problem_tags" not in data
+    assert "tags_evaltype" not in data
+    assert data["maintenance_type"] == 1
 
 
 if __name__ == "__main__":  # pragma: no cover

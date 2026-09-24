@@ -127,6 +127,8 @@ class AIMaintenanceI18n {
             'Confidence': { es: 'Confianza', en: 'Confidence', pt: 'Confiança' },
             'Servers found': { es: 'Servidores encontrados', en: 'Servers found', pt: 'Servidores encontrados' },
             'Trigger tags': { es: 'Etiquetas de trigger', en: 'Trigger tags', pt: 'Etiquetas de trigger' },
+            'Problem tags': { es: 'Tags de problema', en: 'Problem tags', pt: 'Tags de problema' },
+            'Without data collection': { es: 'Sin recolección de datos', en: 'Without data collection', pt: 'Sem coleta de dados' },
             'Servers NOT found': { es: 'Servidores NO encontrados', en: 'Servers NOT found', pt: 'Servidores NÃO encontrados' },
             'Groups NOT found': { es: 'Grupos NO encontrados', en: 'Groups NOT found', pt: 'Grupos NÃO encontrados' },
             'Maintenance details': { es: 'Detalles del mantenimiento', en: 'Maintenance details', pt: 'Detalhes da manutenção' },

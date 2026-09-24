@@ -396,6 +396,22 @@ def make_chat_blueprint(
             req.recurrence.recurrence_type.value if req.recurrence else "once"
         )
 
+        # Maintenance suppression config (Req 32) so the widget can PREVIEW it
+        # and resend it verbatim on ``POST /create_maintenance`` (the create side
+        # already reads these). Kept lean: ``problem_tags`` (and its companion
+        # ``tags_evaltype``, meaningless without tags) are emitted only when the
+        # AI extracted at least one problem tag; ``maintenance_type`` is a
+        # standalone toggle so it is ALWAYS emitted. Enums are int-based; coerce
+        # to plain JSON ints. Never emitted for non-maintenance intents (this
+        # branch only runs for a complete maintenance_request).
+        if req.problem_tags:
+            response["problem_tags"] = [
+                {"tag": t.tag, "value": t.value, "operator": int(t.operator)}
+                for t in req.problem_tags
+            ]
+            response["tags_evaltype"] = int(req.tags_evaltype)
+        response["maintenance_type"] = int(req.maintenance_type)
+
         # The widget renders the "Period" line from the top-level
         # ``start_time``/``end_time`` display strings for EVERY maintenance type
         # (they are the maintenance ACTIVE WINDOW — Zabbix ``active_since`` /

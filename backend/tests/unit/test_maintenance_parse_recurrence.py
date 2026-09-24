@@ -24,7 +24,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from api.chat import _recurrence_config_fields
-from api.maintenance import _parse_recurrence
+from api.maintenance import _build_request, _parse_recurrence
 from core.recurrence import build_timeperiod
 from services.maintenance_service import recurrence_config_from
 
@@ -236,3 +236,53 @@ def test_chat_config_round_trips_through_create_parser() -> None:
     assert tp.period == tp_from_chat.period
     assert tp.dayofweek == tp_from_chat.dayofweek
     assert tp.every == tp_from_chat.every
+
+
+# --------------------------------------------------------------------------- #
+# Create-side contract: problem tags / evaltype / maintenance_type (Req 32)   #
+# --------------------------------------------------------------------------- #
+def test_build_request_carries_problem_tags_evaltype_and_type() -> None:
+    """A /create_maintenance-style body's tag fields reach the ExtractedRequest.
+
+    Pins the create-side contract the widget now feeds: ``problem_tags``
+    (tag/value/operator), ``tags_evaltype`` and ``maintenance_type`` are parsed
+    and carried so :meth:`MaintenanceService.create` forwards them to Zabbix
+    (Req 32).
+    """
+    req = _build_request(
+        {
+            "recurrence_type": "once",
+            "start_time": "2025-03-15 02:00",
+            "end_time": "2025-03-15 05:00",
+            "hosts": ["srv-web01"],
+            "problem_tags": [
+                {"tag": "component", "value": "cpu", "operator": 2},
+                {"tag": "severity", "value": "high", "operator": 0},
+            ],
+            "tags_evaltype": 2,
+            "maintenance_type": 1,
+        }
+    )
+
+    assert [(t.tag, t.value, int(t.operator)) for t in req.problem_tags] == [
+        ("component", "cpu", 2),
+        ("severity", "high", 0),
+    ]
+    assert int(req.tags_evaltype) == 2
+    assert int(req.maintenance_type) == 1
+
+
+def test_build_request_defaults_when_tag_fields_absent() -> None:
+    """No tag fields → empty problem_tags, default evaltype/type (Req 32)."""
+    req = _build_request(
+        {
+            "recurrence_type": "once",
+            "start_time": "2025-03-15 02:00",
+            "end_time": "2025-03-15 05:00",
+            "hosts": ["srv-web01"],
+        }
+    )
+
+    assert req.problem_tags == []
+    assert int(req.tags_evaltype) == 0
+    assert int(req.maintenance_type) == 0

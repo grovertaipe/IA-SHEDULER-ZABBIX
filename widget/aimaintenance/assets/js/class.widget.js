@@ -556,6 +556,18 @@ class WidgetAIMaintenance extends CWidget {
             if (parsed.found_groups && parsed.found_groups.length > 0) {
                 maintenanceData.groups = parsed.found_groups.map((g) => g.name);
             }
+            // Maintenance suppression config (Req 32): forward what /chat
+            // returned so the tags the AI extracted actually reach Zabbix on
+            // create. Defensive — only include each field when present.
+            if (parsed.problem_tags && parsed.problem_tags.length > 0) {
+                maintenanceData.problem_tags = parsed.problem_tags;
+            }
+            if (parsed.tags_evaltype !== undefined && parsed.tags_evaltype !== null) {
+                maintenanceData.tags_evaltype = parsed.tags_evaltype;
+            }
+            if (parsed.maintenance_type !== undefined && parsed.maintenance_type !== null) {
+                maintenanceData.maintenance_type = parsed.maintenance_type;
+            }
 
             const data = await this.http.postJson('/create_maintenance', maintenanceData);
             this.ui.addMessage(data.message, 'success');

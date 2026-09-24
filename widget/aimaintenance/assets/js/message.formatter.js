@@ -415,6 +415,15 @@ class AIMaintenanceMessageFormatter {
             html += `<li><strong>${this.t('Trigger tags')}:</strong> ${this.escapeHtml(tagStrings)}</li>`;
         }
 
+        if (Array.isArray(data.problem_tags) && data.problem_tags.length > 0) {
+            const problemTagStrings = data.problem_tags.map((t) => `${t.tag}: ${t.value}`).join(', ');
+            html += `<li><strong>${this.t('Problem tags')}:</strong> ${this.escapeHtml(problemTagStrings)}</li>`;
+        }
+
+        if (data.maintenance_type === 1) {
+            html += `<li><strong>${this.t('Without data collection')}</strong></li>`;
+        }
+
         if (data.start_time && data.end_time) {
             html += `<li><strong>${this.t('Period')}:</strong> ${this.escapeHtml(data.start_time)} - ${this.escapeHtml(data.end_time)}</li>`;
         }

@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2026
+
+### Fixed
+- **Problem tags now actually reach Zabbix on creation.** In 2.6.0 the AI
+  extracted problem tags but they were dropped in transit: the `/chat` response
+  did not include `problem_tags` / `tags_evaltype` / `maintenance_type`, and the
+  widget did not forward them on `/create_maintenance`, so maintenances were
+  created without tags. The `/chat` response now surfaces these fields and the
+  widget resends them on create; the create endpoint already accepted them.
+- The confirmation popup now shows a **Problem tags** line and a **without data
+  collection** indicator when applicable.
+
+### Note
+- This touches the WIDGET — reinstall the widget (v2.6.1 zip) in Zabbix and hard-
+  refresh the browser for the create-side tag forwarding to take effect.
+
 ## [2.6.0] - 2026
 
 ### Added
