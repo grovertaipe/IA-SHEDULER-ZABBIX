@@ -54,6 +54,7 @@ from core.domain import (
 )
 from core.recurrence import build_timeperiod
 from i18n.locale import resolve_locale
+from i18n.messages import get_message
 from services.maintenance_service import MaintenanceService
 from zabbix.client import ZabbixClient, ZabbixError
 
@@ -436,6 +437,7 @@ def make_maintenance_blueprint(
             )
 
         extracted = _build_request(data)
+        locale = _read_locale(data, config)
 
         try:
             confirmation = maintenance_service.create(extracted, auth.user)
@@ -470,7 +472,7 @@ def make_maintenance_blueprint(
                 500,
             )
 
-        return jsonify(_confirmation_response(confirmation, extracted))
+        return jsonify(_confirmation_response(confirmation, extracted, locale))
 
     @bp.get("/maintenance/list")
     def list_maintenance() -> Any:
@@ -602,13 +604,21 @@ def make_maintenance_blueprint(
 # --------------------------------------------------------------------------- #
 # Response shaping helpers (pure)                                             #
 # --------------------------------------------------------------------------- #
-def _confirmation_response(confirmation: Any, request_obj: ExtractedRequest) -> dict[str, Any]:
+def _confirmation_response(
+    confirmation: Any, request_obj: ExtractedRequest, locale: str = "es"
+) -> dict[str, Any]:
     """Shape a :class:`MaintenanceConfirmation` into the legacy success dict.
 
     Preserves the legacy ``maintenance_created`` fields the widget consumes
     (Req 11.4): ``maintenance_id``, ``name``, ``description``,
     ``hosts_affected``, ``groups_affected``, ``recurrence_type``,
     ``is_routine``, ``ticket_number``, ``user_info`` and a human ``message``.
+
+    The human ``message`` is a LOCALIZED TEMPLATE assembled from the i18n catalog
+    (Req 21.1): the confirmation is post-action and must be precise, so it stays
+    controlled/templated rather than free AI text (the natural, same-language
+    free text lives in the ``/chat`` conversational replies). The structured
+    fields the widget renders are unchanged.
     """
     resolved = confirmation.resolved
     rec_type = (
@@ -621,19 +631,25 @@ def _confirmation_response(confirmation: Any, request_obj: ExtractedRequest) -> 
     if not user_display:
         user_display = user.username
 
-    message = (
-        "¡Mantenimiento creado exitosamente!\n\n"
-        f"Detalles:\n"
-        f"• Nombre: {confirmation.name}\n"
-        f"• Hosts afectados: {len(resolved.host_ids)}\n"
-        f"• Grupos afectados: {len(resolved.group_ids)}\n"
+    message = get_message(
+        "confirmation.created_message",
+        locale,
+        name=confirmation.name,
+        hosts_affected=len(resolved.host_ids),
+        groups_affected=len(resolved.group_ids),
     )
     if rec_type != "once":
-        message += f"• Tipo: Rutinario ({rec_type})\n"
+        message += get_message(
+            "confirmation.line_routine", locale, recurrence_type=rec_type
+        )
     if request_obj.ticket:
-        message += f"• Ticket: {request_obj.ticket}\n"
-    message += f"• Solicitado por: {user_display}\n"
-    message += "\nEl mantenimiento está activo y funcionando."
+        message += get_message(
+            "confirmation.line_ticket", locale, ticket=request_obj.ticket
+        )
+    message += get_message(
+        "confirmation.line_requested_by", locale, user=user_display
+    )
+    message += get_message("confirmation.footer_active", locale)
 
     return {
         "type": "maintenance_created",

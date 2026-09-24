@@ -4,6 +4,28 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026
+
+### Added
+- **Natural-language replies in the operator's own language.** The AI now
+  returns an `assistant_message` written in the SAME language the user typed
+  (any language), with a natural but guided tone that steers toward creating a
+  Zabbix maintenance. Used for the conversational replies (help / clarification
+  / off-topic / "ready to create").
+
+### Changed
+- Conversational text prefers the AI-written `assistant_message`; when the AI is
+  unavailable it falls back to the fixed es/en/pt catalog messages using the
+  browser/Zabbix locale. System errors and the creation confirmation remain
+  templated (localized es/en/pt) for precision.
+- The scope safeguard keeps the assistant within the Zabbix-maintenance domain
+  (off-topic requests are politely redirected).
+
+### Unchanged (invariant)
+- Maintenance DATA (hosts, groups, schedule) is still extracted structurally and
+  the bitmasks are computed deterministically by the backend core; the AI never
+  computes bitmasks. `assistant_message` is conversational prose only.
+
 ## [2.1.0] - 2026
 
 ### Added

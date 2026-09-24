@@ -26,7 +26,8 @@ from observability.logger import SecureLogger
 CTX = PromptContext(today_iso="2024-01-01", tomorrow_iso="2024-01-02")
 _JSON_RESPONSE = (
     '{"intent": "maintenance_request", "hosts": ["web01"], '
-    '"groups": ["Linux servers"]}'
+    '"groups": ["Linux servers"], '
+    '"assistant_message": "Ready — I set up the maintenance for web01."}'
 )
 
 
@@ -138,6 +139,7 @@ def test_extract_returns_parsed_request_with_stubbed_client() -> None:
     assert result.intent == "maintenance_request"
     assert result.hosts == ["web01"]
     assert result.groups == ["Linux servers"]
+    assert result.assistant_message == "Ready — I set up the maintenance for web01."
     assert result.raw_message == "apaga web01 manana"
 
     captured = provider._client.captured  # type: ignore[attr-defined]

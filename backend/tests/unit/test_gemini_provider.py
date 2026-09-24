@@ -31,7 +31,10 @@ from ai.provider import AIProviderError
 from core.domain import PromptContext
 
 CTX = PromptContext(today_iso="2024-01-01", tomorrow_iso="2024-01-02")
-_JSON_RESPONSE = '{"intent": "maintenance_request", "hosts": ["web01"]}'
+_JSON_RESPONSE = (
+    '{"intent": "maintenance_request", "hosts": ["web01"], '
+    '"assistant_message": "Listo, preparé el mantenimiento para web01."}'
+)
 
 
 class _FakeResponse:
@@ -120,6 +123,7 @@ def test_extract_returns_parsed_request_with_stubbed_sdk(
 
     assert result.intent == "maintenance_request"
     assert result.hosts == ["web01"]
+    assert result.assistant_message == "Listo, preparé el mantenimiento para web01."
     assert result.raw_message == "apaga web01 manana"
     assert captured["model"] == "gemini-2.0-flash"
     # generation parameters are carried on the config object

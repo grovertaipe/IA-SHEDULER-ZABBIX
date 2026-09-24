@@ -16,7 +16,10 @@ from ai.provider import AIProviderError
 from core.domain import PromptContext
 
 CTX = PromptContext(today_iso="2024-01-01", tomorrow_iso="2024-01-02")
-_JSON_RESPONSE = '{"intent": "maintenance_request", "hosts": ["web01"]}'
+_JSON_RESPONSE = (
+    '{"intent": "maintenance_request", "hosts": ["web01"], '
+    '"assistant_message": "Done, I prepared the maintenance for web01."}'
+)
 
 
 class _FakeMessage:
@@ -83,6 +86,7 @@ def test_extract_returns_parsed_request_and_passes_timeout() -> None:
 
     assert result.intent == "maintenance_request"
     assert result.hosts == ["web01"]
+    assert result.assistant_message == "Done, I prepared the maintenance for web01."
     assert result.raw_message == "apaga web01 manana"
 
     captured = provider._client.chat.completions.captured  # type: ignore[attr-defined]

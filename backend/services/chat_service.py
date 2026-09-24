@@ -161,6 +161,19 @@ def _message(key: str, locale: str, **params: object) -> str:
     return _get_message(key, locale, **params)
 
 
+def _assistant_or_catalog(ai_text: str | None, key: str, locale: str) -> str:
+    """Prefer the AI's conversational reply; fall back to the i18n catalog.
+
+    When the AI provided a non-empty ``assistant_message`` (already written in
+    the user's language), that text is used verbatim as the human-facing
+    message. Otherwise the localized catalog message for ``key`` is returned as
+    the fallback (Req 21.4). This keeps the natural, same-language reply when the
+    AI is available and a controlled localized message when it is not.
+    """
+    text = (ai_text or "").strip()
+    return text if text else _message(key, locale)
+
+
 # --------------------------------------------------------------------------- #
 # Completeness inspection (pure, no bitmask computation)                       #
 # --------------------------------------------------------------------------- #
@@ -352,7 +365,9 @@ class ChatService:
         if extracted.intent == INTENT_HELP:
             return ChatResult(
                 intent=INTENT_HELP,
-                message=_message(MSG_HELP, effective_locale),
+                message=_assistant_or_catalog(
+                    extracted.assistant_message, MSG_HELP, effective_locale
+                ),
                 raw_message=message,
                 ticket=effective_ticket,
                 locale=effective_locale,
@@ -361,7 +376,9 @@ class ChatService:
         if extracted.intent == INTENT_OFF_TOPIC:
             return ChatResult(
                 intent=INTENT_OFF_TOPIC,
-                message=_message(MSG_OFF_TOPIC, effective_locale),
+                message=_assistant_or_catalog(
+                    extracted.assistant_message, MSG_OFF_TOPIC, effective_locale
+                ),
                 raw_message=message,
                 ticket=effective_ticket,
                 locale=effective_locale,
@@ -372,13 +389,21 @@ class ChatService:
             if missing:
                 # Incomplete extraction: DO NOT compute the time period; ask for
                 # the missing details and preserve the original message
-                # (Req 3.8, 15.7).
+                # (Req 3.8, 15.7). Prefer the AI's same-language clarification.
                 return self._clarification(
-                    message, effective_locale, effective_ticket, missing
+                    message,
+                    effective_locale,
+                    effective_ticket,
+                    missing,
+                    ai_text=extracted.assistant_message,
                 )
             return ChatResult(
                 intent=INTENT_MAINTENANCE,
-                message=_message(MSG_MAINTENANCE_READY, effective_locale),
+                message=_assistant_or_catalog(
+                    extracted.assistant_message,
+                    MSG_MAINTENANCE_READY,
+                    effective_locale,
+                ),
                 raw_message=message,
                 request=extracted,
                 ticket=effective_ticket,
@@ -396,7 +421,11 @@ class ChatService:
             else []
         )
         return self._clarification(
-            message, effective_locale, effective_ticket, missing
+            message,
+            effective_locale,
+            effective_ticket,
+            missing,
+            ai_text=extracted.assistant_message,
         )
 
     def _clarification(
@@ -405,16 +434,20 @@ class ChatService:
         locale: str,
         ticket: str | None,
         missing: list[str],
+        *,
+        ai_text: str | None = None,
     ) -> ChatResult:
         """Build a clarification result listing the missing fields (Req 13.4).
 
         Never invokes any recurrence computation (Req 3.8, 15.7); it only
         formats the already-identified missing field names into the localized
-        clarification message and preserves the original ``message``.
+        clarification message and preserves the original ``message``. When the
+        AI provided a same-language ``ai_text`` it is preferred over the catalog
+        message; the catalog is the fallback (Req 21.4).
         """
         return ChatResult(
             intent=INTENT_CLARIFICATION,
-            message=_message(MSG_CLARIFICATION, locale),
+            message=_assistant_or_catalog(ai_text, MSG_CLARIFICATION, locale),
             raw_message=message,
             missing_fields=missing,
             ticket=ticket,

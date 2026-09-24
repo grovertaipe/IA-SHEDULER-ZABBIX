@@ -52,6 +52,19 @@ CATALOG: dict[str, str] = {
         "The following resources were not found: {missing}. "
         "The maintenance was created for: {found}."
     ),
+    # Localized creation-confirmation message (Req 21.1). Structured, precise
+    # fields (NOT free AI text) assembled post-action by the api layer.
+    "confirmation.created_message": (
+        "Maintenance created successfully!\n\n"
+        "Details:\n"
+        "• Name: {name}\n"
+        "• Hosts affected: {hosts_affected}\n"
+        "• Groups affected: {groups_affected}\n"
+    ),
+    "confirmation.line_routine": "• Type: Routine ({recurrence_type})\n",
+    "confirmation.line_ticket": "• Ticket: {ticket}\n",
+    "confirmation.line_requested_by": "• Requested by: {user}\n",
+    "confirmation.footer_active": "\nThe maintenance is active and running.",
     # --- Error messages (Req 15.7, 21.1) ---
     "error.invalid_recurrence": (
         "The recurrence type \"{value}\" is not valid. "

@@ -133,6 +133,13 @@ class ExtractedRequest:
     ticket: str | None = None  # may be completed by the backend (Req 10.3)
     recurrence: ExtractedRecurrence | None = None
     raw_message: str = ""  # original request preserved (Req 3.8)
+    # Conversational reply written by the AI IN THE USER'S LANGUAGE (any
+    # language), natural but guided toward creating a Zabbix maintenance. This is
+    # ONLY prose: it never carries bitmasks, JSON or computed numbers — those stay
+    # in the structured fields above and are computed deterministically by the
+    # backend core. Empty when the AI did not provide one (the service then falls
+    # back to the localized i18n catalog message).
+    assistant_message: str = ""
 
 
 # --------------------------------------------------------------------------- #

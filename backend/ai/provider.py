@@ -344,6 +344,12 @@ def parse_extracted_request(data: dict[str, Any], message: str) -> ExtractedRequ
     """
     intent = _normalize_intent(data.get("intent", data.get("type")))
 
+    # Conversational reply written by the AI in the user's language (prose only,
+    # never bitmasks). Coerce non-str/None to "" and strip; the service prefers
+    # this text and falls back to the i18n catalog when it is empty.
+    raw_assistant = data.get("assistant_message")
+    assistant_message = raw_assistant.strip() if isinstance(raw_assistant, str) else ""
+
     tags_evaltype = _as_int(data.get("tags_evaltype"))
     maintenance_type = _as_int(data.get("maintenance_type"))
     ticket = data.get("ticket") or data.get("ticket_number")
@@ -368,6 +374,7 @@ def parse_extracted_request(data: dict[str, Any], message: str) -> ExtractedRequ
         ticket=ticket.strip() if isinstance(ticket, str) and ticket.strip() else None,
         recurrence=_parse_recurrence(data),
         raw_message=message,
+        assistant_message=assistant_message,
     )
 
 

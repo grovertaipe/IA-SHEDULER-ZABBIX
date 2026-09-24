@@ -79,6 +79,10 @@ EXTRACTED_REQUEST_SCHEMA: dict = {
     "properties": {
         # Único campo obligatorio del contrato (Req 29.1, 13).
         "intent": {"type": "string"},
+        # Respuesta conversacional en el idioma del usuario (prosa, opcional):
+        # texto libre que el backend prefiere sobre el catálogo i18n. No es
+        # obligatorio, por lo que el esquema valida con o sin él.
+        "assistant_message": {"type": "string"},
         "hosts": {"type": "array", "items": {"type": "string"}},
         "groups": {"type": "array", "items": {"type": "string"}},
         # trigger_tags: descubrimiento de hosts (Req 14.4), lista de objetos.

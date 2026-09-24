@@ -55,6 +55,21 @@ CATALOG: dict[str, str] = {
         "No se encontraron los siguientes recursos: {missing}. "
         "El mantenimiento se creó para: {found}."
     ),
+    # Localized creation-confirmation message (Req 21.1). Built post-action with
+    # structured, precise fields — NOT free AI text — so the confirmation stays
+    # controlled. The optional routine/ticket lines are appended by the api layer
+    # using the label keys below.
+    "confirmation.created_message": (
+        "¡Mantenimiento creado exitosamente!\n\n"
+        "Detalles:\n"
+        "• Nombre: {name}\n"
+        "• Hosts afectados: {hosts_affected}\n"
+        "• Grupos afectados: {groups_affected}\n"
+    ),
+    "confirmation.line_routine": "• Tipo: Rutinario ({recurrence_type})\n",
+    "confirmation.line_ticket": "• Ticket: {ticket}\n",
+    "confirmation.line_requested_by": "• Solicitado por: {user}\n",
+    "confirmation.footer_active": "\nEl mantenimiento está activo y funcionando.",
     # --- Error messages (Req 15.7, 21.1) ---
     "error.invalid_recurrence": (
         "El tipo de recurrencia «{value}» no es válido. "

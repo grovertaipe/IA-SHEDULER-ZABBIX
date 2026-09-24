@@ -163,6 +163,59 @@ def test_chat_and_parse_return_identical_shape() -> None:
     assert chat_resp.get_json()["found_hosts"]
 
 
+def test_chat_message_is_ai_assistant_text() -> None:
+    """The /chat response ``message`` is the ChatResult text (AI assistant_message)."""
+    ai_text = "Listo, preparé el mantenimiento diario para srv-web01."
+    resolved = ResolvedResources(
+        hosts=[{"hostid": "1", "host": "srv-web01", "name": "srv-web01"}],
+        host_ids=["1"],
+    )
+    result = _maintenance_request_result()
+    result.message = ai_text
+    app = _build_app(result, resolved)
+    client = app.test_client()
+
+    resp = client.post(
+        "/chat", json={"message": "backup diario 2-4am srv-web01", "user": _USER}
+    )
+    assert resp.status_code == 200
+    assert resp.get_json()["message"] == ai_text
+
+
+def test_create_maintenance_confirmation_localized_en() -> None:
+    """The creation confirmation ``message`` is localized via the i18n catalog."""
+    resolved = ResolvedResources(
+        hosts=[{"hostid": "1", "host": "srv-web01", "name": "srv-web01"}],
+        host_ids=["1"],
+    )
+    confirmation = MaintenanceConfirmation(
+        maintenanceid="777",
+        name="100-178306 - backup",
+        description="desc",
+        user=UserInfo(userid="42", username="operator", name="Op", surname="Erator"),
+        resolved=resolved,
+    )
+    app = _build_app(_maintenance_request_result(), resolved, confirmation)
+    client = app.test_client()
+
+    body = {
+        "message": "backup diario",
+        "user": _USER,
+        "locale": "en",
+        "hosts": ["srv-web01"],
+        "recurrence_type": "daily",
+        "recurrence": {"start_hour": 2, "duration_hours": 2.0},
+        "ticket": "100-178306",
+    }
+    resp = client.post("/create_maintenance", json=body)
+    assert resp.status_code == 200
+    message = resp.get_json()["message"]
+    # English catalog wording (Req 21.1) rather than the previous fixed Spanish.
+    assert "Maintenance created successfully!" in message
+    assert "Requested by: Op Erator" in message
+    assert "Ticket: 100-178306" in message
+
+
 def test_chat_missing_message_is_400_no_state_change() -> None:
     """A missing message yields 400 error without acting (Req 15.7)."""
     app = _build_app(_maintenance_request_result(), ResolvedResources())
