@@ -81,6 +81,61 @@ class AIMaintenanceUIRenderer {
     }
 
     /**
+     * Render the manual "New request" control that clears the conversation
+     * memory (Req: manual reset, control B). Idempotent: if the button already
+     * exists it is left in place. The button follows the existing header-action
+     * pattern (templates button): a real <button type="button"> with an
+     * aria-label/title and focusable-by-default, so it is keyboard operable
+     * (Tab to focus, Enter/Space to activate) and announced to assistive tech.
+     * The click handler is wired by the orchestrator (setupEventListeners).
+     */
+    renderNewRequestControl() {
+        if (this.$('#ai-new-request-btn')) {
+            return;
+        }
+        const actions = this.$('.ai-header-actions');
+        if (!actions) {
+            return;
+        }
+
+        const label = this.t('Start a new request');
+        const btn = document.createElement('button');
+        btn.id = 'ai-new-request-btn';
+        btn.className = 'ai-new-request-button';
+        btn.setAttribute('type', 'button');
+        btn.setAttribute('title', label);
+        btn.setAttribute('aria-label', label);
+
+        // Inline SVG icon (circular refresh) mirroring the templates button's
+        // decorative-icon pattern: aria-hidden + focusable=false so the button's
+        // own aria-label is the single accessible name.
+        const svgNs = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNs, 'svg');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('width', '18');
+        svg.setAttribute('height', '18');
+        svg.setAttribute('fill', 'currentColor');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        const path = document.createElementNS(svgNs, 'path');
+        path.setAttribute(
+            'd',
+            'M17.65 6.35A7.958 7.958 0 0012 4a8 8 0 108 8h-2a6 6 0 11-1.76-4.24L13 11h7V4l-2.35 2.35z'
+        );
+        svg.appendChild(path);
+        btn.appendChild(svg);
+
+        // Place the new-request control before the templates button so the
+        // header actions read: [status chip] [new request] [templates].
+        const templatesBtn = actions.querySelector('#templates-btn');
+        if (templatesBtn) {
+            actions.insertBefore(btn, templatesBtn);
+        } else {
+            actions.appendChild(btn);
+        }
+    }
+
+    /**
      * Reflect the active Zabbix theme on the widget root so theme.css variables
      * resolve correctly (Req 25.1, 25.2). Detects Zabbix body theme classes and
      * the prefers-color-scheme media query as a fallback.

@@ -29,6 +29,17 @@ class WidgetAIMaintenance extends CWidget {
         this.templates = null;
         this.locale = this._detectLocale();
 
+        // Multi-turn conversation memory (backend stays STATELESS): the widget
+        // keeps the recent conversation SCOPED to the maintenance-in-progress
+        // and resends it on each /chat call so the AI accumulates fields across
+        // messages. The buffer is RESET when a maintenance is created OR
+        // cancelled, and via the manual "new request" control, so previously
+        // created maintenances never leak into the AI context. A safety cap
+        // (MAX_HISTORY_TURNS) limits how many turns are ever resent, even if the
+        // user never creates or cancels a maintenance.
+        this.conversation_history = [];
+        this.MAX_HISTORY_TURNS = 10;
+
         // Self-contained i18n instance driven by the detected locale (Req 33.2).
         this.i18n = this._buildI18n(this.locale);
 
@@ -106,6 +117,7 @@ class WidgetAIMaintenance extends CWidget {
         this._buildCollaborators();
         this.ui.applyTheme();
         this.ui.enhanceAccessibility();
+        this.ui.renderNewRequestControl();
         this.setupEventListeners();
         this.loadMaintenanceTemplates();
         this.checkBackendConnection();
@@ -134,9 +146,13 @@ class WidgetAIMaintenance extends CWidget {
         const confirm_btn = this._body.querySelector('#confirm-maintenance');
         const cancel_btn = this._body.querySelector('#cancel-maintenance');
         const templates_btn = this._body.querySelector('#templates-btn');
+        const new_request_btn = this._body.querySelector('#ai-new-request-btn');
 
         if (send_btn) {
             send_btn.addEventListener('click', () => this.onSendMessage());
+        }
+        if (new_request_btn) {
+            new_request_btn.addEventListener('click', () => this.onNewRequest());
         }
         if (input) {
             input.addEventListener('keydown', (e) => this.onKeyDown(e));
@@ -314,16 +330,69 @@ class WidgetAIMaintenance extends CWidget {
         this._sendMessage(message);
     }
 
+    // ---------------------------------------------------------------------
+    // Conversation memory (widget-side, backend stays stateless)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Push a turn onto the maintenance-scoped history buffer and enforce the
+     * safety cap so we never resend more than MAX_HISTORY_TURNS turns, even if
+     * the user never creates or cancels a maintenance.
+     * @param {string} role     'user' | 'assistant'
+     * @param {string} content  The turn text.
+     */
+    _pushHistory(role, content) {
+        const text = (content == null ? '' : String(content)).trim();
+        if (!text) {
+            return;
+        }
+        this.conversation_history.push({ role, content: text });
+        if (this.conversation_history.length > this.MAX_HISTORY_TURNS) {
+            // Keep only the most recent turns.
+            this.conversation_history = this.conversation_history.slice(-this.MAX_HISTORY_TURNS);
+        }
+    }
+
+    /**
+     * Reset the maintenance-scoped conversation memory. Called when a
+     * maintenance is created or cancelled and from the manual "new request"
+     * control, so a fresh maintenance starts with a clean AI context.
+     */
+    _resetHistory() {
+        this.conversation_history = [];
+    }
+
+    /**
+     * Remove the trailing user turn matching `content` if it is dangling (i.e.
+     * the /chat exchange failed before an assistant reply was recorded), so a
+     * manual retry does not duplicate it in the resent history.
+     * @param {string} content
+     */
+    _dropLastUserTurn(content) {
+        const last = this.conversation_history[this.conversation_history.length - 1];
+        const text = (content == null ? '' : String(content)).trim();
+        if (last && last.role === 'user' && last.content === text) {
+            this.conversation_history.pop();
+        }
+    }
+
     async _sendMessage(message) {
         this.ui.setThinking(true);
         this.ui.clearInput();
         this.ui.addMessage(message, 'user');
         this.ui.showLoading(true, this._t('Analyzing request...'));
 
+        // Record the user's turn BEFORE calling /chat and resend the buffer
+        // (prior turns + this user turn) so the stateless backend accumulates
+        // fields across messages. The assistant turn is appended only after a
+        // successful response, so the current user message is never doubled.
+        this._pushHistory('user', message);
+
         try {
             const data = await this.http.postJson('/chat', {
                 message: message,
-                user_info: this.user_info
+                user_info: this.user_info,
+                history: this.conversation_history
             }, {
                 onRetry: (attempt, max) => {
                     this.ui.addMessage(
@@ -333,9 +402,19 @@ class WidgetAIMaintenance extends CWidget {
                 }
             });
 
+            // Append the assistant's reply text (what the user is shown) so the
+            // next turn carries it as context.
+            if (data && typeof data === 'object' && typeof data.message === 'string') {
+                this._pushHistory('assistant', data.message);
+            }
+
             this.handleInteractiveResponse(data);
         } catch (error) {
             console.error('Error in onSendMessage:', error);
+            // The exchange failed (no assistant reply). Drop the dangling user
+            // turn we optimistically pushed so a manual retry re-adds it exactly
+            // once instead of duplicating it in the resent history.
+            this._dropLastUserTurn(message);
             this._handleFailure(error, message);
         } finally {
             this.ui.showLoading(false);
@@ -481,6 +560,11 @@ class WidgetAIMaintenance extends CWidget {
             const data = await this.http.postJson('/create_maintenance', maintenanceData);
             this.ui.addMessage(data.message, 'success');
 
+            // Maintenance created successfully: reset the maintenance-scoped
+            // conversation memory so the next request starts with a clean AI
+            // context and the just-created maintenance never leaks into it.
+            this._resetHistory();
+
             if (data.is_routine) {
                 this.ui.addMessage(
                     '**' + this._t('Routine maintenance configured') + '**\n' +
@@ -497,7 +581,10 @@ class WidgetAIMaintenance extends CWidget {
             this.ui.addMessage(`${this._t('Error creating maintenance')}: ${error.message}`, 'error');
         } finally {
             this.ui.showLoading(false);
-            this.onCancelMaintenance();
+            // Clear the pending confirmation WITHOUT resetting history here: on
+            // success the history was already reset above; on failure we keep
+            // the context so the user can adjust and retry the same maintenance.
+            this._clearPendingConfirmation();
         }
     }
 
@@ -532,9 +619,36 @@ class WidgetAIMaintenance extends CWidget {
         }
     }
 
-    onCancelMaintenance() {
+    /**
+     * Clear the pending confirmation dialog and the last preview WITHOUT
+     * touching the conversation memory. Shared by the create success/failure
+     * cleanup and by the user-initiated cancel.
+     */
+    _clearPendingConfirmation() {
         this.ui.hideConfirmation();
         this.current_parsed_data = null;
+    }
+
+    /**
+     * User-initiated cancel of the pending maintenance. Clears the confirmation
+     * AND resets the maintenance-scoped conversation memory (A): a cancelled
+     * request should not bleed into the next one.
+     */
+    onCancelMaintenance() {
+        this._clearPendingConfirmation();
+        this._resetHistory();
+    }
+
+    /**
+     * Manual "new request" reset (B): clear the conversation memory and any
+     * pending confirmation so the user can start a brand-new maintenance with a
+     * clean AI context. Adds a small system note for feedback.
+     */
+    onNewRequest() {
+        this._resetHistory();
+        this._clearPendingConfirmation();
+        this.ui.addMessage(this._t('Context reset. Describe a new maintenance.'), 'info');
+        this.ui.focusInput();
     }
 
     destroy() {

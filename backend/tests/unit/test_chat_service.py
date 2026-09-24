@@ -15,6 +15,7 @@ import pytest
 
 from ai.provider import AIProvider, AIProviderError
 from core.domain import (
+    ConversationTurn,
     ExtractedRecurrence,
     ExtractedRequest,
     PromptContext,
@@ -34,15 +35,28 @@ _BASE = date(2024, 1, 1)
 
 
 class _FakeProvider(AIProvider):
-    """Returns a preset ExtractedRequest, or raises AIProviderError."""
+    """Returns a preset ExtractedRequest, or raises AIProviderError.
+
+    Records the ``history`` it received on the last :meth:`extract` call so
+    tests can assert the service forwards the conversation history.
+    """
 
     def __init__(
         self, result: ExtractedRequest | None, *, raise_error: bool = False
     ) -> None:
         self._result = result
         self._raise = raise_error
+        self.received_history: list[ConversationTurn] | None = None
+        self.history_calls: list[list[ConversationTurn] | None] = []
 
-    def extract(self, message: str, ctx: PromptContext) -> ExtractedRequest:
+    def extract(
+        self,
+        message: str,
+        ctx: PromptContext,
+        history: list[ConversationTurn] | None = None,
+    ) -> ExtractedRequest:
+        self.received_history = history
+        self.history_calls.append(history)
         if self._raise:
             raise AIProviderError("unavailable")
         assert self._result is not None
@@ -230,6 +244,34 @@ def test_once_without_any_timing_degrades_to_clarification() -> None:
     assert "start_date" in result.missing_fields
     assert "start_hour" in result.missing_fields
     assert "duration" in result.missing_fields
+
+
+# --------------------------------------------------------------------------- #
+# History forwarding: ChatService passes the conversation history to the       #
+# provider so extraction accumulates fields across turns (backend stateless).  #
+# --------------------------------------------------------------------------- #
+def test_interpret_forwards_history_to_provider() -> None:
+    provider = _FakeProvider(_complete_maintenance("listo"))
+    svc = ChatService(provider, _FakeConfig())  # type: ignore[arg-type]
+
+    history = [
+        ConversationTurn(role="user", content="mantenimiento para web01"),
+        ConversationTurn(role="assistant", content="¿A qué hora?"),
+    ]
+    svc.interpret("de 2 a 4am", locale="es", base_date=_BASE, history=history)
+
+    assert provider.received_history is history
+    assert provider.received_history is not None
+    assert [t.role for t in provider.received_history] == ["user", "assistant"]
+
+
+def test_interpret_without_history_passes_none() -> None:
+    provider = _FakeProvider(_complete_maintenance("listo"))
+    svc = ChatService(provider, _FakeConfig())  # type: ignore[arg-type]
+
+    svc.interpret("backup diario web01 2-4am", locale="es", base_date=_BASE)
+
+    assert provider.received_history is None
 
 
 if __name__ == "__main__":  # pragma: no cover

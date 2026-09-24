@@ -25,7 +25,7 @@ Requirements: 12.1, 12.2, 12.3, 12.6, 26.1.
 from __future__ import annotations
 
 from config import AppConfig
-from core.domain import ExtractedRequest, PromptContext
+from core.domain import ConversationTurn, ExtractedRequest, PromptContext
 from observability.logger import SecureLogger
 
 from .bedrock_provider import BedrockProvider
@@ -100,7 +100,12 @@ class _UnavailableProvider(AIProvider):
     gracefully with its localized message rather than crashing on import.
     """
 
-    def extract(self, message: str, ctx: PromptContext) -> ExtractedRequest:
+    def extract(
+        self,
+        message: str,
+        ctx: PromptContext,
+        history: list[ConversationTurn] | None = None,
+    ) -> ExtractedRequest:
         """Always fail: no usable provider is configured."""
         raise AIProviderError("no AI provider configured")
 

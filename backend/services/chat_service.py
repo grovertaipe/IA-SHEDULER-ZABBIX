@@ -53,6 +53,7 @@ from typing import TYPE_CHECKING
 from ai.prompt import build_prompt_context
 from ai.provider import AIProvider, AIProviderError
 from core.domain import (
+    ConversationTurn,
     ExtractedRecurrence,
     ExtractedRequest,
     RecurrenceType,
@@ -325,6 +326,7 @@ class ChatService:
         *,
         locale: str | None = "es",
         base_date: date | None = None,
+        history: list[ConversationTurn] | None = None,
     ) -> ChatResult:
         """Interpret ``message`` and return a structured :class:`ChatResult`.
 
@@ -349,6 +351,11 @@ class ChatService:
                 (design §7, Req 21.5, 21.6). ``None``/unsupported degrades to
                 the default (``es``).
             base_date: injectable "today" for deterministic prompt context.
+            history: optional prior turns of the SAME maintenance conversation
+                (widget-resent, maintenance-scoped) forwarded to the provider so
+                extraction accumulates details across messages. When ``None`` /
+                empty the behaviour is identical to a single stateless message,
+                and the richer extraction simply means fewer clarification loops.
 
         Returns:
             A :class:`ChatResult`; ``raw_message`` always equals ``message`` and
@@ -363,7 +370,7 @@ class ChatService:
         ctx = build_prompt_context(base_date)
 
         try:
-            extracted = self._provider.extract(message, ctx)
+            extracted = self._provider.extract(message, ctx, history)
         except AIProviderError as exc:
             # Provider unavailable / unusable output: degrade gracefully without
             # any recurrence computation and preserve the original message.

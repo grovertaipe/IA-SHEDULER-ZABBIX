@@ -105,4 +105,23 @@ Usuario: "El día 15 de cada mes de 2 a 4 AM"
 Usuario: "Primer lunes de enero y julio de 3 a 5 AM"
 {{"intent":"clarification","assistant_message":"Anoté el primer lunes de enero y julio de 03:00 a 05:00. ¿A qué hosts o grupos aplico este mantenimiento?","hosts":[],"groups":[],"trigger_tags":[],"ticket":null,"recurrence":{{"recurrence_type":"monthly","days":["monday"],"months":["january","july"],"occurrences":["first"],"day_of_month":null,"start_hour":3,"duration_hours":2,"every":null,"start_date":null,"start_ts":null,"end_ts":null}}}}
 
+HISTORIAL DE LA CONVERSACIÓN (turnos previos del MISMO mantenimiento en curso,
+del más antiguo al más reciente; puede estar vacío):
+{conversation_history}
+
+REGLAS DEL HISTORIAL:
+- FUSIONA los datos: el MENSAJE DEL USUARIO de abajo y el HISTORIAL describen UN
+  SOLO mantenimiento que se está armando entre varios turnos. Rellena los campos
+  que falten en el mensaje actual con lo que ya se dijo en turnos anteriores
+  (hosts/grupos, cuándo, hora de inicio, duración, ticket, tipo de recurrencia).
+- Los turnos MÁS RECIENTES tienen prioridad: si un dato se repite con otro valor,
+  usa el del turno más reciente (el mensaje actual gana sobre el historial).
+- Si el usuario claramente inicia un mantenimiento DIFERENTE (por ejemplo otro
+  host o ticket que contradice el contexto anterior), prefiere el mantenimiento
+  MÁS RECIENTE e ignora los datos antiguos que ya no aplican.
+- El historial puede estar vacío ("(sin historial previo)"): en ese caso
+  compórtate exactamente como una extracción de un solo mensaje.
+- Las reglas anteriores ("la IA extrae, el backend calcula") siguen intactas y el
+  contrato de salida JSON NO cambia: sigues devolviendo SOLO el objeto JSON.
+
 MENSAJE DEL USUARIO: "{user_message}"

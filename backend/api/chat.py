@@ -47,7 +47,7 @@ from flask import Blueprint, jsonify, request
 
 from api.auth import validate_user
 from config import AppConfig
-from core.domain import RecurrenceType, TimePeriod
+from core.domain import ConversationTurn, RecurrenceType, TimePeriod
 from core.recurrence import RecurrenceError, build_timeperiod
 from i18n.locale import resolve_locale
 from services.chat_service import (
@@ -126,6 +126,69 @@ def _read_locale(data: Any, config: AppConfig) -> str:
         config.supported_locales,
         config.default_locale,
     )
+
+
+#: Safety cap on how many prior turns the stateless backend accepts on a
+#: ``/chat`` call. The widget already caps its resent buffer to the last 10
+#: turns; this is defense in depth so a crafted body can never grow the prompt
+#: unbounded. Only the LAST :data:`_MAX_HISTORY_TURNS` items are kept.
+_MAX_HISTORY_TURNS = 10
+
+#: Roles accepted for a conversation turn (anything else is dropped).
+_VALID_HISTORY_ROLES = frozenset({"user", "assistant"})
+
+
+def _read_history(data: Any) -> list[ConversationTurn]:
+    """Read/normalize the optional ``history`` array into conversation turns.
+
+    The stateless backend has no server-side sessions: the widget resends the
+    recent, maintenance-scoped conversation on every ``/chat`` call and the AI
+    re-reads it to merge fields across turns. This helper is the pure,
+    unit-testable normalization of that resent array:
+
+    * accepts a list of ``{role, content}`` items, oldest-first;
+    * tolerates the ``content`` value under the aliases ``message`` / ``text``
+      (coerced to ``content``) for backward/robustness;
+    * keeps only items whose ``role`` is ``"user"`` or ``"assistant"`` and whose
+      resolved content is a non-empty string (blank/whitespace is dropped);
+    * caps the result to the LAST :data:`_MAX_HISTORY_TURNS` valid items
+      (defense in depth even though the widget also caps).
+
+    Returns an empty list when ``history`` is absent, not a list, or every item
+    is invalid — in which case the interpretation behaves exactly as before
+    (single stateless message). Pure and deterministic; no I/O.
+    """
+    if not isinstance(data, dict):
+        return []
+    raw = data.get("history")
+    if not isinstance(raw, list):
+        return []
+
+    turns: list[ConversationTurn] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        role = item.get("role")
+        if not isinstance(role, str) or role not in _VALID_HISTORY_ROLES:
+            continue
+        # Accept content under `content` (canonical) or the `message` / `text`
+        # aliases, in that precedence order.
+        content = item.get("content")
+        if content is None:
+            content = item.get("message")
+        if content is None:
+            content = item.get("text")
+        if not isinstance(content, str):
+            continue
+        stripped = content.strip()
+        if not stripped:
+            continue
+        turns.append(ConversationTurn(role=role, content=stripped))
+
+    # Keep only the most recent turns (defense in depth alongside the widget).
+    if len(turns) > _MAX_HISTORY_TURNS:
+        turns = turns[-_MAX_HISTORY_TURNS:]
+    return turns
 
 
 def _resolution_fields(resolved: ResolvedResources) -> dict[str, Any]:
@@ -215,8 +278,11 @@ def make_chat_blueprint(
         1. Read and validate the ``message`` (missing/blank -> 400, no state
            change, Req 15.7).
         2. Validate the ``Info_Usuario`` (missing/invalid -> 401, Req 11).
-        3. Resolve the effective locale (Req 21.3).
-        4. Interpret the message via :meth:`ChatService.interpret`.
+        3. Resolve the effective locale (Req 21.3) and read the optional,
+           maintenance-scoped conversation ``history`` the widget resends
+           (:func:`_read_history`); the backend stays stateless.
+        4. Interpret the message via :meth:`ChatService.interpret`, passing the
+           history so extraction accumulates details across turns.
         5. For a complete ``maintenance_request``, resolve hosts/groups via
            :meth:`MaintenanceService.resolve_resources` and attach the preview
            fields (Req 14.6); if nothing resolves, degrade to
@@ -256,9 +322,12 @@ def make_chat_blueprint(
             )
 
         locale = _read_locale(data, config)
+        history = _read_history(data)
 
         try:
-            result = chat_service.interpret(message, locale=locale)
+            result = chat_service.interpret(
+                message, locale=locale, history=history or None
+            )
         except Exception:  # noqa: BLE001 - never leak an internal trace
             logger.exception("Unexpected error interpreting a chat message")
             return (

@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026
+
+### Added
+- **Multi-turn conversation memory.** Users can now supply maintenance details
+  across several chat messages and the assistant accumulates them instead of
+  re-asking in a loop. The widget resends the recent conversation history on
+  each `/chat` call and the AI re-reads it to merge fields across turns (later
+  turns override earlier ones for the same field). The backend stays fully
+  stateless — no server-side sessions or storage.
+- The history is **scoped to the maintenance in progress** so previously
+  created maintenances never leak into the AI context: the widget resets the
+  history automatically when a maintenance is created or cancelled, plus a
+  manual "New request" / "Nueva solicitud" control to reset on demand. A safety
+  cap limits the resent history to the last 10 turns.
+
+### Changed
+- `POST /chat` (and `/parse`) accept an optional `history` array of
+  `{role, content}` turns; when absent, behaviour is identical to before. The
+  AI-provider `extract(...)` interface takes an optional `history` argument,
+  threaded through all providers (Gemini / OpenAI / Bedrock) and the failover
+  wrapper. The prompt renders the prior turns as a compact transcript; user
+  text is brace-escaped so it never breaks prompt formatting. The AI still
+  never computes timestamps or bitmasks.
+
 ## [2.4.4] - 2026
 
 ### Fixed

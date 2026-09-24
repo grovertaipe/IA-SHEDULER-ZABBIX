@@ -31,6 +31,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from core.domain import (
+    ConversationTurn,
     ExtractedRecurrence,
     ExtractedRequest,
     ProblemTag,
@@ -69,12 +70,27 @@ class AIProvider(ABC):
     """Provider-agnostic interface for structured request extraction (Req 12.4)."""
 
     @abstractmethod
-    def extract(self, message: str, ctx: PromptContext) -> ExtractedRequest:
+    def extract(
+        self,
+        message: str,
+        ctx: PromptContext,
+        history: list[ConversationTurn] | None = None,
+    ) -> ExtractedRequest:
         """Extract structured data from ``message`` WITHOUT bitmasks (Req 3.2).
 
         ``ctx`` is the prompt context (dates for relative-expression resolution,
         Req 13.6). The original request is preserved in
         :attr:`ExtractedRequest.raw_message` (Req 3.8).
+
+        ``history`` (optional) are prior turns of the SAME maintenance
+        conversation, oldest-first, that the widget resends on each call so the
+        stateless backend can accumulate details across messages. The model must
+        MERGE fields across the history and the current message — later turns
+        override earlier ones for the same field — treating them as ONE
+        maintenance being assembled. If the user clearly switched to a DIFFERENT
+        maintenance mid-history, prefer the most recent one and ignore the stale
+        earlier context. When ``history`` is ``None``/empty the behaviour is
+        identical to a single stateless extraction.
 
         Implementations raise :class:`AIProviderError` when the provider is not
         available (Req 12.5) or the model output cannot be parsed.

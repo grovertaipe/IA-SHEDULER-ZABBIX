@@ -28,7 +28,7 @@ import time
 from dataclasses import asdict
 from typing import Literal
 
-from core.domain import ExtractedRequest, PromptContext
+from core.domain import ConversationTurn, ExtractedRequest, PromptContext
 from observability.logger import SecureLogger
 
 from .provider import AIProvider, AIProviderError
@@ -175,9 +175,17 @@ class FailoverAIProvider(AIProvider):
         return self._secondary is not None and self._secondary.is_available()
 
     def extract(
-        self, message: str, ctx: PromptContext, locale: str = "es"
+        self,
+        message: str,
+        ctx: PromptContext,
+        history: list[ConversationTurn] | None = None,
+        locale: str = "es",
     ) -> ExtractedRequest:
         """Extract with retries, schema validation and failover (Req 26, 29).
+
+        ``history`` (optional) are the prior turns of the same maintenance
+        conversation; they are forwarded verbatim to whichever wrapped provider
+        serves the request so the model can merge fields across turns.
 
         ``locale`` selects the language of the degradation message raised when
         no provider can serve the request (Req 26.3); it defaults to the product
@@ -201,7 +209,7 @@ class FailoverAIProvider(AIProvider):
         # --- Attempt the primary when it is available -------------------- #
         if primary_ok:
             result = self._run_provider(
-                self._primary, "primary", message, ctx, started
+                self._primary, "primary", message, ctx, started, history
             )
             if result is not None:
                 return result
@@ -217,7 +225,7 @@ class FailoverAIProvider(AIProvider):
                 to_provider="secondary",
             )
             result = self._run_provider(
-                self._secondary, "secondary", message, ctx, started
+                self._secondary, "secondary", message, ctx, started, history
             )
             if result is not None:
                 return result
@@ -241,6 +249,7 @@ class FailoverAIProvider(AIProvider):
         message: str,
         ctx: PromptContext,
         started: float,
+        history: list[ConversationTurn] | None = None,
     ) -> ExtractedRequest | None:
         """Run one provider with the retry + schema-validation loop.
 
@@ -266,7 +275,9 @@ class FailoverAIProvider(AIProvider):
                 )
                 return None
 
-            extracted = self._extract_with_retries(provider, label, message, ctx, started)
+            extracted = self._extract_with_retries(
+                provider, label, message, ctx, started, history
+            )
             if extracted is None:
                 # The provider kept raising errors across all retries.
                 return None
@@ -300,6 +311,7 @@ class FailoverAIProvider(AIProvider):
         message: str,
         ctx: PromptContext,
         started: float,
+        history: list[ConversationTurn] | None = None,
     ) -> ExtractedRequest | None:
         """Call ``provider.extract`` retrying transient errors (Req 26.2).
 
@@ -318,7 +330,7 @@ class FailoverAIProvider(AIProvider):
                 )
                 return None
             try:
-                return provider.extract(message, ctx)
+                return provider.extract(message, ctx, history)
             except AIProviderError as exc:
                 self._logger.error(
                     "ai_provider_error",

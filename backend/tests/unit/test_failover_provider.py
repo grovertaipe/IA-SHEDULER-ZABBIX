@@ -20,6 +20,7 @@ from ai import factory, failover  # noqa: F401  (import smoke: `from ai import f
 from ai.failover import FailoverAIProvider, select_provider
 from ai.provider import AIProvider, AIProviderError
 from core.domain import (
+    ConversationTurn,
     ExtractedRecurrence,
     ExtractedRequest,
     PromptContext,
@@ -62,12 +63,19 @@ class FakeProvider(AIProvider):
         self._result = result
         self._error = error
         self.calls = 0
+        self.received_history: list[ConversationTurn] | None = None
 
     def is_available(self) -> bool:
         return self._available
 
-    def extract(self, message: str, ctx: PromptContext) -> ExtractedRequest:
+    def extract(
+        self,
+        message: str,
+        ctx: PromptContext,
+        history: list[ConversationTurn] | None = None,
+    ) -> ExtractedRequest:
         self.calls += 1
+        self.received_history = history
         if self._error or self._result is None:
             raise AIProviderError("fake provider failure")
         return self._result
@@ -101,7 +109,12 @@ class SchemaInvalidProvider(AIProvider):
     def is_available(self) -> bool:
         return True
 
-    def extract(self, message: str, ctx: PromptContext) -> ExtractedRequest:
+    def extract(
+        self,
+        message: str,
+        ctx: PromptContext,
+        history: list[ConversationTurn] | None = None,
+    ) -> ExtractedRequest:
         self.calls += 1
         req = _valid_request(message)
         # Break the required 'intent' field's type so schema validation fails.
@@ -251,6 +264,77 @@ def test_schema_valid_returns_immediately() -> None:
     result = fp.extract("do maintenance", CTX)
     assert result is expected
     assert primary.calls == 1  # no unnecessary retries when the first is valid
+
+
+# --------------------------------------------------------------------------- #
+# History forwarding: the failover wrapper passes history to the wrapped       #
+# provider that serves the request (primary or secondary).                     #
+# --------------------------------------------------------------------------- #
+def test_failover_forwards_history_to_primary() -> None:
+    expected = _valid_request()
+    primary = FakeProvider(available=True, result=expected)
+    fp = FailoverAIProvider(primary=primary, logger=RecordingLogger())  # type: ignore[arg-type]
+
+    history = [
+        ConversationTurn(role="user", content="web01 mantenimiento"),
+        ConversationTurn(role="assistant", content="¿a qué hora?"),
+    ]
+    result = fp.extract("de 2 a 4", CTX, history)
+
+    assert result is expected
+    assert primary.received_history is history
+
+
+def test_failover_forwards_history_to_secondary_on_switch() -> None:
+    expected = _valid_request()
+    primary = FakeProvider(available=True, error=True)
+    secondary = FakeProvider(available=True, result=expected)
+    fp = FailoverAIProvider(
+        primary=primary,
+        secondary=secondary,
+        max_retries=0,
+        logger=RecordingLogger(),  # type: ignore[arg-type]
+    )
+
+    history = [ConversationTurn(role="user", content="web01 mantenimiento")]
+    result = fp.extract("de 2 a 4", CTX, history)
+
+    assert result is expected
+    # The secondary served the request and received the same history.
+    assert secondary.received_history is history
+
+
+def test_failover_default_history_is_none() -> None:
+    expected = _valid_request()
+    primary = FakeProvider(available=True, result=expected)
+    fp = FailoverAIProvider(primary=primary, logger=RecordingLogger())  # type: ignore[arg-type]
+
+    fp.extract("do maintenance", CTX)
+
+    assert primary.received_history is None
+
+
+def test_stub_provider_with_history_kwarg_satisfies_interface() -> None:
+    """A concrete provider implementing the new ``extract(..., history=None)``
+    signature is a valid :class:`AIProvider` and can be instantiated and called.
+    """
+
+    class StubProvider(AIProvider):
+        def is_available(self) -> bool:
+            return True
+
+        def extract(
+            self,
+            message: str,
+            ctx: PromptContext,
+            history: list[ConversationTurn] | None = None,
+        ) -> ExtractedRequest:
+            return _valid_request(message)
+
+    stub = StubProvider()  # would raise if the abstract method were unmatched
+    assert isinstance(stub, AIProvider)
+    assert stub.extract("hi", CTX).intent == "maintenance_request"
+    assert stub.extract("hi", CTX, [ConversationTurn("user", "x")]).hosts == ["web01"]
 
 
 # --------------------------------------------------------------------------- #

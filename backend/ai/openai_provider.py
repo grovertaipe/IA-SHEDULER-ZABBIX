@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from core.domain import ExtractedRequest, PromptContext
+from core.domain import ConversationTurn, ExtractedRequest, PromptContext
 
 from .provider import AIProvider, AIProviderError, parse_response_text
 
@@ -37,19 +37,25 @@ _SYSTEM_PROMPT = (
 )
 
 
-def _build_prompt(message: str, ctx: PromptContext) -> str:
+def _build_prompt(
+    message: str,
+    ctx: PromptContext,
+    history: list[ConversationTurn] | None = None,
+) -> str:
     """Build the AI prompt, importing the prompt module defensively.
 
     The prompt builder lives in :mod:`backend.ai.prompt` (sibling Task 8.1). It
     is imported lazily and tolerantly: if the exact ``build_prompt`` symbol is
     not yet available, a minimal inline fallback is used so this provider still
     imports and functions. The prompt contains no bitmask arithmetic (Req 3.2).
+    ``history`` (optional) is the prior turns of the same maintenance
+    conversation, forwarded so the model can merge fields across turns.
     """
     try:
         from .prompt import build_prompt
     except (ImportError, AttributeError):
         return _fallback_prompt(message, ctx)
-    return build_prompt(message, ctx)
+    return build_prompt(message, ctx, history)
 
 
 def _fallback_prompt(message: str, ctx: PromptContext) -> str:
@@ -114,17 +120,24 @@ class OpenAIProvider(AIProvider):
         """Return whether the API key and client are both configured."""
         return self._api_key is not None and self._client is not None
 
-    def extract(self, message: str, ctx: PromptContext) -> ExtractedRequest:
+    def extract(
+        self,
+        message: str,
+        ctx: PromptContext,
+        history: list[ConversationTurn] | None = None,
+    ) -> ExtractedRequest:
         """Call OpenAI and parse the response into an :class:`ExtractedRequest`.
 
         Raises :class:`AIProviderError` when the provider is unavailable
         (Req 12.5) or the model returns no usable text. The parsing computes no
-        bitmasks (Req 3.2) and preserves ``raw_message`` (Req 3.8).
+        bitmasks (Req 3.2) and preserves ``raw_message`` (Req 3.8). ``history``
+        (optional) is the prior turns of the same maintenance conversation,
+        rendered into the prompt so the model merges fields across turns.
         """
         if not self.is_available():
             raise AIProviderError("OpenAI provider is not available")
 
-        prompt = _build_prompt(message, ctx)
+        prompt = _build_prompt(message, ctx, history)
         try:
             response = self._client.chat.completions.create(  # type: ignore[union-attr]
                 model=self._model_name,

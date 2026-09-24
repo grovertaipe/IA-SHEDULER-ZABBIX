@@ -56,6 +56,8 @@ class AIMaintenanceI18n {
             'Confirm maintenance': { es: 'Confirmar mantenimiento', en: 'Confirm maintenance', pt: 'Confirmar manutenção' },
             'Retry': { es: 'Reintentar', en: 'Retry', pt: 'Tentar novamente' },
             'Retry last request': { es: 'Reintentar la última solicitud', en: 'Retry last request', pt: 'Repetir a última solicitação' },
+            'Start a new request': { es: 'Nueva solicitud', en: 'Start a new request', pt: 'Nova solicitação' },
+            'Context reset. Describe a new maintenance.': { es: 'Contexto reiniciado. Describe un nuevo mantenimiento.', en: 'Context reset. Describe a new maintenance.', pt: 'Contexto reiniciado. Descreva uma nova manutenção.' },
 
             // ---- Processing / status ------------------------------------
             'Processing...': { es: 'Procesando...', en: 'Processing...', pt: 'Processando...' },

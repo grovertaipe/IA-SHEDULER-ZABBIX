@@ -55,6 +55,22 @@ class PromptContext:
     tomorrow_iso: str
 
 
+@dataclass
+class ConversationTurn:
+    """A single prior turn of the SAME maintenance-in-progress conversation.
+
+    Pure data (no logic): the backend stays stateless — the "memory" is the
+    widget resending the recent, maintenance-scoped conversation on each
+    ``/chat`` call and the AI re-reading it to MERGE fields across turns. The
+    widget resets its buffer when a maintenance is created or cancelled (and via
+    a manual "new request" control), so previously created maintenances never
+    leak into the AI context. ``role`` is either ``"user"`` or ``"assistant"``.
+    """
+
+    role: str
+    content: str
+
+
 # --------------------------------------------------------------------------- #
 # AI output contract (WITHOUT precomputed bitmasks, Req 3.2)                   #
 # --------------------------------------------------------------------------- #
