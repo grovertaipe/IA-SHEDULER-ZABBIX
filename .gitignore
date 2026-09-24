@@ -37,3 +37,6 @@ Thumbs.db
 
 # Node (si algún día se usa)
 node_modules/
+
+# Kiro specs / internal working docs (local only, not published)
+.kiro/
