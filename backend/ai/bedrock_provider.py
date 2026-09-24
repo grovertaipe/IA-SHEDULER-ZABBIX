@@ -11,8 +11,12 @@ the provider needs it.
 Credentials follow the standard AWS resolution model: explicit static keys may
 be passed in, but the recommended path leaves them unset so boto3's default
 credential chain resolves them (environment variables, ``~/.aws`` config/profile,
-or an IAM role / instance profile). Because an IAM role is a valid credential
-source, :meth:`is_available` requires only that the client was built — not that
+or an IAM role / instance profile). A third option is the Amazon Bedrock **API
+key** (a bearer token): when a ``bearer_token`` is supplied it is exported to
+``AWS_BEARER_TOKEN_BEDROCK`` before the client is built, and boto3 (>= mid-2025)
+picks it up automatically — no explicit access keys are needed, only a region.
+Because an IAM role / bearer token is a valid credential source,
+:meth:`is_available` requires only that the client was built — not that
 explicit keys were provided. When the SDK is missing, the client cannot be
 built, or the model call fails, :meth:`is_available` returns ``False`` /
 :meth:`extract` raises :class:`~backend.ai.provider.AIProviderError`; the
@@ -28,6 +32,7 @@ Requirements: 3.2, 3.8, 12.5, 12.7, 13.1-13.5.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from core.domain import ExtractedRequest, PromptContext
@@ -114,16 +119,26 @@ class BedrockProvider(AIProvider):
         access_key_id: str | None = None,
         secret_access_key: str | None = None,
         session_token: str | None = None,
+        bearer_token: str | None = None,
         request_timeout: float = _DEFAULT_REQUEST_TIMEOUT_SECONDS,
     ) -> None:
         """Configure the provider and build the ``bedrock-runtime`` client.
 
         ``boto3`` is loaded lazily and the client is created eagerly when
-        possible. When explicit ``access_key_id``/``secret_access_key`` are
-        supplied they are passed to boto3 (with ``session_token`` when set);
-        otherwise boto3's default credential chain (env vars, ``~/.aws``, IAM
-        role / instance profile) resolves the credentials — the recommended
-        path. Any failure (missing library, bad region, SDK error) leaves the
+        possible. Credential precedence:
+
+        1. Explicit ``access_key_id``/``secret_access_key`` (with
+           ``session_token`` when set) are passed to boto3 — the IAM static-key
+           case (existing behavior).
+        2. Otherwise, when a ``bearer_token`` (Amazon Bedrock **API key**) is
+           supplied it is exported to ``AWS_BEARER_TOKEN_BEDROCK`` (only if the
+           env var is not already set) before the client is built, and boto3
+           resolves it automatically via the default chain — no access keys are
+           passed. Only a region is required.
+        3. Otherwise boto3's pure default credential chain (env vars, ``~/.aws``,
+           IAM role / instance profile) resolves the credentials.
+
+        Any failure (missing library, bad region, SDK error) leaves the
         provider unavailable rather than raising, so callers can query
         :meth:`is_available` and degrade gracefully (Req 12.5).
         """
@@ -132,6 +147,7 @@ class BedrockProvider(AIProvider):
         self._access_key_id = access_key_id or None
         self._secret_access_key = secret_access_key or None
         self._session_token = session_token or None
+        self._bearer_token = bearer_token or None
         self._request_timeout = request_timeout
         self._client: Any | None = None
 
@@ -153,6 +169,7 @@ class BedrockProvider(AIProvider):
 
         try:
             if self._access_key_id and self._secret_access_key:
+                # 1. Explicit IAM static keys (existing behavior).
                 kwargs: dict[str, Any] = {
                     "region_name": self._region,
                     "aws_access_key_id": self._access_key_id,
@@ -163,8 +180,13 @@ class BedrockProvider(AIProvider):
                     kwargs["aws_session_token"] = self._session_token
                 self._client = boto3.client("bedrock-runtime", **kwargs)
             else:
-                # Recommended path: let boto3's default credential chain resolve
-                # env vars / ~/.aws / IAM role / instance profile.
+                # 2. Bedrock API key (bearer token): export it to the environment
+                # so boto3 picks it up automatically, without overwriting an env
+                # var that is already set. Never logged (secret, Req 18.4).
+                if self._bearer_token and not os.environ.get("AWS_BEARER_TOKEN_BEDROCK"):
+                    os.environ["AWS_BEARER_TOKEN_BEDROCK"] = self._bearer_token
+                # 2./3. Let boto3's default credential chain resolve the bearer
+                # token / env vars / ~/.aws / IAM role. Only the region is passed.
                 self._client = boto3.client(
                     "bedrock-runtime", region_name=self._region, config=boto_cfg
                 )

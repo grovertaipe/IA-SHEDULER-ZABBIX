@@ -86,6 +86,7 @@ def build_single_provider(
             cfg.aws_access_key_id,
             cfg.aws_secret_access_key,
             cfg.aws_session_token,
+            bearer_token=getattr(cfg, "aws_bearer_token_bedrock", None),
             request_timeout=request_timeout,
         )
     logger.error("unsupported provider", provider=key, expected=list(_VALID_PROVIDERS))

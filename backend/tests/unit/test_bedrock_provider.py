@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import builtins
 import importlib
+import os
 from typing import Any
 
 import pytest
@@ -70,6 +71,7 @@ def _cfg(**overrides: Any) -> AppConfig:
         "aws_access_key_id": None,
         "aws_secret_access_key": None,
         "aws_session_token": None,
+        "aws_bearer_token_bedrock": None,
         "cors_allowed_origins": ["http://localhost"],
         "version": "2.0.0",
         "supported_locales": ["es", "en"],
@@ -230,6 +232,75 @@ def test_extract_maps_timeout_exception_to_provider_error() -> None:
     provider._client = _TimeoutClient()  # type: ignore[attr-defined]
     with pytest.raises(AIProviderError):
         provider.extract("hola", CTX)
+
+
+# --------------------------------------------------------------------------- #
+# Bedrock API key (AWS_BEARER_TOKEN_BEDROCK bearer token)                      #
+# --------------------------------------------------------------------------- #
+def test_bearer_token_exported_to_env_before_client_build(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A ``bearer_token`` is exported to ``AWS_BEARER_TOKEN_BEDROCK`` for boto3.
+
+    boto3 reads the bearer token from the ENVIRONMENT, so the provider must set
+    the env var *before* constructing the client. We monkeypatch ``boto3.client``
+    to capture whether the env var was present at call time and confirm the
+    client is built (``is_available()`` is True). ``monkeypatch`` restores the
+    env var afterwards so it does not leak into other tests.
+    """
+    # Ensure a clean slate: no pre-existing bearer token in the environment.
+    monkeypatch.delenv("AWS_BEARER_TOKEN_BEDROCK", raising=False)
+
+    import boto3
+
+    captured: dict[str, Any] = {}
+
+    class _StubClient:
+        pass
+
+    def _fake_client(service_name: str, **kwargs: Any) -> Any:
+        captured["service_name"] = service_name
+        captured["region_name"] = kwargs.get("region_name")
+        # Capture the env var as seen at construction time.
+        captured["env_token"] = os.environ.get("AWS_BEARER_TOKEN_BEDROCK")
+        # The bearer token must NOT be passed as an explicit access key.
+        captured["kwargs"] = kwargs
+        return _StubClient()
+
+    monkeypatch.setattr(boto3, "client", _fake_client)
+
+    provider = BedrockProvider(
+        "amazon.nova-lite-v1:0", "us-east-1", bearer_token="abc123"
+    )
+
+    assert provider.is_available() is True
+    assert captured["service_name"] == "bedrock-runtime"
+    assert captured["region_name"] == "us-east-1"
+    # The env var was present when boto3.client was called.
+    assert captured["env_token"] == "abc123"
+    # And it remains set on os.environ (monkeypatch cleans it up after the test).
+    assert os.environ.get("AWS_BEARER_TOKEN_BEDROCK") == "abc123"
+    # No explicit static keys were passed on the bearer-token path.
+    assert "aws_access_key_id" not in captured["kwargs"]
+    assert "aws_secret_access_key" not in captured["kwargs"]
+
+
+def test_bearer_token_does_not_overwrite_existing_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An already-set ``AWS_BEARER_TOKEN_BEDROCK`` is not overwritten."""
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "preexisting")
+
+    import boto3
+
+    monkeypatch.setattr(boto3, "client", lambda *a, **k: object())
+
+    provider = BedrockProvider(
+        "amazon.nova-lite-v1:0", "us-east-1", bearer_token="ignored"
+    )
+
+    assert provider.is_available() is True
+    assert os.environ.get("AWS_BEARER_TOKEN_BEDROCK") == "preexisting"
 
 
 # --------------------------------------------------------------------------- #

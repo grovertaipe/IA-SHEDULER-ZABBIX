@@ -34,6 +34,7 @@ def _config(**overrides: object) -> AppConfig:
         "aws_access_key_id": None,
         "aws_secret_access_key": None,
         "aws_session_token": None,
+        "aws_bearer_token_bedrock": None,
         "cors_allowed_origins": ["https://widget.example.com"],
         "version": "test",
         "supported_locales": ["es", "en"],

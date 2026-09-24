@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026
+
+### Added
+- **Amazon Bedrock API key (bearer token) authentication.** Set
+  `AWS_BEARER_TOKEN_BEDROCK` (plus `AWS_REGION`) to authenticate Bedrock with a
+  Bedrock API key instead of IAM access keys — boto3 uses it automatically.
+
+### Changed
+- Bumped `boto3` to 1.40.30 (the version line that supports
+  `AWS_BEARER_TOKEN_BEDROCK`).
+- Bedrock credential precedence: explicit IAM access keys > Bedrock API key
+  (bearer token) > default AWS credential chain (env / ~/.aws / IAM role).
+- Config no longer warns about "no credentials" for Bedrock when a bearer token
+  is present.
+
 ## [2.2.0] - 2026
 
 ### Added

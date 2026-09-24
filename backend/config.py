@@ -25,6 +25,11 @@ Base configuration:
   use the default AWS credential chain / IAM role)
 * ``AWS_SECRET_ACCESS_KEY``   -> ``aws_secret_access_key`` (optional)
 * ``AWS_SESSION_TOKEN``       -> ``aws_session_token`` (optional)
+* ``AWS_BEARER_TOKEN_BEDROCK`` -> ``aws_bearer_token_bedrock`` (optional SECRET;
+  the Amazon Bedrock **API key** / bearer token. When set, boto3 uses it
+  automatically for the ``bedrock-runtime`` client and explicit
+  ``AWS_ACCESS_KEY_ID`` / ``AWS_SECRET_ACCESS_KEY`` are NOT needed — only a
+  region is still required. Read but never logged, Req 18.4)
 * ``CORS_ALLOWED_ORIGINS``    -> ``cors_allowed_origins`` (comma-separated,
   explicit origins only; the wildcard ``*`` is rejected, Req 15.5)
 * ``APP_VERSION``             -> ``version`` (falls back to ``backend.__version__``)
@@ -199,6 +204,7 @@ class AppConfig:
     aws_access_key_id: str | None  # optional; default chain / IAM role otherwise
     aws_secret_access_key: str | None  # optional
     aws_session_token: str | None  # optional (temporary credentials)
+    aws_bearer_token_bedrock: str | None  # optional Bedrock API key (bearer token)
     cors_allowed_origins: list[str]  # Req 15.5 (explicit origins, not wildcard)
     version: str
 
@@ -268,6 +274,12 @@ class AppConfig:
         aws_access_key_id = env.get("AWS_ACCESS_KEY_ID", "").strip() or None
         aws_secret_access_key = env.get("AWS_SECRET_ACCESS_KEY", "").strip() or None
         aws_session_token = env.get("AWS_SESSION_TOKEN", "").strip() or None
+        # Bedrock API key (bearer token). SECRET: read but never logged (Req 18.4).
+        # When set, boto3 uses it automatically for the bedrock-runtime client and
+        # explicit AWS access keys are not required (only a region is).
+        aws_bearer_token_bedrock = (
+            env.get("AWS_BEARER_TOKEN_BEDROCK", "").strip() or None
+        )
 
         # Validate that the selected provider has its API key configured. Log the
         # missing KEY name only, never the (absent) value (Req 18.4).
@@ -279,13 +291,21 @@ class AppConfig:
             logger.error(
                 "Missing API key for AI provider 'openai': set OPENAI_API_KEY"
             )
-        elif ai_provider == "bedrock" and aws_access_key_id is None and aws_region is None:
+        elif (
+            ai_provider == "bedrock"
+            and aws_bearer_token_bedrock is None
+            and aws_access_key_id is None
+            and aws_region is None
+        ):
             # Soft validation only (no raise): boto3 may still resolve creds and
-            # region from ~/.aws or an IAM role. Log the missing KEY names only,
-            # never any (absent) value (Req 18.4).
+            # region from ~/.aws or an IAM role. A Bedrock API key (bearer token)
+            # alone plus a region is also a fully valid setup, so this warning is
+            # suppressed whenever AWS_BEARER_TOKEN_BEDROCK is present. Log the
+            # missing KEY names only, never any (absent) value (Req 18.4).
             logger.error(
-                "AI provider 'bedrock' has no explicit AWS credentials nor a "
-                "region; set AWS_REGION (or AWS_DEFAULT_REGION) and optionally "
+                "AI provider 'bedrock' has no Bedrock API key, no explicit AWS "
+                "credentials nor a region; set AWS_REGION (or AWS_DEFAULT_REGION) "
+                "and either AWS_BEARER_TOKEN_BEDROCK (API key) or "
                 "AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, or rely on the "
                 "default AWS credential chain / IAM role"
             )
@@ -372,6 +392,7 @@ class AppConfig:
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
             aws_session_token=aws_session_token,
+            aws_bearer_token_bedrock=aws_bearer_token_bedrock,
             cors_allowed_origins=cors_allowed_origins,
             version=_resolve_version(),
             supported_locales=supported_locales,

@@ -273,6 +273,7 @@ def _cfg(**overrides: object):
         aws_access_key_id=None,
         aws_secret_access_key=None,
         aws_session_token=None,
+        aws_bearer_token_bedrock=None,
         cors_allowed_origins=["https://ui.example"],
         version="test",
         supported_locales=["es", "en"],
