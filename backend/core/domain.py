@@ -78,6 +78,12 @@ class ExtractedRecurrence:
     start_date: str | None = None  # ISO "YYYY-MM-DD" resolved calendar date (once)
     start_ts: int | None = None
     end_ts: int | None = None
+    # Precomputed Zabbix bitmasks a client may resend verbatim (e.g. the widget
+    # echoing back the ``recurrence_config`` the backend produced in ``/chat``).
+    # Normally None (AI extraction carries no bitmasks, Req 3.2); when present
+    # they are threaded to RecurrenceConfig and validated by the engine (Req 2.7).
+    day_bitmask: int | None = None  # Bitmask_Dias (weekly / monthly-dow)
+    month_bitmask: int | None = None  # Bitmask_Meses (monthly)
 
 
 # --------------------------------------------------------------------------- #

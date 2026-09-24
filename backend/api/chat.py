@@ -159,21 +159,32 @@ def _recurrence_config_fields(tp: TimePeriod) -> dict[str, Any]:
     keys the widget's confirmation popup reads for daily/weekly/monthly
     schedules:
 
-    * daily   -- ``every``, ``start_time``;
-    * weekly  -- ``dayofweek`` (Zabbix day bitmask), ``every``, ``start_time``;
-    * monthly -- ``start_time``, ``every`` and whichever of ``day`` /
-      ``dayofweek`` / ``month`` the engine set.
+    * daily   -- ``duration``, ``every``, ``start_time``;
+    * weekly  -- ``duration``, ``dayofweek`` (Zabbix day bitmask), ``every``,
+      ``start_time``;
+    * monthly -- ``duration``, ``start_time``, ``every`` and whichever of
+      ``day`` / ``dayofweek`` / ``month`` the engine set.
 
     The dict is assembled from the non-``None`` :class:`TimePeriod` fields among
     ``{start_time, every, dayofweek, day, month}`` (the scheduling fields the
-    widget consumes), so a single rule covers all three recurring types.
-    ``timeperiod_type`` / ``period`` / ``start_date`` are intentionally omitted.
+    widget consumes), so a single rule covers all three recurring types, PLUS
+    the maintenance ``duration`` in SECONDS (the :class:`TimePeriod`'s
+    ``period``, always set on a recurring time period). ``duration`` is emitted
+    under that key to match the legacy v1 monolith contract and the widget's
+    expectation, and is what lets the create side (``POST /create_maintenance``,
+    :func:`api.maintenance._parse_recurrence`) reconstruct ``duration_hours``
+    when the widget resends this ``recurrence_config`` verbatim.
+    ``timeperiod_type`` / ``start_date`` are intentionally omitted.
     """
     fields: dict[str, Any] = {}
     for key in ("start_time", "every", "dayofweek", "day", "month"):
         value = getattr(tp, key)
         if value is not None:
             fields[key] = value
+    # ``period`` is always set on a recurring TimePeriod; expose it as
+    # ``duration`` (seconds) so the widget can resend it and the create side can
+    # rebuild ``duration_hours`` (Req 3.2 — the backend already computed it).
+    fields["duration"] = tp.period
     return fields
 
 

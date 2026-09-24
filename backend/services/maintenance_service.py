@@ -468,8 +468,11 @@ def _recurrence_config_from(rec: ExtractedRecurrence) -> RecurrenceConfig:
     """Map an :class:`ExtractedRecurrence` to a :class:`RecurrenceConfig`.
 
     A direct field copy: the AI extraction carries no bitmasks (Req 3.2), so the
-    config is handed to :func:`build_timeperiod` which computes them. Pure and
-    deterministic.
+    config is normally handed to :func:`build_timeperiod` which computes them.
+    Any precomputed ``day_bitmask`` / ``month_bitmask`` a client resent (e.g.
+    the widget echoing back the ``recurrence_config`` the backend emitted in
+    ``/chat``) is threaded through so the engine validates and uses it directly
+    (Req 2.7). Pure and deterministic.
     """
     return RecurrenceConfig(
         recurrence_type=rec.recurrence_type,
@@ -483,6 +486,8 @@ def _recurrence_config_from(rec: ExtractedRecurrence) -> RecurrenceConfig:
         start_date=rec.start_date,
         start_ts=rec.start_ts,
         end_ts=rec.end_ts,
+        day_bitmask=rec.day_bitmask,
+        month_bitmask=rec.month_bitmask,
     )
 
 

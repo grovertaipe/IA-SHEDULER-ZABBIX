@@ -267,12 +267,34 @@ def _parse_recurrence(data: dict[str, Any]) -> ExtractedRecurrence:
     for a ``once`` maintenance, the legacy ``start_time`` / ``end_time`` strings
     (``"%Y-%m-%d %H:%M"``) which are converted to ``start_ts`` / ``end_ts``.
 
+    For a RECURRING type (daily/weekly/monthly) it ALSO accepts the Zabbix-format
+    ``recurrence_config`` object the widget resends verbatim — the very object
+    the backend produced in ``/chat`` via
+    :func:`api.chat._recurrence_config_fields` (keys among ``{start_time,
+    duration, every, dayofweek, day, month}`` where ``start_time`` / ``duration``
+    are SECONDS and ``dayofweek`` / ``month`` are precomputed bitmasks). Those
+    are mapped into the :class:`ExtractedRecurrence` fields the engine consumes:
+    ``start_time`` → ``start_hour`` (``// 3600``), ``duration`` →
+    ``duration_hours`` (``/ 3600``), ``every`` → ``every``, ``day`` →
+    ``day_of_month``, and the precomputed ``dayofweek`` / ``month`` bitmasks are
+    threaded through as ``day_bitmask`` / ``month_bitmask`` (validated by the
+    engine, Req 2.7). This mirrors what the v1 monolith accepted and fixes the
+    contract drift where recurring creates failed with "Falta start_time".
+
+    Precedence: explicit intent-format ``recurrence`` values win when present;
+    ``recurrence_config`` only fills the gaps (in practice the widget sends only
+    ``recurrence_config`` for recurring types). The ``once`` path is unchanged.
+
     Purely reads and normalises the payload; all validation and bitmask
     computation stay in the recurrence engine (Req 3.2).
     """
     rec_type = RecurrenceType(str(data.get("recurrence_type", "once")).lower())
     rec_obj = data.get("recurrence")
     rec_obj = rec_obj if isinstance(rec_obj, dict) else {}
+
+    # Zabbix-format config the widget resends verbatim (the /chat output).
+    cfg = data.get("recurrence_config")
+    cfg = cfg if isinstance(cfg, dict) else {}
 
     start_ts = _as_int(rec_obj.get("start_ts"))
     end_ts = _as_int(rec_obj.get("end_ts"))
@@ -287,18 +309,49 @@ def _parse_recurrence(data: dict[str, Any]) -> ExtractedRecurrence:
         start_ts = start_ts if start_ts is not None else _parse_legacy_ts(data.get("start_time"))
         end_ts = end_ts if end_ts is not None else _parse_legacy_ts(data.get("end_time"))
 
+    # Intent-format scheduling fields (v2 structured recurrence) take precedence.
+    start_hour = _as_int(rec_obj.get("start_hour"))
+    duration_hours = _as_float(rec_obj.get("duration_hours"))
+    every = _as_int(rec_obj.get("every"))
+    day_of_month = _as_int(rec_obj.get("day_of_month"))
+    day_bitmask: int | None = None
+    month_bitmask: int | None = None
+
+    # RECURRING type with the Zabbix-format recurrence_config present: fill any
+    # gap left by the intent-format fields from the resent /chat config. ``once``
+    # never reads recurrence_config (its window comes from the legacy strings or
+    # the structured start_date path above), so its behaviour is unchanged.
+    if rec_type != RecurrenceType.ONCE and cfg:
+        if start_hour is None:
+            start_time_seconds = _as_int(cfg.get("start_time"))
+            if start_time_seconds is not None:
+                start_hour = int(start_time_seconds // 3600)
+        if duration_hours is None:
+            duration_seconds = _as_int(cfg.get("duration"))
+            if duration_seconds is not None:
+                duration_hours = duration_seconds / 3600
+        if every is None:
+            every = _as_int(cfg.get("every"))
+        if day_of_month is None:
+            day_of_month = _as_int(cfg.get("day"))
+        # Precomputed Zabbix bitmasks pass straight through (engine validates).
+        day_bitmask = _as_int(cfg.get("dayofweek"))
+        month_bitmask = _as_int(cfg.get("month"))
+
     return ExtractedRecurrence(
         recurrence_type=rec_type,
         days=set(rec_obj.get("days", []) or []),
         months=set(rec_obj.get("months", []) or []),
         occurrences=set(rec_obj.get("occurrences", []) or []),
-        day_of_month=_as_int(rec_obj.get("day_of_month")),
-        start_hour=_as_int(rec_obj.get("start_hour")),
-        duration_hours=_as_float(rec_obj.get("duration_hours")),
-        every=_as_int(rec_obj.get("every")),
+        day_of_month=day_of_month,
+        start_hour=start_hour,
+        duration_hours=duration_hours,
+        every=every,
         start_date=start_date,
         start_ts=start_ts,
         end_ts=end_ts,
+        day_bitmask=day_bitmask,
+        month_bitmask=month_bitmask,
     )
 
 

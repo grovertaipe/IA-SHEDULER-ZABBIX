@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.4] - 2026
+
+### Fixed
+- **Recurring maintenances (daily/weekly/monthly) can now be created**, not just
+  previewed. Creation failed with "Falta start_time en la configuración
+  recurrente" because of a contract drift: `/chat` emitted the schedule as a
+  Zabbix-format `recurrence_config` (`start_time`/`duration` in seconds,
+  `dayofweek`/`month` bitmasks) which the widget resent verbatim, but
+  `POST /create_maintenance` only understood the intent-format `recurrence`
+  object (`start_hour`/`duration_hours`). Only `once` created successfully.
+- `POST /create_maintenance` now also accepts the Zabbix-format
+  `recurrence_config`, mapping it to the engine's inputs (`start_time` →
+  `start_hour`, `duration` → `duration_hours`, and the precomputed
+  `dayofweek`/`month` bitmasks threaded through and validated). Backward
+  compatible: the intent-format `recurrence` object and the `once` path are
+  unchanged, and explicit intent-format values take precedence.
+- The `/chat` `recurrence_config` now includes `duration` (seconds) so the
+  create round-trip has the maintenance length. The AI still never computes
+  timestamps or bitmasks.
+
 ## [2.4.3] - 2026
 
 ### Fixed
