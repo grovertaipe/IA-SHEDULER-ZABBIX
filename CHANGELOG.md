@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026
+
+### Fixed
+- **Confirmation popup now shows the Period for one-time ("once") maintenances.**
+  The `/chat` (and `/parse`) response again includes `start_time` / `end_time`
+  display strings (`YYYY-MM-DD HH:MM`) for the once case, derived deterministically
+  by the backend from the resolved window (explicit epochs, or
+  `start_date` + `start_hour` + `duration_hours`). The widget preview showed
+  "Period: -" because those strings were absent after the once refactor.
+- The widget confirmation panel no longer risks rendering "Period: undefined -
+  undefined" for recurring maintenances: the Period line is now shown only when
+  a concrete window is present (recurring types display their schedule from the
+  recurrence configuration instead).
+
 ## [2.4.0] - 2026
 
 ### Fixed

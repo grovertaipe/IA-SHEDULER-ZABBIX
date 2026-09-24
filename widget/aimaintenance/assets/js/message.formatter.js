@@ -415,7 +415,9 @@ class AIMaintenanceMessageFormatter {
             html += `<li><strong>${this.t('Trigger tags')}:</strong> ${this.escapeHtml(tagStrings)}</li>`;
         }
 
-        html += `<li><strong>${this.t('Period')}:</strong> ${this.escapeHtml(data.start_time)} - ${this.escapeHtml(data.end_time)}</li>`;
+        if (data.start_time && data.end_time) {
+            html += `<li><strong>${this.t('Period')}:</strong> ${this.escapeHtml(data.start_time)} - ${this.escapeHtml(data.end_time)}</li>`;
+        }
 
         const previewName = this.generateMaintenanceName(data);
         html += `<li><strong>${this.t('Name')}:</strong> ${this.escapeHtml(previewName)}</li>`;

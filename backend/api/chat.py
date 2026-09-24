@@ -40,12 +40,15 @@ the :class:`~config.AppConfig` (for locale resolution). The app factory
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from flask import Blueprint, jsonify, request
 
 from api.auth import validate_user
 from config import AppConfig
+from core.domain import RecurrenceType
+from core.recurrence import RecurrenceError, once_window_from_date
 from i18n.locale import resolve_locale
 from services.chat_service import (
     INTENT_HELP,
@@ -139,6 +142,52 @@ def _resolution_fields(resolved: ResolvedResources) -> dict[str, Any]:
             "has_missing": bool(resolved.missing_hosts or resolved.missing_groups),
         },
     }
+
+
+def _once_display_window(rec: Any) -> tuple[str, str] | None:
+    """Return the ``once`` window as ``("%Y-%m-%d %H:%M", ...)`` display strings.
+
+    Honours the design principle "AI extrae, backend calcula" (Req 3.2): the AI
+    only supplies the structured recurrence; the backend derives the display
+    strings deterministically here so the widget's confirmation preview can show
+    the period of a one-time (``once``) maintenance (Req 14.6).
+
+    Resolution mirrors the recurrence engine's own ``once`` window order:
+
+    1. explicit ``start_ts`` **and** ``end_ts`` → use them directly;
+    2. else a structured ``start_date`` (ISO ``YYYY-MM-DD``) + ``start_hour`` +
+       ``duration_hours`` → compute the epochs with
+       :func:`~core.recurrence.once_window_from_date`;
+    3. else → ``None`` (the request would not have been complete).
+
+    Both epochs are formatted as **local** datetimes (``datetime.fromtimestamp``),
+    matching how :func:`once_window_from_date` builds them from a local
+    ``strptime(...).timestamp()``. Returns ``None`` — never raising — when the
+    window cannot be derived, so the caller simply omits the fields on bad input
+    (a :class:`~core.recurrence.RecurrenceError` is logged, not propagated).
+    """
+    if rec.start_ts is not None and rec.end_ts is not None:
+        start_ts, end_ts = rec.start_ts, rec.end_ts
+    elif (
+        rec.start_date is not None
+        and rec.start_hour is not None
+        and rec.duration_hours is not None
+    ):
+        try:
+            start_ts, end_ts = once_window_from_date(
+                rec.start_date, rec.start_hour, rec.duration_hours
+            )
+        except RecurrenceError:
+            logger.exception("Could not derive the 'once' display window for a chat request")
+            return None
+    else:
+        return None
+
+    fmt = "%Y-%m-%d %H:%M"
+    return (
+        datetime.fromtimestamp(start_ts).strftime(fmt),
+        datetime.fromtimestamp(end_ts).strftime(fmt),
+    )
 
 
 def make_chat_blueprint(
@@ -279,6 +328,17 @@ def make_chat_blueprint(
         response["recurrence_type"] = (
             req.recurrence.recurrence_type.value if req.recurrence else "once"
         )
+
+        # For a one-time (``once``) maintenance the widget renders the period
+        # from ``start_time``/``end_time`` display strings (recurring types are
+        # rendered from ``recurrence_config`` instead). Derive them here so the
+        # confirmation preview no longer shows "Period: -" (Req 14.6). No
+        # timestamp arithmetic in the AI layer: the backend computes them.
+        rec = req.recurrence
+        if rec is not None and rec.recurrence_type == RecurrenceType.ONCE:
+            window = _once_display_window(rec)
+            if window is not None:
+                response["start_time"], response["end_time"] = window
 
         if resolved.is_empty:
             # Nothing matched: ask the user to verify the names (legacy behaviour).
