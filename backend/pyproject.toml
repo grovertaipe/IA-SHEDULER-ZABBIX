@@ -1,0 +1,114 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zabbix-ai-maintenance-v2-backend"
+version = "2.0.0"
+description = "Clean, modular Flask backend for the AI Maintenance Assistant for Zabbix 7.2+"
+requires-python = ">=3.11"
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-ra --strict-markers"
+markers = [
+    "property: property-based tests (Hypothesis)",
+    "integration: integration tests with mocked boundaries",
+]
+
+# ---------------------------------------------------------------------------
+# coverage (pytest-cov)
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+
+# ---------------------------------------------------------------------------
+# ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["requirements.legacy.txt", "main.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+# Type-check the v2 source modules explicitly. Tests are excluded from the
+# default run because hypothesis transitively pulls numpy stubs that require
+# Python 3.12+; run mypy on tests/ separately if needed.
+files = ["config.py", "app.py", "core", "ai", "zabbix", "services", "i18n", "cache", "observability", "api"]
+# backend/ is the source root; map files to top-level modules (core.*, ai.*, ...)
+mypy_path = "."
+explicit_package_bases = true
+namespace_packages = true
+# Legacy monolith main.py is kept only as the parity-oracle source (Task 13.1);
+# it is not part of the v2 codebase and is not type-checked.
+exclude = ['build/', 'dist/', 'main\.py$']
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+# jsonschema ships no type stubs bundled with the runtime package (Req 29);
+# treat it as untyped rather than pulling in the separate types-jsonschema dep.
+[[tool.mypy.overrides]]
+module = ["jsonschema.*"]
+ignore_missing_imports = true
+
+# requests ships no bundled type stubs (Cliente_Zabbix, Req 14); treat it as
+# untyped rather than pulling in the separate types-requests dev dependency.
+[[tool.mypy.overrides]]
+module = ["requests.*"]
+ignore_missing_imports = true
+
+# flask_cors ships no bundled type stubs (app factory CORS wiring, Req 15.5);
+# treat it as untyped rather than pulling in the separate types-Flask-Cors dep.
+[[tool.mypy.overrides]]
+module = ["flask_cors.*"]
+ignore_missing_imports = true
+
+# The AI provider SDKs ship no bundled type stubs (Req 12); they are imported
+# lazily inside the provider modules and treated as untyped rather than pulling
+# in extra stub dependencies.
+[[tool.mypy.overrides]]
+module = ["google.*", "openai.*"]
+ignore_missing_imports = true
+
+# prometheus_client ships no bundled type stubs (observability / metrics,
+# Req 30); treat it as untyped rather than pulling in a separate stub package.
+[[tool.mypy.overrides]]
+module = ["prometheus_client.*"]
+ignore_missing_imports = true
+
+# numpy (pulled transitively into the test import graph via some deps) ships
+# stubs that require Python 3.12+; the project targets 3.11, so ignore it.
+[[tool.mypy.overrides]]
+module = ["numpy.*"]
+ignore_missing_imports = true
+follow_imports = "skip"

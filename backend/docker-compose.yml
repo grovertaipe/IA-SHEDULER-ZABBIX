@@ -1,0 +1,68 @@
+# zabbix-ai-maintenance-v2 — multi-instance deployment (Req 18.2).
+#
+# Five backend instances aima1..aima5 mapped to host ports 5005..5009. Each
+# container listens on 5005 internally (matching the Dockerfile CMD / gunicorn
+# bind) and is published on a distinct host port. All instances share the same
+# image (built once) and the same runtime configuration from `.env` (env_file).
+#
+# Secrets are NEVER inlined here — they come from the `.env` file referenced via
+# `env_file` (see .env.example). Copy .env.example to .env before running:
+#
+#   docker compose up --build -d
+#
+# The shared build reuses the single locally-built image across all instances.
+
+x-aima-common: &aima-common
+  image: aimaintenance-backend:latest
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  env_file:
+    - .env
+  networks:
+    - aimaintenance_net
+  healthcheck:
+    test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5005/health"]
+    interval: 30s
+    timeout: 5s
+    start_period: 20s
+    retries: 3
+
+services:
+  aima1:
+    <<: *aima-common
+    container_name: aima1
+    ports:
+      - "5005:5005"
+
+  aima2:
+    <<: *aima-common
+    container_name: aima2
+    ports:
+      - "5006:5005"
+
+  aima3:
+    <<: *aima-common
+    container_name: aima3
+    ports:
+      - "5007:5005"
+
+  aima4:
+    <<: *aima-common
+    container_name: aima4
+    ports:
+      - "5008:5005"
+
+  aima5:
+    <<: *aima-common
+    container_name: aima5
+    ports:
+      - "5009:5005"
+
+networks:
+  aimaintenance_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.10.0/24

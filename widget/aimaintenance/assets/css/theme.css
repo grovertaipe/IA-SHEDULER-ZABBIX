@@ -1,0 +1,793 @@
+/* =========================================================================
+ * theme.css — AI Maintenance widget styles, theme-aware (Req 25.1, 25.2).
+ *
+ * Colors are driven by CSS custom properties resolved per theme. The active
+ * Zabbix theme is reflected by ui.renderer.js as `.aim-theme-light` /
+ * `.aim-theme-dark` on the widget root, and we also honor the OS
+ * prefers-color-scheme as a fallback. No fixed colors that ignore the theme are
+ * used for text/background/borders; accent colors adapt per theme.
+ *
+ * Accessibility (Req 23.2, 23.4): text/background pairs target WCAG 2.1 AA
+ * contrast (>= 4.5:1 normal, >= 3:1 large) and every interactive control has a
+ * visible focus indicator.
+ * ========================================================================= */
+
+/* ---- Light theme tokens (default) --------------------------------------- */
+.ai-maintenance-widget,
+.aim-theme-light .ai-maintenance-widget {
+  --aim-primary-color: #0275b8;      /* Zabbix classic blue; ~4.8:1 on white */
+  --aim-primary-hover: #0264a0;
+  --aim-on-accent: #ffffff;          /* text on accent surfaces */
+  --aim-routine-color: #b64500;      /* orange w/ AA on white */
+  --aim-routine-hover: #9c3b00;
+  --aim-ticket-color: #7b1fa2;
+  --aim-ticket-hover: #6a1b9a;
+
+  --aim-bg-color: #ffffff;
+  --aim-bg-secondary: #f1f3f5;
+  --aim-border-color: #ced4da;
+  --aim-text-color: #1a1c1e;         /* ~15:1 on white */
+  --aim-text-secondary: #56595c;     /* ~7:1 on white */
+  --aim-input-bg: #ffffff;
+
+  --aim-shadow-light: rgba(0, 0, 0, 0.06);
+  --aim-shadow-medium: rgba(0, 0, 0, 0.12);
+  --aim-shadow-heavy: rgba(0, 0, 0, 0.18);
+
+  /* Light surface for system/welcome messages (no saturated purple). */
+  --aim-message-system-bg: #f1f3f5;
+  --aim-message-user-bg: #0275b8;
+  --aim-message-assistant-bg: #ffffff;
+  --aim-message-error-bg: #c62828;   /* AA on white text */
+  --aim-message-success-bg: #1b7a3d;
+  --aim-message-warning-bg: #8a5a00;
+  /* Info is a light Zabbix-like surface (not saturated purple/indigo). */
+  --aim-message-info-bg: #eef4fb;
+  --aim-message-info-border: #bcd3ea;
+
+  --aim-focus-ring: #0275b8;
+
+  --aim-scrollbar-track: transparent;
+  --aim-scrollbar-thumb: #b6bcc2;
+  --aim-scrollbar-thumb-hover: #8b9096;
+}
+
+/* ---- Dark theme tokens -------------------------------------------------- */
+.aim-theme-dark .ai-maintenance-widget {
+  --aim-primary-color: #4ea6ff;
+  --aim-primary-hover: #6cb6ff;
+  --aim-on-accent: #0a0f14;
+  --aim-routine-color: #ff9a5a;
+  --aim-routine-hover: #ffb079;
+  --aim-ticket-color: #ce93d8;
+  --aim-ticket-hover: #e1bee7;
+
+  --aim-bg-color: #17212b;
+  --aim-bg-secondary: #1e2832;
+  --aim-border-color: #37424e;
+  --aim-text-color: #e8eaed;         /* ~13:1 on #17212b */
+  --aim-text-secondary: #b7bdc4;     /* ~7:1 on #17212b */
+  --aim-input-bg: #222d38;
+
+  --aim-shadow-light: rgba(0, 0, 0, 0.3);
+  --aim-shadow-medium: rgba(0, 0, 0, 0.4);
+  --aim-shadow-heavy: rgba(0, 0, 0, 0.5);
+
+  /* Light (relative) surface for system/welcome messages, not saturated. */
+  --aim-message-system-bg: #1e2832;
+  --aim-message-user-bg: #1f6fb2;
+  --aim-message-assistant-bg: #222d38;
+  --aim-message-error-bg: #b23a3a;
+  --aim-message-success-bg: #1f8a4c;
+  --aim-message-warning-bg: #b9791f;
+  /* Info is a light (relative) surface in dark mode too, not saturated. */
+  --aim-message-info-bg: #1e2832;
+  --aim-message-info-border: #37424e;
+
+  --aim-focus-ring: #8cc4ff;
+
+  --aim-scrollbar-thumb: #4a5568;
+  --aim-scrollbar-thumb-hover: #68768a;
+}
+
+/* Fallback: when no explicit class is present, follow the OS preference. */
+@media (prefers-color-scheme: dark) {
+  .ai-maintenance-widget:not(.aim-theme-light):not(.aim-theme-dark) {
+    --aim-primary-color: #4ea6ff;
+    --aim-primary-hover: #6cb6ff;
+    --aim-on-accent: #0a0f14;
+    --aim-routine-color: #ff9a5a;
+    --aim-routine-hover: #ffb079;
+    --aim-ticket-color: #ce93d8;
+    --aim-ticket-hover: #e1bee7;
+    --aim-bg-color: #17212b;
+    --aim-bg-secondary: #1e2832;
+    --aim-border-color: #37424e;
+    --aim-text-color: #e8eaed;
+    --aim-text-secondary: #b7bdc4;
+    --aim-input-bg: #222d38;
+    --aim-message-assistant-bg: #222d38;
+    --aim-message-user-bg: #1f6fb2;
+    --aim-focus-ring: #8cc4ff;
+    --aim-scrollbar-thumb: #4a5568;
+    --aim-scrollbar-thumb-hover: #68768a;
+  }
+}
+
+/* Also honor Zabbix's own dark body class if the widget root class is missing. */
+.dark-theme .ai-maintenance-widget:not(.aim-theme-light) {
+  --aim-bg-color: #17212b;
+  --aim-bg-secondary: #1e2832;
+  --aim-border-color: #37424e;
+  --aim-text-color: #e8eaed;
+  --aim-text-secondary: #b7bdc4;
+  --aim-input-bg: #222d38;
+  --aim-message-assistant-bg: #222d38;
+  --aim-primary-color: #4ea6ff;
+  --aim-focus-ring: #8cc4ff;
+}
+
+/* ---- Layout ------------------------------------------------------------- */
+.ai-maintenance-widget {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--aim-bg-color);
+  color: var(--aim-text-color);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px var(--aim-shadow-light);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--aim-border-color);
+}
+
+.ai-header {
+  background: var(--aim-bg-secondary);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--aim-border-color);
+  position: relative;
+}
+
+.ai-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ai-header-content > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--aim-bg-color);
+  border: 1px solid var(--aim-border-color);
+  color: var(--aim-primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.ai-status {
+  font-size: 13px;
+  color: var(--aim-text-secondary);
+  display: block;
+}
+
+/* Discreet header connection status chip (dot + short label). */
+.ai-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--aim-text-secondary);
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--aim-bg-color);
+  border: 1px solid var(--aim-border-color);
+  white-space: nowrap;
+}
+
+.ai-status-chip .ai-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--aim-text-secondary);
+  flex-shrink: 0;
+}
+
+.ai-status-chip.ok .ai-status-dot { background: #1b7a3d; }
+.ai-status-chip.warn .ai-status-dot { background: #b8860b; }
+.ai-status-chip.err .ai-status-dot { background: #c62828; }
+
+.aim-theme-dark .ai-status-chip.ok .ai-status-dot { background: #37c871; }
+.aim-theme-dark .ai-status-chip.warn .ai-status-dot { background: #e0a63a; }
+.aim-theme-dark .ai-status-chip.err .ai-status-dot { background: #e46a6a; }
+
+.ai-status-chip .ai-status-label {
+  color: var(--aim-text-secondary);
+}
+
+/* Templates button: neutral surface aligned to the blue palette, not orange. */
+.templates-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--aim-bg-color);
+  border: 1px solid var(--aim-border-color);
+  color: var(--aim-primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.templates-button:hover {
+  background: var(--aim-bg-secondary);
+  border-color: var(--aim-primary-color);
+}
+
+/* ---- Messages ----------------------------------------------------------- */
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--aim-bg-color);
+  scroll-behavior: smooth;
+}
+
+/* Welcome block: light Zabbix-like surface, flat, subtle border (redesign). */
+.welcome-message {
+  background: var(--aim-bg-secondary);
+  color: var(--aim-text-color);
+  border-radius: 8px;
+  border: 1px solid var(--aim-border-color);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: none;
+}
+
+.welcome-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--aim-text-color);
+}
+
+.welcome-subtitle {
+  font-size: 13px;
+  color: var(--aim-text-secondary);
+  margin-bottom: 12px;
+}
+
+.welcome-footer {
+  font-size: 12px;
+  color: var(--aim-text-secondary);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--aim-border-color);
+}
+
+/* Compact two-column example list — light and flat, not a busy dashboard. */
+.feature-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--aim-bg-color);
+  border: 1px solid var(--aim-border-color);
+  border-radius: 6px;
+  /* Clickable affordance: cards preload their example into the input. */
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* Hover/interaction state — subtle surface + primary-color accent border. */
+.feature-item:hover {
+  background: var(--aim-bg-secondary);
+  border-color: var(--aim-primary-color);
+  box-shadow: 0 1px 4px var(--aim-shadow-light);
+}
+
+/* Visible focus ring for keyboard users (Req 23.4). */
+.feature-item:focus-visible {
+  outline: 3px solid var(--aim-focus-ring);
+  outline-offset: 2px;
+  border-color: var(--aim-primary-color);
+}
+
+/* Fallback for browsers without :focus-visible support. */
+.feature-item:focus {
+  outline: 3px solid var(--aim-focus-ring);
+  outline-offset: 2px;
+}
+
+.feature-icon {
+  font-size: 15px;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.feature-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.feature-text {
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--aim-text-color);
+}
+
+/* Inline code-like chip for welcome examples (monospace, faint surface). */
+.feature-example {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--aim-text-color);
+  background: var(--aim-bg-secondary);
+  border: 1px solid var(--aim-border-color);
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.ai-message {
+  margin-bottom: 12px;
+  max-width: 80%;
+  animation: aimFadeInUp 0.3s ease-out;
+  position: relative;
+}
+
+@keyframes aimFadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.ai-message.user {
+  margin-left: auto;
+  background: var(--aim-message-user-bg);
+  color: var(--aim-on-accent);
+  border-radius: 18px 18px 6px 18px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+}
+
+.ai-message.assistant {
+  background: var(--aim-message-assistant-bg);
+  color: var(--aim-text-color);
+  border-radius: 18px 18px 18px 6px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+  border: 1px solid var(--aim-border-color);
+}
+
+.ai-message.system {
+  background: var(--aim-message-system-bg);
+  color: var(--aim-text-color);
+  border: 1px solid var(--aim-border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 0 auto 16px;
+  max-width: 90%;
+}
+
+.ai-message.error {
+  background: var(--aim-message-error-bg);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.ai-message.success {
+  background: var(--aim-message-success-bg);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.ai-message.warning {
+  background: var(--aim-message-warning-bg);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.ai-message.info {
+  background: var(--aim-message-info-bg);
+  color: var(--aim-text-color);
+  border: 1px solid var(--aim-message-info-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.message-content {
+  line-height: 1.45;
+  font-size: 14px;
+}
+
+.message-content strong {
+  font-weight: 600;
+}
+
+/* ---- Typing / processing indicator (Req 24.1) --------------------------- */
+.ai-typing .typing-label {
+  margin-right: 8px;
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--aim-text-secondary);
+  animation: aimTyping 1.2s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes aimTyping {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* ---- Manual retry action (Req 24.3) ------------------------------------- */
+.ai-retry-button {
+  margin-top: 8px;
+  padding: 8px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--aim-on-accent);
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ai-retry-button:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ---- Input area --------------------------------------------------------- */
+.ai-input-area {
+  padding: 16px 20px;
+  background: var(--aim-bg-secondary);
+  border-top: 1px solid var(--aim-border-color);
+}
+
+.input-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  background: var(--aim-input-bg);
+  border-radius: 24px;
+  padding: 8px 16px 8px 20px;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+  border: 1px solid var(--aim-border-color);
+  transition: all 0.2s ease;
+}
+
+.input-container:focus-within {
+  border-color: var(--aim-primary-color);
+  box-shadow: 0 0 0 2px var(--aim-focus-ring);
+}
+
+#ai-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--aim-text-color);
+  padding: 8px 0;
+  max-height: 300px;
+  min-height: 40px;
+  overflow-y: auto;
+}
+
+#ai-input:focus {
+  outline: none;
+}
+
+#ai-input::placeholder {
+  color: var(--aim-text-secondary);
+  opacity: 1;
+}
+
+#ai-input.ai-input-invalid {
+  outline: 2px solid var(--aim-message-error-bg);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.send-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--aim-primary-color);
+  border: none;
+  color: var(--aim-on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px var(--aim-shadow-light);
+  flex-shrink: 0;
+}
+
+.send-button:hover {
+  background: var(--aim-primary-hover);
+}
+
+.send-button svg {
+  transform: rotate(-45deg);
+}
+
+/* ---- Confirmation dialog ------------------------------------------------ */
+.ai-confirmation {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: aimFadeIn 0.3s ease-out;
+}
+
+@keyframes aimFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirmation-content {
+  background: var(--aim-bg-color);
+  color: var(--aim-text-color);
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px var(--aim-shadow-heavy);
+  max-width: 90%;
+  width: 100%;
+  max-height: 80%;
+  overflow-y: auto;
+  border: 1px solid var(--aim-border-color);
+}
+
+.confirmation-content h4 {
+  margin: 0 0 20px 0;
+  color: var(--aim-text-color);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.maintenance-details {
+  background: var(--aim-bg-secondary);
+  padding: 20px;
+  border-radius: 12px;
+  margin: 16px 0;
+  border: 1px solid var(--aim-border-color);
+}
+
+.maintenance-details h5 {
+  margin: 0 0 12px 0;
+  color: var(--aim-text-color);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.maintenance-details ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.maintenance-details li {
+  margin-bottom: 8px;
+  color: var(--aim-text-color);
+}
+
+.routine-warning {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--aim-routine-color);
+  color: var(--aim-on-accent);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.no-ticket-warning {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--aim-ticket-color);
+  color: var(--aim-on-accent);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn-alt {
+  padding: 12px 24px;
+  border: 2px solid var(--aim-border-color);
+  border-radius: 24px;
+  background: var(--aim-bg-color);
+  color: var(--aim-text-color);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-success {
+  background: var(--aim-message-success-bg);
+  border-color: var(--aim-message-success-bg);
+  color: #ffffff;
+}
+
+.btn-cancel {
+  background: var(--aim-message-error-bg);
+  border-color: var(--aim-message-error-bg);
+  color: #ffffff;
+}
+
+/* ---- Loading overlay ---------------------------------------------------- */
+.ai-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  z-index: 50;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid var(--aim-primary-color);
+  border-radius: 50%;
+  animation: aimSpin 1s linear infinite;
+}
+
+.ai-loading span {
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+@keyframes aimSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ---- Scrollbars --------------------------------------------------------- */
+.ai-messages::-webkit-scrollbar,
+.confirmation-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-messages::-webkit-scrollbar-track,
+.confirmation-content::-webkit-scrollbar-track {
+  background: var(--aim-scrollbar-track);
+}
+
+.ai-messages::-webkit-scrollbar-thumb,
+.confirmation-content::-webkit-scrollbar-thumb {
+  background: var(--aim-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.ai-messages::-webkit-scrollbar-thumb:hover,
+.confirmation-content::-webkit-scrollbar-thumb:hover {
+  background: var(--aim-scrollbar-thumb-hover);
+}
+
+/* ---- Ticket highlight --------------------------------------------------- */
+.ticket-highlight {
+  background: var(--aim-ticket-color);
+  color: var(--aim-on-accent);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  display: inline-block;
+  margin: 0 2px;
+}
+
+/* ---- Visible focus indicators (Req 23.4) -------------------------------- */
+.send-button:focus-visible,
+.templates-button:focus-visible,
+.btn-alt:focus-visible,
+.ai-retry-button:focus-visible,
+#ai-messages:focus-visible {
+  outline: 3px solid var(--aim-focus-ring);
+  outline-offset: 2px;
+}
+
+.send-button:focus,
+.templates-button:focus,
+.btn-alt:focus,
+.ai-retry-button:focus {
+  outline: 3px solid var(--aim-focus-ring);
+  outline-offset: 2px;
+}
+
+/* ---- Avatar thinking pulse ---------------------------------------------- */
+.ai-avatar.thinking {
+  animation: aimPulse 2s ease-in-out infinite;
+}
+
+@keyframes aimPulse {
+  0%, 100% { box-shadow: 0 2px 8px var(--aim-shadow-light); }
+  50% { box-shadow: 0 4px 16px var(--aim-primary-color); }
+}
+
+/* ---- Responsive --------------------------------------------------------- */
+@media (max-width: 768px) {
+  .feature-list { grid-template-columns: 1fr; gap: 8px; }
+  .ai-message { max-width: 95%; }
+  .confirmation-actions { flex-direction: column-reverse; }
+  .btn-alt { width: 100%; justify-content: center; }
+}
+
+/* ---- Reduced motion ----------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .ai-message,
+  .loading-spinner,
+  .btn-alt,
+  .templates-button,
+  .send-button,
+  .feature-item,
+  .typing-dots span,
+  .ai-avatar.thinking {
+    animation: none;
+    transition: none;
+  }
+}

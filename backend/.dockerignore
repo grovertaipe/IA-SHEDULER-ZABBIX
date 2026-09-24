@@ -1,0 +1,35 @@
+# Build context exclusions for the v2 backend image.
+
+# Python caches / bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Tests are not shipped in the runtime image
+tests/
+
+# Legacy monolith and its dependency pins (v2 does not use them)
+main.py
+requirements.legacy.txt
+
+# Secrets and local env — never bake into the image (Req 18.4, 18.5)
+.env
+.env.*
+
+# Local virtualenvs / build artifacts
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# VCS and logs
+.git/
+.gitignore
+*.log

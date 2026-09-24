@@ -1,0 +1,923 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Preparar la estructura del proyecto backend y las dependencias": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192041660
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192061883
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192851113
+      }
+    ],
+    "2.1 Definir los modelos de datos en `core/domain.py` (parte de tipos) y/o `core/models.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192041833
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192856492
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193003314
+      }
+    ],
+    "3.1 Implementar el cálculo de bitmasks y conversiones de tiempo en `core/recurrence.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192041975
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193009909
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193162624
+      }
+    ],
+    "3.6 Implementar la validación de bitmasks precalculados y de tiempo en `core/recurrence.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192042177
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193172802
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193268143
+      }
+    ],
+    "4.1 Implementar `build_timeperiod` con el despacho once/daily/weekly/monthly en `core/recurrence.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192042373
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193289612
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193492373
+      }
+    ],
+    "4.10 Implementar la validación de rango de duración y el redondeo a minuto en `core/recurrence.py` (Req 31)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192042567
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193493605
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193728713
+      }
+    ],
+    "4.11 Implementar la validación de tags de problema en `core/recurrence.py` (Req 32)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192042730
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193727191
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194716621
+      }
+    ],
+    "5.1 Implementar tickets, nombres y descripciones en `core/domain.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192042951
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193012913
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193163803
+      }
+    ],
+    "5.2 Implementar la decodificación de bitmasks en `core/domain.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192043134
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193019084
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193165226
+      }
+    ],
+    "6. Checkpoint - Verificar el núcleo puro": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192043429
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194724752
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194743114
+      }
+    ],
+    "7.1 Implementar `config.py` con `AppConfig` y `from_env`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192043667
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194759183
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194969907
+      }
+    ],
+    "8.1 Implementar el prompt externalizado en `ai/prompt.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192043842
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194986847
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790195744552
+      }
+    ],
+    "8.2 Implementar la interfaz `AIProvider` y las implementaciones en `ai/`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192044032
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194988230
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790195745766
+      }
+    ],
+    "8.3 Implementar el factory de proveedores en `ai/factory.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192044255
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200636406
+      }
+    ],
+    "9.1 Implementar `zabbix/client.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192044395
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194993005
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790196927359
+      }
+    ],
+    "10.1 Implementar `services/chat_service.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192044551
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790196949048
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197348779
+      }
+    ],
+    "10.2 Implementar `services/maintenance_service.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192044668
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790196950555
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197350181
+      }
+    ],
+    "11.1 Implementar la validación de Info_Usuario en `api/auth.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192044825
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197438375
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197742181
+      }
+    ],
+    "11.2 Implementar los blueprints de chat y mantenimiento en `api/chat.py` y `api/maintenance.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192044968
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197753029
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198227147
+      }
+    ],
+    "11.3 Implementar los blueprints de search y health en `api/search.py` y `api/health.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192045129
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197441602
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197745063
+      }
+    ],
+    "11.4 Implementar el app factory en `app.py` con registro de blueprints y CORS": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192045244
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198592294
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198852715
+      }
+    ],
+    "12. Checkpoint - Verificar el backend completo": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192045367
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198865671
+      }
+    ],
+    "13.1 Extraer la lógica de cálculo del monolito a `tests/fixtures/legacy_reference.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192045508
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790196943949
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197351925
+      }
+    ],
+    "14.1 Crear `backend/Dockerfile`, `backend/docker-compose.yml` y `backend/.env.example`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192045645
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198878210
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790199360142
+      }
+    ],
+    "15.1 Reubicar el widget existente a `widget/aimaintenance/`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192045752
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198879592
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790199361605
+      }
+    ],
+    "15.2 Documentar despliegue separado y compatibilidad de CI en el repositorio": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192045889
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790199370609
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200533485
+      }
+    ],
+    "16. Checkpoint final - Verificar el sistema completo": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192046016
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200641446
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200715647
+      }
+    ],
+    "17.1 Añadir los campos de las mejoras a `AppConfig` y `from_env` en `config.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192046157
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197443253
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197740842
+      }
+    ],
+    "18.1 Implementar la resolución de idioma pura en `i18n/locale.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192046285
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194760468
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194971830
+      }
+    ],
+    "18.3 Implementar los catálogos de mensajes y el lookup en `i18n/messages.py` + `catalogs/es.py`, `catalogs/en.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192046417
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790196945778
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197353588
+      }
+    ],
+    "18.4 Cablear la localización en los servicios y el contrato HTTP": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192046539
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197754373
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198230191
+      }
+    ],
+    "19.1 Implementar `build_maintenance_preview` en `core/domain.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192046668
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194973199
+      }
+    ],
+    "20.1 Implementar `ai/schema.py` con el `Esquema_JSON` y la validación pura": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192046795
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194990137
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790195747797
+      }
+    ],
+    "21.1 Implementar la selección de proveedor pura en `ai/failover.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192046936
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194991426
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790195748912
+      }
+    ],
+    "21.3 Implementar `FailoverAIProvider` en `ai/failover.py` y actualizar `ai/factory.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192047069
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790196947647
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197347011
+      }
+    ],
+    "22.1 Implementar la vigencia pura y la caché en `cache/user_cache.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192047276
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194762365
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194974547
+      }
+    ],
+    "22.3 Cablear la caché en `api/auth.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192047395
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197439775
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197743528
+      }
+    ],
+    "23.1 Implementar la decisión pura en `api/rate_limit.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192047518
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194763734
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194976469
+      }
+    ],
+    "23.3 Implementar el middleware de rate-limit y cablearlo en el app factory": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192047651
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198237761
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198590290
+      }
+    ],
+    "24.1 Implementar el enmascaramiento puro y el `SecureLogger` en `observability/logger.py`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192047786
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194765434
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194978140
+      }
+    ],
+    "24.3 Implementar las métricas y el blueprint `/metrics`, y cablear el logger": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192047924
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197756224
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198228848
+      }
+    ],
+    "25. Checkpoint - Verificar las mejoras transversales del backend": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192048066
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200717012
+      }
+    ],
+    "26.1 Modularizar el JavaScript del widget en `widget/aimaintenance/assets/js/`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192048207
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200525312
+      }
+    ],
+    "26.2 Implementar accesibilidad WCAG 2.1 AA en `ui.renderer.js`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192048337
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200527100
+      }
+    ],
+    "26.3 Implementar las mejoras de UX del chat (Req 24.1–24.3)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192048475
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200528425
+      }
+    ],
+    "26.4 Implementar el soporte de tema claro/oscuro en `assets/css/theme.css`": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192048655
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200530743
+      }
+    ],
+    "26.6 Asegurar la compatibilidad del módulo de widget con Zabbix 7.4 (Req 33)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192048775
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790199372336
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200531731
+      }
+    ],
+    "27. Checkpoint final v2 - Verificar el sistema completo con las mejoras": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790192048899
+      },
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200718305
+      }
+    ],
+    "2. Implementar los modelos de datos del dominio": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193003467
+      }
+    ],
+    "5. Implementar las utilidades de dominio (tickets, nombres, descripciones, decode)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193165454
+      }
+    ],
+    "3. Implementar el Motor_Recurrencia como funciones puras (cálculo de bitmasks y tiempo)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790193268313
+      }
+    ],
+    "4. Implementar la construcción del TimePeriod (despacho por tipo de recurrencia)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194716776
+      }
+    ],
+    "7. Implementar el módulo de configuración": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194970176
+      }
+    ],
+    "19. Implementar la vista previa legible del mantenimiento (Req 24.4, 24.5)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790194973344
+      }
+    ],
+    "20. Implementar la validación de esquema de la respuesta de IA (Req 29)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790195747944
+      }
+    ],
+    "9. Implementar el Cliente_Zabbix (JSON-RPC 7.2)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790196927600
+      }
+    ],
+    "21. Implementar el failover de proveedores de IA (Req 26, 29)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197347276
+      }
+    ],
+    "10. Implementar los servicios de orquestación": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197350397
+      }
+    ],
+    "13. Implementar el oráculo de paridad y las pruebas exhaustivas de regresión": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197352125
+      }
+    ],
+    "17. Extender la configuración para las mejoras transversales (Req 21, 26, 27, 28, 29)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197741039
+      }
+    ],
+    "22. Implementar la caché de validación de usuario (Req 27)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790197743659
+      }
+    ],
+    "24. Implementar la observabilidad y el registro seguro (Req 30)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198228974
+      }
+    ],
+    "18. Implementar la localización (i18n) (Req 21)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198230331
+      }
+    ],
+    "23. Implementar la limitación de tasa por cliente (Req 28)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198590521
+      }
+    ],
+    "11. Implementar la capa HTTP (blueprints + app factory)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790198852929
+      }
+    ],
+    "14. Implementar el empaquetado Docker y la configuración de despliegue del backend": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790199360386
+      }
+    ],
+    "26. Modernizar el widget: modularización, accesibilidad, UX del chat y tema (Req 22–25)": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200531871
+      }
+    ],
+    "15. Migrar la estructura de carpetas y reubicar el widget": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200533612
+      }
+    ],
+    "8. Implementar el prompt externalizado y la abstracción del Proveedor_IA": [
+      {
+        "executionId": "42e2638e-2be7-43e1-a02e-67dda70cee75",
+        "chatSessionId": "sess_de085427-dc66-4f5d-9f81-869a0ea0515a",
+        "timestamp": 1790200636504
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test / type / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Secrets / local config
+.env
+*.env.local
+
+# Logs
+*.log
+
+# Build artifacts (widget package zips)
+zabbix-widget-aimaintenance-*.zip
+widget/zabbix-widget-aimaintenance-*.zip
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Node (si algún día se usa)
+node_modules/
