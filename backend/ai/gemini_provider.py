@@ -29,6 +29,41 @@ logger = logging.getLogger(__name__)
 _TEMPERATURE = 0.2
 _MAX_OUTPUT_TOKENS = 1200
 
+#: Default per-attempt network timeout (seconds) if the factory does not pass one.
+_DEFAULT_REQUEST_TIMEOUT_SECONDS = 20.0
+
+
+def _extract_text(response: Any) -> str:
+    """Robustly extract the text from a google-genai response.
+
+    Gemini 3.x "thinking" models return a mix of parts (for example a
+    ``thought_signature`` part alongside the answer text). In that case the SDK
+    logs a warning and ``response.text`` may be empty/unreliable. This helper:
+
+    1. Prefers ``response.text`` when it carries content (the common path).
+    2. Otherwise walks ``response.candidates[0].content.parts`` and concatenates
+       every part exposing a non-empty ``.text`` (skipping ``thought_signature``
+       and any other non-text parts).
+
+    All attribute access is guarded (``getattr`` / ``None`` checks) so a
+    malformed response yields ``""`` rather than raising. Pure and side-effect
+    free.
+    """
+    text = getattr(response, "text", None)
+    if isinstance(text, str) and text.strip():
+        return text
+
+    candidates = getattr(response, "candidates", None) or []
+    parts_text: list[str] = []
+    for candidate in candidates:
+        content = getattr(candidate, "content", None)
+        parts = getattr(content, "parts", None) or []
+        for part in parts:
+            part_text = getattr(part, "text", None)
+            if isinstance(part_text, str) and part_text:
+                parts_text.append(part_text)
+    return "".join(parts_text)
+
 
 def _build_prompt(message: str, ctx: PromptContext) -> str:
     """Build the AI prompt, importing the prompt module defensively.
@@ -65,7 +100,12 @@ def _fallback_prompt(message: str, ctx: PromptContext) -> str:
 class GeminiProvider(AIProvider):
     """AI provider backed by Google Gemini (``google-genai``)."""
 
-    def __init__(self, api_key: str | None, model: str) -> None:
+    def __init__(
+        self,
+        api_key: str | None,
+        model: str,
+        request_timeout: float = _DEFAULT_REQUEST_TIMEOUT_SECONDS,
+    ) -> None:
         """Configure the provider with an API key and model name.
 
         The SDK is loaded lazily and the client is created eagerly when
@@ -74,9 +114,15 @@ class GeminiProvider(AIProvider):
         query :meth:`is_available` and degrade gracefully (Req 12.5). The new
         SDK is stateless per request, so only the client (auth) and the model
         name are stored; the model is passed on each ``generate_content`` call.
+
+        ``request_timeout`` is the per-attempt NETWORK timeout (seconds) applied
+        to each ``generate_content`` call via the SDK's ``HttpOptions`` so a
+        hung read raises promptly (becoming an :class:`AIProviderError`) instead
+        of stalling the worker.
         """
         self._api_key = api_key or None
         self._model_name = model
+        self._request_timeout = request_timeout
         self._client: Any | None = None
         self._types: Any | None = None
 
@@ -121,10 +167,21 @@ class GeminiProvider(AIProvider):
                 config=self._types.GenerateContentConfig(  # type: ignore[union-attr]
                     temperature=_TEMPERATURE,
                     max_output_tokens=_MAX_OUTPUT_TOKENS,
+                    # Per-request NETWORK timeout in MILLISECONDS (google-genai
+                    # HttpOptions). A hung/timed-out read raises here and becomes
+                    # an AIProviderError so failover/degradation can take over.
+                    http_options=self._types.HttpOptions(  # type: ignore[union-attr]
+                        timeout=int(self._request_timeout * 1000)
+                    ),
                 ),
             )
         except Exception as exc:
             raise AIProviderError(f"Gemini request failed: {exc}") from exc
 
-        text = getattr(response, "text", "") or ""
+        text = _extract_text(response)
+        if not text.strip():
+            # Robust extraction found nothing usable (e.g. a thinking-only
+            # response). Raise so failover can try the secondary rather than
+            # passing empty text to the parser.
+            raise AIProviderError("Gemini returned an empty response")
         return parse_response_text(text, message)

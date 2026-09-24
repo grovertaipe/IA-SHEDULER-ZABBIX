@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 _TEMPERATURE = 0.2
 _MAX_TOKENS = 1200
 
+#: Default per-attempt network timeout (seconds) if the factory does not pass one.
+_DEFAULT_REQUEST_TIMEOUT_SECONDS = 20.0
+
 # System message keeps the assistant scoped to Zabbix maintenance extraction.
 _SYSTEM_PROMPT = (
     "Eres un asistente especializado en crear mantenimientos para Zabbix. "
@@ -68,16 +71,26 @@ def _fallback_prompt(message: str, ctx: PromptContext) -> str:
 class OpenAIProvider(AIProvider):
     """AI provider backed by OpenAI (``openai`` chat completions)."""
 
-    def __init__(self, api_key: str | None, model: str) -> None:
+    def __init__(
+        self,
+        api_key: str | None,
+        model: str,
+        request_timeout: float = _DEFAULT_REQUEST_TIMEOUT_SECONDS,
+    ) -> None:
         """Configure the provider with an API key and model name.
 
         The SDK is loaded lazily and the client is created eagerly when
         possible. Any failure (missing library, missing key, SDK error) leaves
         the provider unavailable rather than raising, so callers can query
         :meth:`is_available` and degrade gracefully (Req 12.5).
+
+        ``request_timeout`` is the per-attempt NETWORK timeout (seconds) passed
+        to each ``chat.completions.create`` call so a hung read raises promptly
+        (becoming an :class:`AIProviderError`) instead of stalling the worker.
         """
         self._api_key = api_key or None
         self._model_name = model
+        self._request_timeout = request_timeout
         self._client: Any | None = None
 
         if not self._api_key:
@@ -121,6 +134,9 @@ class OpenAIProvider(AIProvider):
                 ],
                 temperature=_TEMPERATURE,
                 max_tokens=_MAX_TOKENS,
+                # Per-request NETWORK timeout (seconds). A hung read raises here
+                # and is mapped to AIProviderError below.
+                timeout=self._request_timeout,
             )
         except Exception as exc:
             raise AIProviderError(f"OpenAI request failed: {exc}") from exc

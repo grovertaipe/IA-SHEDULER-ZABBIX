@@ -21,7 +21,12 @@ from typing import Any
 import pytest
 
 import ai.gemini_provider as gp
-from ai.gemini_provider import _MAX_OUTPUT_TOKENS, _TEMPERATURE, GeminiProvider
+from ai.gemini_provider import (
+    _MAX_OUTPUT_TOKENS,
+    _TEMPERATURE,
+    GeminiProvider,
+    _extract_text,
+)
 from ai.provider import AIProviderError
 from core.domain import PromptContext
 
@@ -34,6 +39,42 @@ class _FakeResponse:
 
     def __init__(self, text: str) -> None:
         self.text = text
+
+
+class _FakePart:
+    """A single response part; may or may not carry ``.text``.
+
+    A ``thought_signature``-only part (Gemini 3.x "thinking" models) is modeled
+    by passing ``text=None`` and a ``thought_signature`` attribute.
+    """
+
+    def __init__(self, text: str | None = None, thought_signature: bytes | None = None) -> None:
+        self.text = text
+        if thought_signature is not None:
+            self.thought_signature = thought_signature
+
+
+class _FakeContent:
+    def __init__(self, parts: list[_FakePart]) -> None:
+        self.parts = parts
+
+
+class _FakeCandidate:
+    def __init__(self, parts: list[_FakePart]) -> None:
+        self.content = _FakeContent(parts)
+
+
+class _FakeThinkingResponse:
+    """Response whose ``.text`` is empty but exposes ``.candidates`` parts.
+
+    Simulates a Gemini 3.x thinking response where the SDK could not build a
+    clean concatenated ``.text`` (empty) but the answer lives in the parts
+    alongside a non-text ``thought_signature`` part.
+    """
+
+    def __init__(self, text: str, parts: list[_FakePart]) -> None:
+        self.text = text
+        self.candidates = [_FakeCandidate(parts)]
 
 
 # --------------------------------------------------------------------------- #
@@ -151,3 +192,135 @@ def test_generation_parameters_unchanged() -> None:
     """The fixed low-temperature / bounded-output params are preserved."""
     assert _TEMPERATURE == 0.2
     assert _MAX_OUTPUT_TOKENS == 1200
+
+
+# --------------------------------------------------------------------------- #
+# Fix 2: Robust Gemini 3.x response text extraction (_extract_text)           #
+# --------------------------------------------------------------------------- #
+def test_extract_text_uses_response_text_when_present() -> None:
+    """When ``response.text`` is non-empty it is returned as-is (common path)."""
+    assert _extract_text(_FakeResponse(_JSON_RESPONSE)) == _JSON_RESPONSE
+
+
+def test_extract_text_falls_back_to_parts_ignoring_thought_signature() -> None:
+    """Empty ``.text`` -> concatenate text parts, skipping non-text parts.
+
+    Simulates a Gemini 3.x thinking response: a ``thought_signature``-only part
+    (no ``.text``) followed by the real answer text part.
+    """
+    resp = _FakeThinkingResponse(
+        text="",
+        parts=[
+            _FakePart(thought_signature=b"\x01\x02"),  # non-text: must be skipped
+            _FakePart(text='{"intent": "help",'),
+            _FakePart(text=' "hosts": []}'),
+        ],
+    )
+    assert _extract_text(resp) == '{"intent": "help", "hosts": []}'
+
+
+def test_extract_text_returns_empty_when_no_text_anywhere() -> None:
+    """A response with neither ``.text`` nor text parts yields ``""``.
+
+    A malformed/thinking-only response must not raise inside the helper.
+    """
+    resp = _FakeThinkingResponse(
+        text="",
+        parts=[_FakePart(thought_signature=b"\xaa")],
+    )
+    assert _extract_text(resp) == ""
+
+
+def test_extract_raises_when_response_has_no_usable_text(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """extract() raises AIProviderError when no text can be extracted.
+
+    This lets failover try the secondary instead of parsing empty text.
+    """
+    provider = GeminiProvider("dummy-key", "gemini-2.0-flash")
+    assert provider.is_available() is True
+
+    def _thinking_only(**_kwargs: Any) -> _FakeThinkingResponse:
+        return _FakeThinkingResponse(text="", parts=[_FakePart(thought_signature=b"\x01")])
+
+    monkeypatch.setattr(
+        provider._client.models,  # type: ignore[attr-defined]
+        "generate_content",
+        _thinking_only,
+    )
+    with pytest.raises(AIProviderError):
+        provider.extract("hola", CTX)
+
+
+def test_extract_recovers_text_from_thinking_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """extract() parses text recovered from candidate parts (thinking model)."""
+    provider = GeminiProvider("dummy-key", "gemini-2.0-flash")
+    assert provider.is_available() is True
+
+    def _thinking(**_kwargs: Any) -> _FakeThinkingResponse:
+        return _FakeThinkingResponse(
+            text="",
+            parts=[
+                _FakePart(thought_signature=b"\x01"),
+                _FakePart(text=_JSON_RESPONSE),
+            ],
+        )
+
+    monkeypatch.setattr(
+        provider._client.models,  # type: ignore[attr-defined]
+        "generate_content",
+        _thinking,
+    )
+    result = provider.extract("apaga web01", CTX)
+    assert result.intent == "maintenance_request"
+    assert result.hosts == ["web01"]
+
+
+# --------------------------------------------------------------------------- #
+# Fix 1: per-request network timeout is wired into the SDK call               #
+# --------------------------------------------------------------------------- #
+def test_extract_passes_http_options_timeout_in_ms(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The configured request_timeout is applied as HttpOptions timeout (ms)."""
+    provider = GeminiProvider("dummy-key", "gemini-2.0-flash", request_timeout=7.0)
+    assert provider.is_available() is True
+
+    captured: dict[str, Any] = {}
+
+    def _fake_generate_content(*, model: str, contents: str, config: Any) -> _FakeResponse:
+        captured["config"] = config
+        return _FakeResponse(_JSON_RESPONSE)
+
+    monkeypatch.setattr(
+        provider._client.models,  # type: ignore[attr-defined]
+        "generate_content",
+        _fake_generate_content,
+    )
+    provider.extract("hola", CTX)
+    http_options = getattr(captured["config"], "http_options", None)
+    assert http_options is not None
+    # 7.0s -> 7000 ms
+    assert getattr(http_options, "timeout", None) == 7000
+
+
+def test_extract_maps_timeout_exception_to_provider_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A timeout-like SDK exception surfaces as AIProviderError (no hang)."""
+    provider = GeminiProvider("dummy-key", "gemini-2.0-flash", request_timeout=1.0)
+    assert provider.is_available() is True
+
+    def _timeout(**_kwargs: Any) -> _FakeResponse:
+        raise TimeoutError("read timed out")
+
+    monkeypatch.setattr(
+        provider._client.models,  # type: ignore[attr-defined]
+        "generate_content",
+        _timeout,
+    )
+    with pytest.raises(AIProviderError):
+        provider.extract("hola", CTX)

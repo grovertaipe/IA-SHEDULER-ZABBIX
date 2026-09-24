@@ -46,6 +46,11 @@ _DEFAULT_MAX_RETRIES = 1
 _DEFAULT_TIMEOUT_SECONDS = 30.0
 _DEFAULT_SCHEMA_MAX_ATTEMPTS = 2
 
+#: Per-attempt NETWORK timeout (seconds) for a single provider SDK call. Applied
+#: defensively here so the factory works whether or not ``AppConfig`` carries the
+#: ``ai_request_timeout_seconds`` field.
+_DEFAULT_REQUEST_TIMEOUT_SECONDS = 20.0
+
 
 def build_single_provider(
     name: str | None, cfg: AppConfig, logger: SecureLogger
@@ -61,11 +66,19 @@ def build_single_provider(
     """
     if not name:
         return None
+    # Per-attempt network timeout, read defensively (Task not-yet-run tolerant).
+    request_timeout = float(
+        getattr(cfg, "ai_request_timeout_seconds", _DEFAULT_REQUEST_TIMEOUT_SECONDS)
+    )
     key = name.strip().lower()
     if key == "gemini":
-        return GeminiProvider(cfg.gemini_api_key, cfg.gemini_model)
+        return GeminiProvider(
+            cfg.gemini_api_key, cfg.gemini_model, request_timeout=request_timeout
+        )
     if key == "openai":
-        return OpenAIProvider(cfg.openai_api_key, cfg.openai_model)
+        return OpenAIProvider(
+            cfg.openai_api_key, cfg.openai_model, request_timeout=request_timeout
+        )
     if key == "bedrock":
         return BedrockProvider(
             cfg.bedrock_model,
@@ -73,6 +86,7 @@ def build_single_provider(
             cfg.aws_access_key_id,
             cfg.aws_secret_access_key,
             cfg.aws_session_token,
+            request_timeout=request_timeout,
         )
     logger.error("unsupported provider", provider=key, expected=list(_VALID_PROVIDERS))
     return None

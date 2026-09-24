@@ -41,6 +41,7 @@ def _config(**overrides: object) -> AppConfig:
         "ai_secondary_provider": None,
         "ai_failover_max_retries": 1,
         "ai_failover_timeout_seconds": 30.0,
+        "ai_request_timeout_seconds": 20.0,
         "user_cache_ttl_seconds": 300,
         "rate_limit_max_requests": 60,
         "rate_limit_window_seconds": 60,

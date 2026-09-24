@@ -43,6 +43,10 @@ default on a malformed value (only the offending KEY name is logged):
   ``1``, Req 26.2)
 * ``AI_FAILOVER_TIMEOUT_SECONDS`` -> ``ai_failover_timeout_seconds`` (float,
   default ``30.0``, Req 26.2)
+* ``AI_REQUEST_TIMEOUT_SECONDS``  -> ``ai_request_timeout_seconds`` (float,
+  default ``20.0``): per-attempt NETWORK timeout applied to a single provider
+  SDK call so a hung read raises quickly instead of stalling the worker. It
+  MUST be less than the gunicorn worker timeout.
 * ``USER_CACHE_TTL_SECONDS``     -> ``user_cache_ttl_seconds`` (int, default
   ``300``, Req 27.1)
 * ``RATE_LIMIT_MAX_REQUESTS``    -> ``rate_limit_max_requests`` (int, default
@@ -81,6 +85,12 @@ DEFAULT_SUPPORTED_LOCALES = ("es", "en", "pt")
 #: Failover tuning (Req 26.2, 26.4). Mirrors ``ai/factory.py`` defaults.
 DEFAULT_AI_FAILOVER_MAX_RETRIES = 1
 DEFAULT_AI_FAILOVER_TIMEOUT_SECONDS = 30.0
+
+#: Per-attempt NETWORK timeout for a single provider SDK call. Applied at the
+#: SDK/transport layer so a hung network read raises promptly (as an
+#: ``AIProviderError``) instead of stalling the gunicorn worker until it is
+#: killed. MUST be well below the gunicorn worker ``--timeout``.
+DEFAULT_AI_REQUEST_TIMEOUT_SECONDS = 20.0
 
 #: User-validation cache TTL in seconds (Req 27.1).
 DEFAULT_USER_CACHE_TTL_SECONDS = 300
@@ -200,6 +210,7 @@ class AppConfig:
     ai_secondary_provider: str | None  # optional secondary provider (Req 26.1, 26.4)
     ai_failover_max_retries: int  # bounded retries per provider (Req 26.2)
     ai_failover_timeout_seconds: float  # per-attempt time budget (Req 26.2)
+    ai_request_timeout_seconds: float  # per-attempt NETWORK timeout for one SDK call
 
     # --- User-validation cache (Req 27) ---
     user_cache_ttl_seconds: int  # configurable TTL_Cache (Req 27.1)
@@ -326,6 +337,9 @@ class AppConfig:
         ai_failover_timeout_seconds = _parse_float(
             "AI_FAILOVER_TIMEOUT_SECONDS", DEFAULT_AI_FAILOVER_TIMEOUT_SECONDS
         )
+        ai_request_timeout_seconds = _parse_float(
+            "AI_REQUEST_TIMEOUT_SECONDS", DEFAULT_AI_REQUEST_TIMEOUT_SECONDS
+        )
 
         # --- User-validation cache (Req 27.1) ---
         user_cache_ttl_seconds = _parse_int(
@@ -365,6 +379,7 @@ class AppConfig:
             ai_secondary_provider=ai_secondary_provider,
             ai_failover_max_retries=ai_failover_max_retries,
             ai_failover_timeout_seconds=ai_failover_timeout_seconds,
+            ai_request_timeout_seconds=ai_request_timeout_seconds,
             user_cache_ttl_seconds=user_cache_ttl_seconds,
             rate_limit_max_requests=rate_limit_max_requests,
             rate_limit_window_seconds=rate_limit_window_seconds,

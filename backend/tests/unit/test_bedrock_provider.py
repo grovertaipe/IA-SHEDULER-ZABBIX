@@ -76,6 +76,7 @@ def _cfg(**overrides: Any) -> AppConfig:
         "ai_secondary_provider": None,
         "ai_failover_max_retries": 1,
         "ai_failover_timeout_seconds": 30.0,
+        "ai_request_timeout_seconds": 20.0,
         "user_cache_ttl_seconds": 300,
         "rate_limit_max_requests": 60,
         "rate_limit_window_seconds": 60,
@@ -198,6 +199,35 @@ def test_generation_parameters_match_other_providers() -> None:
     """Low-temperature / bounded-output params mirror the other providers."""
     assert _TEMPERATURE == 0.2
     assert _MAX_TOKENS == 1200
+
+
+# --------------------------------------------------------------------------- #
+# Fix 1: per-request network timeout via botocore Config                      #
+# --------------------------------------------------------------------------- #
+def test_client_built_with_connect_and_read_timeouts() -> None:
+    """The boto3 client carries connect/read timeouts from request_timeout.
+
+    boto3 exposes the effective client config on ``client.meta.config``.
+    """
+    provider = BedrockProvider("amazon.nova-lite-v1:0", "us-east-1", request_timeout=8.0)
+    # The real boto3 client is built (no network call happens at construction).
+    assert provider.is_available() is True
+    config = provider._client.meta.config  # type: ignore[attr-defined]
+    assert config.connect_timeout == 8.0
+    assert config.read_timeout == 8.0
+
+
+def test_extract_maps_timeout_exception_to_provider_error() -> None:
+    """A timeout-like client exception surfaces as AIProviderError (no hang)."""
+    provider = BedrockProvider("amazon.nova-lite-v1:0", "us-east-1", request_timeout=1.0)
+
+    class _TimeoutClient:
+        def converse(self, **_kwargs: Any) -> dict[str, Any]:
+            raise TimeoutError("read timed out")
+
+    provider._client = _TimeoutClient()  # type: ignore[attr-defined]
+    with pytest.raises(AIProviderError):
+        provider.extract("hola", CTX)
 
 
 # --------------------------------------------------------------------------- #

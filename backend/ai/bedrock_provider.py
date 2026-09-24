@@ -41,6 +41,9 @@ logger = logging.getLogger(__name__)
 _TEMPERATURE = 0.2
 _MAX_TOKENS = 1200
 
+#: Default per-attempt network timeout (seconds) if the factory does not pass one.
+_DEFAULT_REQUEST_TIMEOUT_SECONDS = 20.0
+
 
 def _build_prompt(message: str, ctx: PromptContext) -> str:
     """Build the AI prompt, importing the prompt module defensively.
@@ -111,6 +114,7 @@ class BedrockProvider(AIProvider):
         access_key_id: str | None = None,
         secret_access_key: str | None = None,
         session_token: str | None = None,
+        request_timeout: float = _DEFAULT_REQUEST_TIMEOUT_SECONDS,
     ) -> None:
         """Configure the provider and build the ``bedrock-runtime`` client.
 
@@ -128,13 +132,24 @@ class BedrockProvider(AIProvider):
         self._access_key_id = access_key_id or None
         self._secret_access_key = secret_access_key or None
         self._session_token = session_token or None
+        self._request_timeout = request_timeout
         self._client: Any | None = None
 
         try:
             import boto3  # lazy import (Req: no hard import)
+            from botocore.config import Config as BotoConfig
         except Exception as exc:  # pragma: no cover - env without the SDK
             logger.error("boto3 is not available: %s", exc)
             return
+
+        # Per-attempt NETWORK timeout applied at the transport layer: a hung
+        # connect/read raises promptly (as an AIProviderError) instead of
+        # stalling the worker. Keep botocore's own retries bounded.
+        boto_cfg = BotoConfig(
+            connect_timeout=self._request_timeout,
+            read_timeout=self._request_timeout,
+            retries={"max_attempts": 2},
+        )
 
         try:
             if self._access_key_id and self._secret_access_key:
@@ -142,6 +157,7 @@ class BedrockProvider(AIProvider):
                     "region_name": self._region,
                     "aws_access_key_id": self._access_key_id,
                     "aws_secret_access_key": self._secret_access_key,
+                    "config": boto_cfg,
                 }
                 if self._session_token:
                     kwargs["aws_session_token"] = self._session_token
@@ -150,7 +166,7 @@ class BedrockProvider(AIProvider):
                 # Recommended path: let boto3's default credential chain resolve
                 # env vars / ~/.aws / IAM role / instance profile.
                 self._client = boto3.client(
-                    "bedrock-runtime", region_name=self._region
+                    "bedrock-runtime", region_name=self._region, config=boto_cfg
                 )
             logger.info("Bedrock provider configured (model=%s)", self._model_name)
         except Exception as exc:  # pragma: no cover - defensive

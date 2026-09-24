@@ -48,4 +48,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 # Run as the unprivileged user and serve the app factory via gunicorn.
 # IMPORTANT: target the app factory `app:create_app()` (NOT the legacy main:app).
 USER appuser
-CMD ["gunicorn", "--bind", "0.0.0.0:5005", "--workers", "2", "--timeout", "60", "app:create_app()"]
+#
+# Worker timeout is 120s (up from 60s): failover may try primary+secondary,
+# each with a ~20s per-request network timeout plus bounded retries, so the
+# total can exceed 60s. The per-call network timeouts (AI_REQUEST_TIMEOUT_SECONDS,
+# default 20s) prevent indefinite hangs, and 120s is a safe upper bound.
+# --graceful-timeout 30 gives in-flight requests a clean window on recycling.
+CMD ["gunicorn", "--bind", "0.0.0.0:5005", "--workers", "2", "--timeout", "120", "--graceful-timeout", "30", "app:create_app()"]
