@@ -261,7 +261,15 @@ class MaintenanceService:
         #    window, maintenance_type, problem tags) (Req 11.4, 32).
         active_since, active_till = _active_window(request.recurrence, timeperiod)
         ticket = request.ticket or extract_ticket(request.raw_message)
-        name = generate_maintenance_name(ticket, request.raw_message)
+        # Pass the resolved resource names so the name generator can fall back to
+        # a resource-based name (v1 parity) when there is no ticket and the
+        # request carries no prose (e.g. the widget's create call sends an empty
+        # raw_message). This guarantees a non-empty name for Zabbix (Req 10.4).
+        host_names = [str(h.get("name") or h.get("host")) for h in resolved.hosts]
+        group_names = [str(g.get("name")) for g in resolved.groups]
+        name = generate_maintenance_name(
+            ticket, request.raw_message, host_names=host_names, group_names=group_names
+        )
         description = generate_maintenance_description(ticket, user, request.raw_message)
 
         payload = MaintenancePayload(

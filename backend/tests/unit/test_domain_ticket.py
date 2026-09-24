@@ -81,6 +81,89 @@ def test_generate_maintenance_name_keeps_ticket_opaque() -> None:
     assert generate_maintenance_name(None, "backup") == "backup"
 
 
+def test_generate_maintenance_name_ticketless_group_regression() -> None:
+    """No ticket + empty summary + one group -> resource-based name (regression).
+
+    This is the exact create-time bug: the widget sends an empty ``raw_message``
+    and there is no ticket, so the name must be rebuilt from the resolved group
+    instead of collapsing to an empty string that Zabbix rejects.
+    """
+    name = generate_maintenance_name(
+        None, "", group_names=["Virtual machines"]
+    )
+    assert name == "AI Maintenance: Grupo Virtual machines"
+
+
+def test_generate_maintenance_name_ticketless_host_fallback() -> None:
+    """No ticket + empty summary + one host -> non-empty name including the host."""
+    name = generate_maintenance_name(None, "", host_names=["web01"])
+    assert "web01" in name
+    assert name.strip()
+
+
+def test_generate_maintenance_name_ticketless_no_resources_default() -> None:
+    """No ticket + empty summary + NO resources -> safe non-empty default."""
+    assert generate_maintenance_name(None, "") == "AI Maintenance"
+    assert generate_maintenance_name(None, "   ") == "AI Maintenance"
+
+
+def test_generate_maintenance_name_ticketless_summary_unchanged() -> None:
+    """No ticket + non-empty summary -> the trimmed summary (unchanged)."""
+    assert generate_maintenance_name(None, "backup nocturno") == "backup nocturno"
+    assert generate_maintenance_name(None, "  backup  ") == "backup"
+
+
+def test_generate_maintenance_name_ticketed_cases_unchanged() -> None:
+    """A ticket always leads the name regardless of resources (unchanged)."""
+    assert generate_maintenance_name("INC1", "backup") == "INC1 - backup"
+    assert generate_maintenance_name("INC1", "") == "INC1"
+    # Resources are ignored when a ticket is present (behavior preserved).
+    assert (
+        generate_maintenance_name("INC1", "", host_names=["web01"]) == "INC1"
+    )
+
+
+def test_generate_maintenance_name_truncates_many_hosts_and_groups() -> None:
+    """More than 3 hosts / 2 groups produce a "+N more" suffix and stay non-empty."""
+    name = generate_maintenance_name(
+        None,
+        "",
+        host_names=["h1", "h2", "h3", "h4", "h5"],
+        group_names=["g1", "g2", "g3"],
+    )
+    assert "h1" in name and "h2" in name and "h3" in name
+    assert "y 2 hosts más" in name  # 5 - 3
+    assert "Grupo g1" in name and "Grupo g2" in name
+    assert "y 1 grupos más" in name  # 3 - 2
+    assert name.strip()
+
+
+@pytest.mark.parametrize("ticket", [None, "", "INC0012345"])
+@pytest.mark.parametrize("summary", ["", "   ", "reinicio del cluster"])
+@pytest.mark.parametrize(
+    ("host_names", "group_names"),
+    [
+        (None, None),
+        ([], []),
+        (["web01"], None),
+        (None, ["Virtual machines"]),
+        (["h1", "h2", "h3", "h4"], ["g1", "g2", "g3"]),
+    ],
+)
+def test_generate_maintenance_name_never_empty(
+    ticket: str | None,
+    summary: str,
+    host_names: list[str] | None,
+    group_names: list[str] | None,
+) -> None:
+    """Invariant: the generated name is NEVER empty/whitespace for any input."""
+    name = generate_maintenance_name(
+        ticket, summary, host_names=host_names, group_names=group_names
+    )
+    assert name is not None
+    assert name.strip() != ""
+
+
 def test_generate_description_strips_arbitrary_ticket_from_body() -> None:
     """An arbitrary ticket appears once on its own line, removed from the body."""
     user = UserInfo(userid="42", username="ops", name="Op", surname="Er")

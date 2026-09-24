@@ -167,6 +167,59 @@ def test_problem_tags_with_maintenance_type_1_does_not_create() -> None:
     assert client.create_called is False
 
 
+class _GroupRecordingClient(_RecordingClient):
+    """A recording client that also resolves host GROUPS by exact name.
+
+    Used to exercise the ticketless group-maintenance path, where the name must
+    be rebuilt from the resolved group instead of collapsing to an empty string.
+    """
+
+    def __init__(self, groups: dict[str, list[dict[str, Any]]] | None = None) -> None:
+        super().__init__()
+        self._groups = groups or {}
+
+    def get_groups_exact(self, names: list[str]) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
+        for name in names:
+            result.extend(self._groups.get(name, []))
+        return result
+
+
+def test_ticketless_group_maintenance_has_non_empty_name() -> None:
+    """A ticketless GROUP maintenance sends a non-empty name to Zabbix (Req 10.4).
+
+    Regression for ``Invalid parameter "/1/name": cannot be empty.``: the widget
+    create call carries no ticket and an empty ``raw_message``, so the backend
+    must derive the name from the resolved group.
+    """
+    client = _GroupRecordingClient(
+        groups={"Virtual machines": [{"groupid": "5", "name": "Virtual machines"}]}
+    )
+    service = MaintenanceService(client)
+
+    request = ExtractedRequest(
+        intent="maintenance_request",
+        groups=["Virtual machines"],
+        ticket=None,
+        raw_message="",  # widget does not resend the original prose on /create
+        recurrence=ExtractedRecurrence(
+            recurrence_type=RecurrenceType.ONCE,
+            start_ts=1_700_000_000,
+            end_ts=1_700_014_400,
+        ),
+    )
+
+    confirmation = service.create(request, _user())
+
+    assert client.create_called is True
+    assert client.create_args is not None
+    assert client.create_args["group_ids"] == ["5"]
+    payload = client.create_args["payload"]
+    assert payload.name.strip() != ""
+    assert payload.name == "AI Maintenance: Grupo Virtual machines"
+    assert confirmation.name == payload.name
+
+
 def test_resolution_dedups_hosts_and_reports_missing() -> None:
     """Resolution dedups by hostid (Req 14.5) and partitions missing (Req 14.6, 14.7)."""
     client = _RecordingClient(

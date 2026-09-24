@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026
+
+### Fixed
+- **Maintenances without a ticket can now be created** (e.g. a group or
+  tag-based maintenance with no ticket). Zabbix rejected them with
+  `Invalid parameter "/1/name": cannot be empty.` because the generated name
+  collapsed to an empty string: the widget's create call carries no prose and,
+  without a ticket, there was nothing left to name the maintenance.
+- The backend name generator now guarantees a non-empty name, restoring the v1
+  behaviour: with no ticket and no summary it builds the name from the resolved
+  resource names (up to 3 hosts, then up to 2 groups as `Grupo <name>`, with a
+  "+N more" suffix), falling back to `AI Maintenance` when nothing is resolved.
+  Ticketed names are unchanged.
+
 ## [2.5.0] - 2026
 
 ### Added

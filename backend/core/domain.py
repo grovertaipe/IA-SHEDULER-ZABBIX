@@ -337,17 +337,66 @@ def extract_ticket(text: str) -> str | None:
     return match.group(1) or match.group(2)
 
 
-def generate_maintenance_name(ticket: str | None, summary: str) -> str:
-    """Build the maintenance name using the ticket as the primary component.
+#: Safe non-empty default when neither a ticket, a summary nor any resolved
+#: resource is available. Zabbix rejects an empty ``/name`` ("cannot be empty"),
+#: so the name generator must never return this-or-empty; this constant is the
+#: last-resort fallback that still yields a meaningful, non-empty name.
+_MAINTENANCE_NAME_DEFAULT = "AI Maintenance"
 
-    When a ticket is present it leads the name (``"<ticket> - <summary>"``);
-    otherwise the summary alone is used (Req 10.4). Surrounding whitespace is
-    trimmed so callers can pass loosely formatted summaries.
+
+def generate_maintenance_name(
+    ticket: str | None,
+    summary: str,
+    *,
+    host_names: list[str] | None = None,
+    group_names: list[str] | None = None,
+) -> str:
+    """Build the maintenance name; **never returns an empty/whitespace string**.
+
+    Zabbix rejects an empty ``maintenance.name`` (``Invalid parameter "/1/name":
+    cannot be empty.``), so this function guarantees a non-empty result for any
+    combination of inputs. The name is derived in priority order:
+
+    1. **Ticket present** — the ticket leads the name (``"<ticket> - <summary>"``
+       when a summary is given, else just ``"<ticket>"``) (Req 10.4). Unchanged
+       behavior, so existing ticketed maintenance names are preserved.
+    2. **No ticket but a non-empty summary** — the summary alone is used
+       (unchanged behavior for the case that already worked).
+    3. **No ticket and no summary** — fall back to the resolved RESOURCE NAMES,
+       mirroring the v1 monolith: up to the first 3 host names (with a
+       ``"y N hosts más"`` suffix when more remain), then up to the first 2 group
+       names rendered as ``"Grupo <name>"`` (with a ``"y N grupos más"`` suffix
+       when more remain), joined into ``"AI Maintenance: <parts>"``.
+    4. **Nothing at all** — a safe, non-empty default (``"AI Maintenance"``).
+
+    Surrounding whitespace is trimmed so callers can pass loosely formatted
+    summaries. Pure and deterministic (no I/O).
     """
-    summary = summary.strip()
+    summary = (summary or "").strip()
     if ticket:
         return f"{ticket} - {summary}" if summary else ticket
-    return summary
+    if summary:
+        return summary
+
+    # No ticket and no summary: rebuild the name from the resolved resources so
+    # the maintenance still gets a meaningful, non-empty name (v1 parity).
+    parts: list[str] = []
+
+    hosts = host_names or []
+    if hosts:
+        parts.extend(hosts[:3])
+        if len(hosts) > 3:
+            parts.append(f"y {len(hosts) - 3} hosts más")
+
+    groups = group_names or []
+    if groups:
+        parts.extend(f"Grupo {name}" for name in groups[:2])
+        if len(groups) > 2:
+            parts.append(f"y {len(groups) - 2} grupos más")
+
+    if parts:
+        return f"{_MAINTENANCE_NAME_DEFAULT}: {', '.join(parts)}"
+    return _MAINTENANCE_NAME_DEFAULT
 
 
 def generate_maintenance_description(
