@@ -1,8 +1,7 @@
 # AI Maintenance Assistant — Widget de Zabbix
 
 Módulo de widget para el dashboard de Zabbix que expone el asistente de
-mantenimiento con IA. Este es el **artefacto de frontend** del proyecto y se
-despliega de forma **independiente del backend**.
+mantenimiento con IA. Se despliega de forma **independiente del backend**.
 
 - **id del módulo:** `aimaintenance`
 - **namespace:** `AIMaintenance`

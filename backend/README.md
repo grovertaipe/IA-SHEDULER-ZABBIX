@@ -1,9 +1,8 @@
 # AI Maintenance Assistant — Backend (Zabbix 7.2+)
 
-Backend HTTP/Flask del "AI Maintenance Assistant" para Zabbix 7.2+. Es el
-**artefacto de servicio** del proyecto y se despliega de forma **independiente
-del widget** (Req 17.4): el widget solo consume esta API a través de una URL
-configurable.
+Backend HTTP/Flask del "AI Maintenance Assistant" para Zabbix 7.2+. Se despliega
+de forma **independiente del widget**: el widget solo consume esta API a través
+de una URL configurable.
 
 - **Lenguaje:** Python 3.11+ / Flask (app factory).
 - **Entry point WSGI:** `app:create_app()` (fábrica de la aplicación, sin lógica
