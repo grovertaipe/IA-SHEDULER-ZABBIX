@@ -61,6 +61,8 @@ def _cfg(**overrides: Any) -> AppConfig:
     base: dict[str, Any] = {
         "zabbix_url": "http://localhost/zabbix/api_jsonrpc.php",
         "zabbix_token": "token",
+        "zabbix_verify_tls": True,
+        "zabbix_ca_bundle": None,
         "ai_provider": "bedrock",
         "gemini_api_key": None,
         "gemini_model": "gemini-flash-lite-latest",

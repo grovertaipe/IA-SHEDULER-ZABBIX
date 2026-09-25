@@ -1,0 +1,53 @@
+# Caddyfile — inbound TLS reverse proxy for the AI Maintenance Assistant.
+#
+# Caddy terminates HTTPS for the browser/widget and forwards plain HTTP to the
+# backend on the internal Docker network. There are THREE modes; the default
+# works with ZERO configuration (no domain, no external certificate), the
+# Elasticsearch/Kibana pattern: HTTPS is on by default, Caddy mints a
+# self-signed certificate from its own internal CA, and the browser warns once
+# (open the backend URL directly and accept the exception).
+#
+# ---------------------------------------------------------------------------
+# MODE 1 (DEFAULT) — self-signed, zero-config (no FQDN, no external cert).
+# ---------------------------------------------------------------------------
+# Active below. `tls internal` makes Caddy issue a self-signed cert via its
+# internal CA. Reach the backend at https://<host> (port 443).
+
+{
+	# Local/self-signed CA — zero-config HTTPS for internal/no-FQDN deployments.
+	# Disable the automatic HTTP->HTTPS redirect so a plain http://<host> probe
+	# still reaches the proxy predictably. For a real domain (MODE 3) you can
+	# remove this line to get the usual redirect behaviour.
+	auto_https disable_redirects
+}
+
+:443 {
+	tls internal
+
+	# Reverse-proxy to ONE backend instance by its Docker service name. To scale
+	# out later, point this at a load balancer or list multiple upstreams, e.g.
+	#   reverse_proxy aima1:5005 aima2:5005 aima3:5005
+	reverse_proxy aima1:5005
+}
+
+# ---------------------------------------------------------------------------
+# MODE 2 — bring your own certificate (production without a public ACME setup).
+# ---------------------------------------------------------------------------
+# Mount your cert/key via a volume (e.g. - ./certs:/certs:ro) and replace the
+# `tls internal` line above with the explicit cert + key paths:
+#
+# :443 {
+#     tls /certs/fullchain.pem /certs/privkey.pem
+#     reverse_proxy aima1:5005
+# }
+
+# ---------------------------------------------------------------------------
+# MODE 3 — real domain with automatic Let's Encrypt (ACME) certificates.
+# ---------------------------------------------------------------------------
+# Requires a PUBLIC FQDN pointing at this host and ports 80/443 reachable from
+# the internet. Replace the whole `:443 { ... }` block above with your domain
+# and drop `tls internal` — Caddy auto-provisions and renews the cert:
+#
+# your.domain.com {
+#     reverse_proxy aima1:5005
+# }

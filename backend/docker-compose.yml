@@ -30,9 +30,42 @@ x-aima-common: &aima-common
     retries: 3
 
 services:
+  # --- Inbound TLS reverse proxy (auto-HTTPS, zero-config) --------------------
+  # Caddy terminates TLS for the browser/widget and forwards plain HTTP to the
+  # backend over the internal network (aima1:5005). With the bundled Caddyfile
+  # it works out of the box using a self-signed internal CA (no domain, no
+  # external cert needed) — the Elasticsearch pattern: HTTPS on by default, the
+  # browser warns once, you accept the certificate. See ./Caddyfile for the
+  # three supported modes (self-signed default / bring-your-own-cert / ACME).
+  #
+  # This service is ADDITIVE: it does not remove the existing backend services.
+  # Once you adopt TLS, point the widget's "Backend API URL" at https://<host>
+  # (port 443) and STOP publishing the raw backend port (see the note on aima1
+  # below) so only the proxy is reachable from the host.
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "443:443"   # HTTPS (the only port you should expose in a TLS deployment)
+      - "80:80"     # HTTP -> Caddy can redirect/serve ACME challenges (optional)
+    networks:
+      - aimaintenance_net
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # persists the auto-generated cert across restarts
+      - caddy_config:/config
+    depends_on:
+      - aima1
+
   aima1:
     <<: *aima-common
     container_name: aima1
+    # In a TLS deployment, expose ONLY the Caddy proxy (443) and DROP this host
+    # port mapping so the raw backend is reachable only inside the Docker
+    # network (Caddy proxies to aima1:5005 internally). Kept published here for
+    # backward compatibility with existing non-TLS single-container users; once
+    # you enable the caddy service, comment out or remove the `ports:` below.
     ports:
       - "5005:5005"
 
@@ -66,3 +99,10 @@ networks:
     ipam:
       config:
         - subnet: 172.31.10.0/24
+
+# Named volumes for Caddy so the auto-generated (self-signed) certificate and
+# its issuer state persist across restarts — otherwise the browser would see a
+# brand-new cert (and warn again) on every `docker compose up`.
+volumes:
+  caddy_data:
+  caddy_config:

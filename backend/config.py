@@ -12,6 +12,17 @@ Base configuration:
 
 * ``ZABBIX_API_URL``          -> ``zabbix_url``
 * ``ZABBIX_TOKEN``            -> ``zabbix_token``
+* ``ZABBIX_VERIFY_TLS``       -> ``zabbix_verify_tls`` (bool, default **True**,
+  SECURE): TLS certificate verification for the OUTBOUND connection to the
+  Zabbix API. Parsed robustly — ``"false"/"0"/"no"/"off"`` (case-insensitive)
+  -> False, ``"true"/"1"/"yes"/"on"`` -> True, empty/absent -> True. Set False
+  ONLY for a self-signed Zabbix you cannot otherwise trust (relaxes
+  verification, like Elasticsearch ``ssl verification_mode=none``). Prefer a CA
+  bundle over disabling verification.
+* ``ZABBIX_CA_BUNDLE``        -> ``zabbix_ca_bundle`` (str | None, default None):
+  absolute path to a CA bundle (PEM) used to verify the Zabbix certificate
+  against a private/internal CA. When set it takes PRECEDENCE over
+  ``ZABBIX_VERIFY_TLS``.
 * ``AI_PROVIDER``             -> ``ai_provider`` ("gemini" | "openai" | "bedrock")
 * ``GOOGLE_API_KEY``          -> ``gemini_api_key``
 * ``GEMINI_MODEL``            -> ``gemini_model``
@@ -153,6 +164,31 @@ def _parse_int(key: str, default: int) -> int:
         return default
 
 
+#: Truthy/falsey string tokens accepted by :func:`_parse_bool` (case-insensitive).
+_TRUE_TOKENS = frozenset({"true", "1", "yes", "on"})
+_FALSE_TOKENS = frozenset({"false", "0", "no", "off"})
+
+
+def _parse_bool(key: str, default: bool) -> bool:
+    """Read a boolean env var defensively; fall back to ``default`` on bad input.
+
+    Accepts common truthy/falsey spellings, case-insensitively and
+    whitespace-trimmed: ``"true"/"1"/"yes"/"on"`` -> ``True`` and
+    ``"false"/"0"/"no"/"off"`` -> ``False``. An empty/absent value returns
+    ``default``; any unrecognised value logs the offending KEY name only (never
+    the value, Req 18.4) and also returns ``default``.
+    """
+    raw = os.environ.get(key, "").strip().lower()
+    if not raw:
+        return default
+    if raw in _TRUE_TOKENS:
+        return True
+    if raw in _FALSE_TOKENS:
+        return False
+    logger.error("Invalid boolean for environment variable %s; using default", key)
+    return default
+
+
 def _parse_float(key: str, default: float) -> float:
     """Read a float env var defensively; fall back to ``default`` on bad input.
 
@@ -204,6 +240,9 @@ class AppConfig:
 
     zabbix_url: str
     zabbix_token: str
+    # --- Outbound TLS verification to the Zabbix API ---
+    zabbix_verify_tls: bool  # default True (secure); relax only for self-signed
+    zabbix_ca_bundle: str | None  # PEM path; takes precedence over the bool
     ai_provider: str  # "gemini" | "openai" | "bedrock" (Req 12.1)
     gemini_api_key: str | None
     gemini_model: str
@@ -258,6 +297,12 @@ class AppConfig:
             logger.error("Missing required environment variable: ZABBIX_API_URL")
         if not zabbix_token:
             logger.error("Missing required environment variable: ZABBIX_TOKEN")
+
+        # Outbound TLS verification to the Zabbix API. Secure by default: verify
+        # against system CAs unless explicitly relaxed. A CA bundle path (when
+        # set) takes precedence over the boolean at the wiring layer (app.py).
+        zabbix_verify_tls = _parse_bool("ZABBIX_VERIFY_TLS", True)
+        zabbix_ca_bundle = env.get("ZABBIX_CA_BUNDLE", "").strip() or None
 
         ai_provider = env.get("AI_PROVIDER", "gemini").strip().lower()
         if ai_provider not in VALID_AI_PROVIDERS:
@@ -393,6 +438,8 @@ class AppConfig:
         return AppConfig(
             zabbix_url=zabbix_url,
             zabbix_token=zabbix_token,
+            zabbix_verify_tls=zabbix_verify_tls,
+            zabbix_ca_bundle=zabbix_ca_bundle,
             ai_provider=ai_provider,
             gemini_api_key=gemini_api_key,
             gemini_model=gemini_model,

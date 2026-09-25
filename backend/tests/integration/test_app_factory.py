@@ -24,6 +24,8 @@ def _config(**overrides: object) -> AppConfig:
     base: dict[str, object] = {
         "zabbix_url": "https://zabbix.example.com/api_jsonrpc.php",
         "zabbix_token": "test-token",
+        "zabbix_verify_tls": True,
+        "zabbix_ca_bundle": None,
         "ai_provider": "gemini",
         "gemini_api_key": "test-key",
         "gemini_model": "gemini-2.0-flash",

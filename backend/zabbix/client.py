@@ -94,6 +94,9 @@ class ZabbixClient:
     kept for connection reuse. All methods raise :class:`ZabbixError` on failure
     rather than returning error dicts, so callers get a single, explicit failure
     path.
+
+    TLS verification for the outbound HTTPS connection is controlled by the
+    ``verify`` constructor argument (secure by default); see :meth:`__init__`.
     """
 
     def __init__(
@@ -103,6 +106,7 @@ class ZabbixClient:
         *,
         timeout: int = DEFAULT_TIMEOUT_SECONDS,
         session: requests.Session | None = None,
+        verify: bool | str = True,
     ) -> None:
         """Create a client bound to ``url`` authenticated with ``token``.
 
@@ -110,12 +114,45 @@ class ZabbixClient:
         (mainly for tests); otherwise a fresh :class:`requests.Session` is used.
         The token is stored only to build the ``Authorization`` header and is
         never logged.
+
+        ``verify`` controls TLS certificate verification for the outbound HTTPS
+        connection to the Zabbix API and mirrors :mod:`requests`' ``verify``
+        semantics (it is forwarded verbatim to every request):
+
+        * ``True`` (default, SECURE) — verify against the system CA bundle.
+        * ``False`` — do NOT verify (relaxes verification). Use ONLY for a
+          self-signed Zabbix you cannot otherwise trust; prefer a CA bundle.
+        * a ``str`` — filesystem path to a CA bundle (PEM) to verify the Zabbix
+          certificate against a private/internal CA.
+
+        When (and only when) ``verify is False`` the client suppresses urllib3's
+        ``InsecureRequestWarning`` once at construction (so logs are not spammed)
+        and emits a single WARNING that verification is disabled. The suppression
+        is best-effort and never raises.
         """
         self.url = url
         self._token = token
         self._timeout = timeout
         self._session = session or requests.Session()
+        self._verify = verify
         self._id = 0
+
+        if self._verify is False:
+            # Explicit opt-out only: silence the per-request InsecureRequestWarning
+            # so disabling verification does not flood the logs. Guard the import
+            # defensively — urllib3 is a requests dependency, but never crash the
+            # client over a warning-suppression concern.
+            try:
+                import urllib3
+
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            except Exception:  # noqa: BLE001
+                pass
+            # One-time heads-up (no token / URL credentials are ever logged).
+            logger.warning(
+                "Zabbix TLS verification is DISABLED (ZABBIX_VERIFY_TLS=false); "
+                "use a CA bundle in production"
+            )
 
     # ------------------------------------------------------------------ #
     # Low-level JSON-RPC transport                                        #
@@ -147,6 +184,7 @@ class ZabbixClient:
                 json=payload,
                 headers=headers,
                 timeout=self._timeout,
+                verify=self._verify,
             )
             response.raise_for_status()
         except requests.exceptions.Timeout as exc:

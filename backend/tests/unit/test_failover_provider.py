@@ -347,6 +347,8 @@ def _cfg(**overrides: object):
     base = dict(
         zabbix_url="https://zbx.example/api_jsonrpc.php",
         zabbix_token="tok",  # noqa: S106 - test placeholder, not a real secret
+        zabbix_verify_tls=True,
+        zabbix_ca_bundle=None,
         ai_provider="gemini",
         gemini_api_key=None,
         gemini_model="gemini-2.0-flash",

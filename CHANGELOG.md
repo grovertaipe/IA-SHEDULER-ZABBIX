@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026
+
+### Added
+- **TLS support, secure by default with zero-config startup** (two independent
+  layers).
+- **Outbound (backend → Zabbix API):** new `ZABBIX_VERIFY_TLS` (default `true`,
+  secure) and `ZABBIX_CA_BUNDLE` settings. A self-signed Zabbix can be reached by
+  setting `ZABBIX_VERIFY_TLS=false` (relaxes verification, like Elasticsearch's
+  `verification_mode=none`), or better, by pointing `ZABBIX_CA_BUNDLE` at a
+  private CA (takes precedence over the flag). Disabling verification logs a
+  one-time warning and suppresses the per-request insecure-TLS noise; the token
+  and URL are never logged.
+- **Inbound (browser/widget → backend):** an optional **Caddy reverse proxy**
+  service in `docker-compose.yml` (+ a documented `Caddyfile`) terminates TLS in
+  front of the backend. Default mode uses Caddy's internal self-signed CA, so
+  HTTPS works with NO domain and NO certificate out of the box (accept the
+  browser warning once, like Elasticsearch/Kibana). Documented paths for
+  bring-your-own-cert and automatic Let's Encrypt with a real domain.
+
+### Changed
+- Secure-deployment docs expanded (README + backend README) with a TLS section
+  covering both layers, plus the reminder to expose only the proxy (443) and not
+  publish the raw backend port in a TLS deployment.
+- The Caddy service is additive; the raw backend port mapping is kept with a
+  migration comment (comment it out once TLS is adopted so only the proxy is
+  exposed).
+
 ## [2.7.0] - 2026
 
 ### Security

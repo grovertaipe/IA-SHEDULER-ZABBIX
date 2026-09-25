@@ -93,7 +93,12 @@ def create_app(config: AppConfig | None = None) -> Flask:
     secure_logger = SecureLogger()
     metrics = Metrics()
 
-    client = ZabbixClient(cfg.zabbix_url, cfg.zabbix_token)
+    # Outbound TLS verification to the Zabbix API. Precedence: a CA bundle path
+    # (truthy str) wins -> verify against it; otherwise the boolean
+    # ``zabbix_verify_tls`` (secure default True). An empty/None bundle falls
+    # through to the bool. Mirrors requests' ``verify`` semantics.
+    verify: bool | str = cfg.zabbix_ca_bundle or cfg.zabbix_verify_tls
+    client = ZabbixClient(cfg.zabbix_url, cfg.zabbix_token, verify=verify)
     provider = build_provider(cfg, secure_logger)
 
     # The validation cache is constructed here so the wiring owns its lifecycle

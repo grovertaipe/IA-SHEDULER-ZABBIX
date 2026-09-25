@@ -152,6 +152,50 @@ curl http://localhost:5005/health
   hornean en la imagen ni se registran en logs. El identificador de sesión
   tampoco se escribe en logs.
 
+### TLS
+
+Hay **dos** aspectos de TLS independientes. Ambos son seguros por defecto.
+
+**1) Salida hacia la API de Zabbix (verificación de certificado).**
+El backend verifica el certificado TLS de tu Zabbix por defecto (seguro).
+
+- `ZABBIX_VERIFY_TLS` (por defecto `true`): déjalo en `true` en producción. Solo
+  ponlo en `false` si tu Zabbix usa un certificado autofirmado que no puedes
+  confiar de otra forma (relaja la verificación, como
+  `ssl verification_mode=none` de Elasticsearch). Al desactivarlo se registra un
+  aviso una sola vez y se silencia el ruido de urllib3.
+- `ZABBIX_CA_BUNDLE` (opcional): ruta absoluta (dentro del contenedor) a un
+  *bundle* de CA (PEM) para verificar contra una CA privada/interna. **Tiene
+  precedencia** sobre `ZABBIX_VERIFY_TLS`. Es la opción **preferida** frente a
+  desactivar la verificación; monta el archivo con un volumen.
+
+**2) Entrada desde el navegador/widget (proxy inverso Caddy con auto-HTTPS).**
+El `docker-compose.yml` incluye un servicio `caddy` que termina TLS y reenvía
+HTTP plano al backend por la red interna (`aima1:5005`). Tres modos (ver
+`Caddyfile`):
+
+- **Autofirmado (por defecto, sin configuración).** `tls internal` genera un
+  certificado con la CA interna de Caddy: funciona **sin dominio ni certificado
+  externo**. El navegador avisará una vez — abre la URL del backend
+  (`https://<host>`) directamente y **acepta la excepción** del certificado,
+  igual que con Elasticsearch/Kibana.
+- **Trae tu propio certificado.** Sustituye `tls internal` por
+  `tls /certs/fullchain.pem /certs/privkey.pem` y monta los archivos con un
+  volumen.
+- **Dominio real con Let's Encrypt (ACME).** Reemplaza `:443` por
+  `tu.dominio.com` y quita `tls internal`: Caddy aprovisiona y renueva el
+  certificado automáticamente. Requiere un FQDN público y los puertos 80/443
+  accesibles.
+
+Con TLS activo, configura la **"Backend API URL"** del widget como
+`https://<host>` (puerto 443) en lugar de `http://<host>:5015`. Recuerda que
+`CORS_ALLOWED_ORIGINS` debe seguir listando el origen del frontend de Zabbix.
+
+> Expón **solo** el proxy (443). En un despliegue con TLS deja de publicar el
+> puerto crudo del backend (comenta el `ports:` de `aima1` en
+> `docker-compose.yml`) para que el backend solo sea accesible dentro de la red
+> de Docker.
+
 > Cambio de seguridad importante (v2): se eliminó el mecanismo previo que solo
 > comprobaba que un `userid` existiera en Zabbix. Ese esquema permitía que
 > cualquiera que adivinara un `userid` válido (p. ej. `1` = Admin) actuara. El

@@ -83,8 +83,25 @@ Esto levanta las instancias `aima1..aima5` en los puertos **5005–5009**.
   alcance el backend (firewall / security group o interfaz interna).
 - **Secretos por entorno**, nunca horneados en la imagen ni en logs.
 
+### TLS (seguro por defecto)
+
+Dos aspectos independientes, ambos seguros por defecto:
+
+- **Salida a Zabbix.** El backend verifica el certificado TLS de Zabbix por
+  defecto. `ZABBIX_VERIFY_TLS` (por defecto `true`) solo debe ponerse en `false`
+  para un Zabbix autofirmado que no puedas confiar de otra forma; **preferible**
+  usar `ZABBIX_CA_BUNDLE` (ruta a un bundle PEM de una CA privada), que tiene
+  precedencia sobre el booleano.
+- **Entrada desde el navegador/widget.** El `docker-compose.yml` incluye un
+  proxy inverso **Caddy** con auto-HTTPS. Tres modos: **autofirmado** (por
+  defecto, sin dominio ni certificado — el navegador avisa una vez y aceptas la
+  excepción, como Elasticsearch/Kibana), **tu propio certificado**, o
+  **Let's Encrypt/ACME** con un dominio real. Con TLS activo, apunta la
+  "Backend API URL" del widget a `https://<host>` (443) y expón **solo** el
+  proxy (deja de publicar el puerto crudo del backend).
+
 Detalles y guía completa en **[`backend/README.md`](backend/README.md)** →
-sección "Seguridad / despliegue seguro".
+sección "Seguridad / despliegue seguro" (subsección "TLS").
 
 ## Estructura del repositorio
 
