@@ -189,23 +189,34 @@ El backend verifica el certificado TLS de tu Zabbix por defecto (seguro).
   precedencia** sobre `ZABBIX_VERIFY_TLS`. Es la opción **preferida** frente a
   desactivar la verificación; monta el archivo con un volumen.
 
-**2) Entrada desde el navegador/widget (proxy inverso Caddy con auto-HTTPS).**
+**2) Entrada desde el navegador/widget (proxy inverso Caddy).**
 El `docker-compose.yml` incluye un servicio `caddy` que termina TLS y reenvía
 HTTP plano al backend por la red interna (`aima1:5005`). Tres modos (ver
 `Caddyfile`):
 
-- **Autofirmado (por defecto, sin configuración).** `tls internal` genera un
-  certificado con la CA interna de Caddy: funciona **sin dominio ni certificado
-  externo**. El navegador avisará una vez — abre la URL del backend
-  (`https://<host>`) directamente y **acepta la excepción** del certificado,
-  igual que con Elasticsearch/Kibana.
-- **Trae tu propio certificado.** Sustituye `tls internal` por
-  `tls /certs/fullchain.pem /certs/privkey.pem` y monta los archivos con un
-  volumen.
-- **Dominio real con Let's Encrypt (ACME).** Reemplaza `:443` por
-  `tu.dominio.com` y quita `tls internal`: Caddy aprovisiona y renueva el
-  certificado automáticamente. Requiere un FQDN público y los puertos 80/443
-  accesibles.
+- **Autofirmado para tu IP/FQDN (por defecto).** Un certificado autofirmado
+  cubre las IPs/FQDNs que declares en `AIMA_TLS_HOSTS` (lista separada por
+  comas, p. ej. `10.100.13.107,aima.example.local`). El servicio de un solo uso
+  `caddy_init` lo genera automáticamente al hacer `docker compose up` — **sin
+  openssl manual** — y Caddy lo sirve con `tls /certs/backend.crt
+  /certs/backend.key`. `127.0.0.1` y `localhost` se incluyen **siempre**, aunque
+  no los pongas. El navegador avisará una vez — abre `https://<host>`
+  directamente y **acepta la excepción** del certificado, igual que con
+  Elasticsearch/Kibana. Este modo **reemplaza al antiguo `tls internal`**, que
+  no podía servir una IP desnuda sin SNI. HTTP/3 (QUIC) queda **desactivado**
+  (`protocols h1 h2`) para que el handshake por IP sea determinista.
+
+  Para **forzar la regeneración** del certificado (por ejemplo tras cambiar
+  `AIMA_TLS_HOSTS`), borra el directorio `certs/` y vuelve a ejecutar
+  `docker compose up`: `caddy_init` emitirá un certificado nuevo con los hosts
+  actuales.
+- **Trae tu propio certificado.** Coloca tu certificado y clave en `./certs` y
+  apunta `tls` a ellos (p. ej. `tls /certs/fullchain.pem /certs/privkey.pem`)
+  en lugar de al autofirmado generado.
+- **Dominio real con Let's Encrypt (ACME).** Usa un bloque de dominio
+  (reemplaza `:443` por `tu.dominio.com` y quita la línea `tls /certs/...`):
+  Caddy aprovisiona y renueva el certificado automáticamente. Requiere un FQDN
+  público y los puertos 80/443 accesibles.
 
 Con TLS activo, configura la **"Backend API URL"** del widget como
 `https://<host>` (puerto 443) en lugar de `http://<host>:5015`. Recuerda que

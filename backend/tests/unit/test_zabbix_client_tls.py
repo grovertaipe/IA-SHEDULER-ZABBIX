@@ -92,3 +92,36 @@ def test_verify_defaults_to_true_when_omitted() -> None:
     client.is_connected()
     assert session.last_kwargs is not None
     assert session.last_kwargs["verify"] is True
+
+
+def test_check_authentication_is_called_without_authorization_header() -> None:
+    """``user.checkAuthentication`` MUST be sent WITHOUT an ``Authorization``
+    header: Zabbix 7.2 rejects it otherwise ("must be called without
+    authorization header"). This is the regression guard for that fix.
+    """
+    session = _RecordingSession()
+    client = ZabbixClient(
+        "https://zabbix.invalid/api_jsonrpc.php",
+        "secret-token",
+        session=session,  # type: ignore[arg-type]
+    )
+    client.check_authentication("some-session-id")
+    assert session.last_kwargs is not None
+    headers = session.last_kwargs["headers"]
+    assert "Authorization" not in headers
+
+
+def test_regular_calls_still_send_bearer_authorization_header() -> None:
+    """Authenticated calls (the default) still carry the bearer token so the
+    fix does not weaken normal API auth.
+    """
+    session = _RecordingSession()
+    client = ZabbixClient(
+        "https://zabbix.invalid/api_jsonrpc.php",
+        "secret-token",
+        session=session,  # type: ignore[arg-type]
+    )
+    client.is_connected()
+    assert session.last_kwargs is not None
+    headers = session.last_kwargs["headers"]
+    assert headers.get("Authorization") == "Bearer secret-token"

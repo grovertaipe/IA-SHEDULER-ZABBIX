@@ -82,7 +82,9 @@ class _RaisingRpcClient(ZabbixClient):
         super().__init__("http://zabbix.invalid/api_jsonrpc.php", "token")
         self.rpc_calls = 0
 
-    def _rpc(self, method: str, params: dict[str, Any]) -> Any:
+    def _rpc(
+        self, method: str, params: dict[str, Any], *, authenticated: bool = True
+    ) -> Any:
         self.rpc_calls += 1
         raise ZabbixError("Zabbix unreachable")
 

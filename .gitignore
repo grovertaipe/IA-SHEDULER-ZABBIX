@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -20,6 +20,10 @@ htmlcov/
 # Secrets / local config
 .env
 *.env.local
+
+# Auto-generated TLS certificates (self-signed inbound cert + private key)
+backend/certs/
+certs/
 
 # Logs
 *.log

@@ -1,4 +1,4 @@
-﻿# AI Maintenance Assistant for Zabbix 7.2+
+# AI Maintenance Assistant for Zabbix 7.2+
 
 Sistema interactivo de mantenimientos para Zabbix 7.2+ con inteligencia
 artificial. Permite crear mantenimientos únicos y rutinarios usando lenguaje
@@ -93,12 +93,13 @@ Dos aspectos independientes, ambos seguros por defecto:
   usar `ZABBIX_CA_BUNDLE` (ruta a un bundle PEM de una CA privada), que tiene
   precedencia sobre el booleano.
 - **Entrada desde el navegador/widget.** El `docker-compose.yml` incluye un
-  proxy inverso **Caddy** con auto-HTTPS. Tres modos: **autofirmado** (por
-  defecto, sin dominio ni certificado — el navegador avisa una vez y aceptas la
-  excepción, como Elasticsearch/Kibana), **tu propio certificado**, o
-  **Let's Encrypt/ACME** con un dominio real. Con TLS activo, apunta la
-  "Backend API URL" del widget a `https://<host>` (443) y expón **solo** el
-  proxy (deja de publicar el puerto crudo del backend).
+  proxy inverso **Caddy**. Tres modos: **autofirmado** (por defecto —
+  autofirmado para tu IP/FQDN vía `AIMA_TLS_HOSTS`, generado automáticamente por
+  un contenedor init; el navegador avisa una vez y aceptas la excepción, como
+  Elasticsearch/Kibana), **tu propio certificado**, o **Let's Encrypt/ACME** con
+  un dominio real. Con TLS activo, apunta la "Backend API URL" del widget a
+  `https://<host>` (443) y expón **solo** el proxy (deja de publicar el puerto
+  crudo del backend).
 
 Detalles y guía completa en **[`backend/README.md`](backend/README.md)** →
 sección "Seguridad / despliegue seguro" (subsección "TLS").

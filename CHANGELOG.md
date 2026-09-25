@@ -1,8 +1,36 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.8.2] - 2026
+
+### Fixed
+- **Inbound TLS now works for IP-only / no-FQDN deployments.** The Caddy default
+  switched from `tls internal` (which cannot serve a bare IP with no SNI and
+  failed the handshake with `tlsv1 alert internal error`) to an auto-generated
+  self-signed certificate whose SANs come from a new `AIMA_TLS_HOSTS` variable
+  (comma-separated IPs/FQDNs; loopback always included). A one-shot `caddy_init`
+  service mints the cert at startup — zero manual openssl, idempotent (reuses an
+  existing cert; delete `certs/` to regenerate). HTTP/3/QUIC is disabled for a
+  deterministic handshake. Shell variables inside the compose `command` are
+  escaped as `$$` so docker compose no longer swallows them (which had produced
+  an empty SAN list and an openssl failure).
+- **Session authentication end-to-end fix (widget could never authenticate).**
+  Two independent defects:
+  - The widget serialized `sessionid: null` because the view exposed
+    `CWebUser::$data['sessionid']`, which is absent on a normal authenticated
+    request. It now reads the real session id from `CSessionHelper::getId()`
+    (the source the Zabbix frontend itself uses) and forwards it to the JS.
+  - The backend sent `Authorization: Bearer <token>` on the
+    `user.checkAuthentication` call, which Zabbix 7.2 rejects ("must be called
+    without authorization header"). `_rpc` now omits the header for that method
+    (`authenticated=False`) while all other calls keep the bearer token.
+
+### Changed
+- Documented the auto self-signed IP/FQDN TLS mode (default) in both READMEs,
+  including `AIMA_TLS_HOSTS` and how to force certificate regeneration.
 
 ## [2.8.1] - 2026
 

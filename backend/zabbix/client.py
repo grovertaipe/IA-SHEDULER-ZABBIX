@@ -157,7 +157,9 @@ class ZabbixClient:
     # ------------------------------------------------------------------ #
     # Low-level JSON-RPC transport                                        #
     # ------------------------------------------------------------------ #
-    def _rpc(self, method: str, params: dict[str, Any]) -> Any:
+    def _rpc(
+        self, method: str, params: dict[str, Any], *, authenticated: bool = True
+    ) -> Any:
         """Perform a single JSON-RPC 2.0 call and return the ``result`` payload.
 
         Builds the ``{jsonrpc, method, params, id}`` envelope, sends it with the
@@ -173,10 +175,12 @@ class ZabbixClient:
             "params": params,
             "id": self._id,
         }
-        headers = {
-            "Content-Type": "application/json-rpc",
-            "Authorization": f"Bearer {self._token}",
-        }
+        headers = {"Content-Type": "application/json-rpc"}
+        if authenticated:
+            # user.checkAuthentication / user.login MUST be called WITHOUT an
+            # Authorization header; Zabbix 7.2 rejects them otherwise. Callers
+            # verifying a session pass authenticated=False.
+            headers["Authorization"] = f"Bearer {self._token}"
 
         try:
             response = self._session.post(
@@ -274,6 +278,7 @@ class ZabbixClient:
             result = self._rpc(
                 "user.checkAuthentication",
                 {"sessionid": sessionid, "extend": False},
+                authenticated=False,
             )
         except ZabbixError:
             # Invalid/expired session OR Zabbix unreachable — both fail closed.

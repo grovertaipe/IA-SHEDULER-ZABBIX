@@ -25,6 +25,20 @@ $accentColor = $data['fields_values']['accent_color'] ?? '';
 // Current user information.
 $userInfo = CWebUser::$data;
 
+// The Zabbix frontend SESSION id used by the backend to authenticate every
+// acting request via user.checkAuthentication. It lives in the PHP session
+// ($_SESSION['sessionid']) and is retrieved with CSessionHelper::getId() — the
+// same source the Zabbix frontend uses for its own server/API calls. It is NOT
+// reliably present in CWebUser::$data on a normal authenticated request (that
+// is populated from API::User()->checkAuthentication(), whose result omits the
+// 'sessionid' key), so reading CWebUser::$data['sessionid'] there yields null.
+// It is exposed to the widget JS via ->setVar('sessionid', ...) below and sent
+// ONLY to the trusted backend over TLS; never displayed or persisted.
+$sessionid = \CSessionHelper::getId();
+if ($sessionid === '') {
+    $sessionid = CWebUser::$data['sessionid'] ?? null;
+}
+
 // Resolve the widget UI language from the Zabbix user language (Req 33.2).
 Translator::init($userInfo['lang'] ?? null);
 
@@ -250,5 +264,6 @@ $container = (new CDiv())
     ->addItem($container)
     ->setVar('api_url', $apiUrl)
     ->setVar('user_info', $userInfo)
+    ->setVar('sessionid', $sessionid)
     ->setVar('fields_values', $data['fields_values'])
     ->show();
