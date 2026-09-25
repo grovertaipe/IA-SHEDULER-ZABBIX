@@ -63,11 +63,18 @@ Resumen del backend con Docker:
 
 ```bash
 cd backend
-cp .env.example .env        # Edita ZABBIX_API_URL, ZABBIX_TOKEN, la clave de IA, etc.
-docker compose up --build -d
+cp .env.example .env        # Edita ZABBIX_API_URL, ZABBIX_TOKEN, el proveedor de IA, etc.
+docker compose pull
+docker compose up -d
 ```
 
-Esto levanta las instancias `aima1..aima5` en los puertos **5005–5009**.
+Esto levanta una **única** instancia del backend (`aima1`) detrás del proxy
+**Caddy** (solo se expone el proxy). Por defecto se descarga la imagen publicada
+en GHCR; compilar desde el código fuente es opcional (descomenta el bloque
+`build:` en `docker-compose.yml` y usa `docker compose up --build -d`).
+
+> Cada instancia del backend atiende **un** Zabbix (configurado por `.env`);
+> atender múltiples Zabbix con un solo stack no está soportado hoy.
 
 ## Seguridad / despliegue seguro
 
@@ -136,6 +143,10 @@ publicación:
 ![Widget del asistente de mantenimiento](docs/images/captura1.png)
 
 ![Formulario del widget](docs/images/captura2.png)
+
+![Mantenimiento creado en Zabbix](docs/images/captura3.png)
+
+Evidencia de un mantenimiento creado desde el asistente en Zabbix.
 
 ## Licencia y soporte
 

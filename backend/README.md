@@ -19,8 +19,8 @@ de una URL configurable.
 - Python **3.11 o superior** (para ejecución local) o Docker.
 - Un servidor **Zabbix 7.2+** accesible y un **token de API** con permisos de
   mantenimiento.
-- Una clave de API de un proveedor de IA: **Google Gemini** (por defecto) u
-  **OpenAI**.
+- Una clave de API de un proveedor de IA: **Google Gemini** (por defecto),
+  **OpenAI** o **Amazon Bedrock** (Amazon Nova).
 
 ## Configuración (variables de entorno)
 
@@ -39,7 +39,7 @@ Variables **base** (obligatorias para operar):
 |----------|-------------|
 | `ZABBIX_API_URL` | Endpoint JSON-RPC de Zabbix (`.../api_jsonrpc.php`) |
 | `ZABBIX_TOKEN` | Token de API de Zabbix (secreto) |
-| `AI_PROVIDER` | Proveedor de IA: `gemini` u `openai` |
+| `AI_PROVIDER` | Proveedor de IA: `gemini` \| `openai` \| `bedrock` |
 | `GOOGLE_API_KEY` / `GEMINI_MODEL` | Credencial y modelo de Gemini |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | Credencial y modelo de OpenAI |
 | `CORS_ALLOWED_ORIGINS` | Orígenes permitidos, explícitos (nunca `*`) |
@@ -55,12 +55,17 @@ validación de esquema (`AI_SCHEMA_MAX_ATTEMPTS`).
 > Los secretos nunca se incluyen en la imagen ni en el repositorio: `.env` está
 > ignorado por git y por el contexto de build de Docker.
 
+Si usas **Amazon Bedrock** (`AI_PROVIDER=bedrock`), las variables clave son:
+`BEDROCK_MODEL` (por defecto `amazon.nova-lite-v1:0`), `AWS_REGION` (requerido) y
+las credenciales — `AWS_BEARER_TOKEN_BEDROCK` (recomendado para setups rápidos) o
+el par `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` (o la cadena de credenciales
+por defecto de AWS: IAM role / instance profile).
+
 ## Despliegue con Docker (recomendado)
 
-El `docker-compose.yml` despliega **tres** instancias del backend
-(`aima1..aima3`) detrás de un proxy inverso **Caddy** que termina TLS. Por
-defecto usa la **imagen publicada en GHCR** (no necesitas compilar): solo
-descárgala y levanta.
+El `docker-compose.yml` despliega una **única** instancia del backend (`aima1`)
+detrás de un proxy inverso **Caddy** que termina TLS. Por defecto usa la
+**imagen publicada en GHCR** (no necesitas compilar): solo descárgala y levanta.
 
 ```bash
 cp .env.example .env
@@ -73,10 +78,14 @@ Fija una versión con `AIMA_VERSION` en tu `.env` (p. ej. `AIMA_VERSION=v2.8.0`)
 por defecto es `latest`. La imagen la publica el CI en GHCR en cada tag:
 `ghcr.io/grovertaipe/ia-sheduler-zabbix`.
 
-Solo se expone el proxy **Caddy** en el puerto **443** (HTTPS). Las instancias
-del backend no publican puertos al host: son accesibles únicamente dentro de la
-red de Docker, y Caddy les reenvía el tráfico. Apunta la "Backend API URL" del
-widget a `https://<host>`.
+Solo se expone el proxy **Caddy** en el puerto **443** (HTTPS). La instancia del
+backend no se publica al host: es accesible únicamente dentro de la red de
+Docker, y Caddy le reenvía el tráfico. Apunta la "Backend API URL" del widget a
+`https://<host>`.
+
+Una instancia = un Zabbix: cada stack atiende un único Zabbix (configurado por
+`.env`). Para varios Zabbix hoy hay que desplegar stacks separados; atender
+múltiples Zabbix en un mismo stack no está soportado (posible mejora futura).
 
 Comprobar estado y logs:
 
@@ -271,7 +280,7 @@ backend/
 ├── observability/    # Métricas / logging seguro
 ├── tests/            # unit / property / integration / fixtures
 ├── Dockerfile        # Imagen del backend (gunicorn → app:create_app())
-├── docker-compose.yml# aima1-3 + proxy TLS Caddy (imagen GHCR)
+├── docker-compose.yml# aima1 + proxy TLS Caddy (imagen GHCR)
 └── .env.example      # Plantilla de configuración (sin secretos)
 ```
 

@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.3] - 2026
+
+### Changed
+- Simplified the deployment to a **single** backend instance (`aima1`) behind the
+  Caddy TLS proxy (the extra idle replicas `aima2`/`aima3` were removed; the
+  backend is stateless and the proxy routed only to `aima1`). One instance serves
+  one Zabbix; multi-Zabbix in a single stack is not supported.
+- Documentation refresh: documented Amazon Bedrock as a first-class AI provider
+  (models, region, bearer-token vs access keys), corrected the deploy flow to
+  pull the GHCR image by default (build-from-source optional), and removed stale
+  references to `aima1..aima5` / ports 5005–5009.
+
 ## [2.8.2] - 2026
 
 ### Fixed

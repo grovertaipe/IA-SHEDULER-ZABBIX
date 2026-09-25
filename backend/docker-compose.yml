@@ -1,6 +1,9 @@
 # zabbix-ai-maintenance-v2 — deployment (Req 18.2).
 #
-# THREE backend instances (aima1..aima3) behind a Caddy TLS reverse proxy.
+# A SINGLE backend instance (aima1) behind a Caddy TLS reverse proxy.
+#
+# One backend instance serves one Zabbix (configured via .env). Multiple Zabbix
+# targets are not supported by a single stack today.
 #
 # DEPLOY (recommended) — pull the published image from GHCR, no build needed:
 #
@@ -126,8 +129,8 @@ services:
   # ./Caddyfile for the three supported modes (auto self-signed default /
   # bring-your-own-cert / ACME).
   #
-  # In a TLS deployment expose ONLY this proxy (443). The backend instances are
-  # NOT published to the host (no `ports:`), so they are reachable only inside
+  # In a TLS deployment expose ONLY this proxy (443). The backend instance is
+  # NOT published to the host (no `ports:`), so it is reachable only inside
   # the Docker network; point the widget's "Backend API URL" at https://<host>.
   caddy:
     image: caddy:2
@@ -152,14 +155,6 @@ services:
   aima1:
     <<: *aima-common
     container_name: aima1
-
-  aima2:
-    <<: *aima-common
-    container_name: aima2
-
-  aima3:
-    <<: *aima-common
-    container_name: aima3
 
 networks:
   aimaintenance_net:
