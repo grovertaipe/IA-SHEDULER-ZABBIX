@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.1] - 2026
+
+### Changed
+- **Easier deployment: docker-compose now pulls the published GHCR image by
+  default** instead of building from source. `docker compose pull && up -d`
+  works with no local build. Pin a version with `AIMA_VERSION` in `.env`
+  (defaults to `latest`); building from source is available by uncommenting the
+  `build:` block. Simplified to three backend instances (`aima1..aima3`) behind
+  the Caddy TLS proxy, with only the proxy (443) exposed to the host.
+- Updated the README deployment section and `.env.example` (`AIMA_VERSION`)
+  accordingly.
+
 ## [2.8.0] - 2026
 
 ### Added

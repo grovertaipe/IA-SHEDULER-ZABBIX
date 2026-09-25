@@ -1,22 +1,31 @@
-# zabbix-ai-maintenance-v2 — multi-instance deployment (Req 18.2).
+﻿# zabbix-ai-maintenance-v2 — deployment (Req 18.2).
 #
-# Five backend instances aima1..aima5 mapped to host ports 5005..5009. Each
-# container listens on 5005 internally (matching the Dockerfile CMD / gunicorn
-# bind) and is published on a distinct host port. All instances share the same
-# image (built once) and the same runtime configuration from `.env` (env_file).
+# THREE backend instances (aima1..aima3) behind a Caddy TLS reverse proxy.
+#
+# DEPLOY (recommended) — pull the published image from GHCR, no build needed:
+#
+#   cp .env.example .env      # then edit .env with your values
+#   docker compose pull
+#   docker compose up -d
+#
+# Pin a version by setting AIMA_VERSION in your .env (e.g. AIMA_VERSION=v2.8.0);
+# it defaults to `latest`. The image is published by CI to GHCR on every tag.
+#
+# DEVELOP (build from source instead of pulling) — uncomment the `build:` block
+# in the `x-aima-common` anchor below, then:  docker compose up --build -d
 #
 # Secrets are NEVER inlined here — they come from the `.env` file referenced via
-# `env_file` (see .env.example). Copy .env.example to .env before running:
-#
-#   docker compose up --build -d
-#
-# The shared build reuses the single locally-built image across all instances.
+# `env_file` (see .env.example); `.env` is git-ignored and excluded from the
+# Docker build context.
 
 x-aima-common: &aima-common
-  image: aimaintenance-backend:latest
-  build:
-    context: .
-    dockerfile: Dockerfile
+  # Published multi-arch image from GHCR (default deploy path). Override the tag
+  # with AIMA_VERSION in .env (defaults to `latest`).
+  image: ghcr.io/grovertaipe/ia-sheduler-zabbix:${AIMA_VERSION:-latest}
+  # To BUILD FROM SOURCE instead of pulling the published image, uncomment:
+  # build:
+  #   context: .
+  #   dockerfile: Dockerfile
   restart: unless-stopped
   env_file:
     - .env
@@ -38,17 +47,16 @@ services:
   # browser warns once, you accept the certificate. See ./Caddyfile for the
   # three supported modes (self-signed default / bring-your-own-cert / ACME).
   #
-  # This service is ADDITIVE: it does not remove the existing backend services.
-  # Once you adopt TLS, point the widget's "Backend API URL" at https://<host>
-  # (port 443) and STOP publishing the raw backend port (see the note on aima1
-  # below) so only the proxy is reachable from the host.
+  # In a TLS deployment expose ONLY this proxy (443). The backend instances are
+  # NOT published to the host (no `ports:`), so they are reachable only inside
+  # the Docker network; point the widget's "Backend API URL" at https://<host>.
   caddy:
     image: caddy:2
     container_name: caddy
     restart: unless-stopped
     ports:
-      - "443:443"   # HTTPS (the only port you should expose in a TLS deployment)
-      - "80:80"     # HTTP -> Caddy can redirect/serve ACME challenges (optional)
+      - "443:443"   # HTTPS (the only port exposed to the host)
+      - "80:80"     # HTTP -> redirect / ACME challenges (optional)
     networks:
       - aimaintenance_net
     volumes:
@@ -61,37 +69,14 @@ services:
   aima1:
     <<: *aima-common
     container_name: aima1
-    # In a TLS deployment, expose ONLY the Caddy proxy (443) and DROP this host
-    # port mapping so the raw backend is reachable only inside the Docker
-    # network (Caddy proxies to aima1:5005 internally). Kept published here for
-    # backward compatibility with existing non-TLS single-container users; once
-    # you enable the caddy service, comment out or remove the `ports:` below.
-    ports:
-      - "5005:5005"
 
   aima2:
     <<: *aima-common
     container_name: aima2
-    ports:
-      - "5006:5005"
 
   aima3:
     <<: *aima-common
     container_name: aima3
-    ports:
-      - "5007:5005"
-
-  aima4:
-    <<: *aima-common
-    container_name: aima4
-    ports:
-      - "5008:5005"
-
-  aima5:
-    <<: *aima-common
-    container_name: aima5
-    ports:
-      - "5009:5005"
 
 networks:
   aimaintenance_net:

@@ -57,29 +57,49 @@ validación de esquema (`AI_SCHEMA_MAX_ATTEMPTS`).
 
 ## Despliegue con Docker (recomendado)
 
-El `docker-compose.yml` define cinco instancias `aima1..aima5` mapeadas a los
-puertos de host **5005–5009** (cada contenedor escucha en el 5005 internamente).
-Todas comparten la misma imagen (construida una sola vez) y la misma
-configuración desde `.env`.
+El `docker-compose.yml` despliega **tres** instancias del backend
+(`aima1..aima3`) detrás de un proxy inverso **Caddy** que termina TLS. Por
+defecto usa la **imagen publicada en GHCR** (no necesitas compilar): solo
+descárgala y levanta.
 
 ```bash
 cp .env.example .env
-# Edita .env
-docker compose up --build -d
+# Edita .env con tus valores (incluye AI_PROVIDER, credenciales, CORS, etc.)
+docker compose pull
+docker compose up -d
 ```
+
+Fija una versión con `AIMA_VERSION` en tu `.env` (p. ej. `AIMA_VERSION=v2.8.0`);
+por defecto es `latest`. La imagen la publica el CI en GHCR en cada tag:
+`ghcr.io/grovertaipe/ia-sheduler-zabbix`.
+
+Solo se expone el proxy **Caddy** en el puerto **443** (HTTPS). Las instancias
+del backend no publican puertos al host: son accesibles únicamente dentro de la
+red de Docker, y Caddy les reenvía el tráfico. Apunta la "Backend API URL" del
+widget a `https://<host>`.
 
 Comprobar estado y logs:
 
 ```bash
 docker compose ps
 docker compose logs -f aima1
+docker compose logs -f caddy
 ```
 
-### Instancia única
+### Compilar desde el código fuente (desarrollo)
+
+Para construir la imagen localmente en lugar de descargarla de GHCR, descomenta
+el bloque `build:` del ancla `x-aima-common` en `docker-compose.yml` y usa:
 
 ```bash
-docker build -t aimaintenance-backend:latest .
-docker run -d --name aima1 -p 5005:5005 --env-file .env aimaintenance-backend:latest
+docker compose up --build -d
+```
+
+### Instancia única (sin compose)
+
+```bash
+docker run -d --name aima1 -p 5005:5005 --env-file .env \
+  ghcr.io/grovertaipe/ia-sheduler-zabbix:latest
 ```
 
 ## Ejecución local (sin Docker)
@@ -240,7 +260,7 @@ backend/
 ├── observability/    # Métricas / logging seguro
 ├── tests/            # unit / property / integration / fixtures
 ├── Dockerfile        # Imagen del backend (gunicorn → app:create_app())
-├── docker-compose.yml# Instancias aima1-5 (puertos 5005-5009)
+├── docker-compose.yml# aima1-3 + proxy TLS Caddy (imagen GHCR)
 └── .env.example      # Plantilla de configuración (sin secretos)
 ```
 
