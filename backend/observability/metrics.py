@@ -22,6 +22,10 @@ Requirements: 30.1.
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     CollectorRegistry,
@@ -29,6 +33,9 @@ from prometheus_client import (
     Histogram,
     generate_latest,
 )
+
+if TYPE_CHECKING:  # pragma: no cover - typing-only imports
+    from flask import Flask, Response
 
 #: Prometheus content type for the exposition format, re-exported so callers
 #: (the ``/metrics`` blueprint) do not need to import ``prometheus_client``.
@@ -156,3 +163,112 @@ def render(metrics: Metrics) -> tuple[bytes, str]:
         A ``(payload, content_type)`` tuple ready to build an HTTP response.
     """
     return metrics.render(), PROMETHEUS_CONTENT_TYPE
+
+
+# ---------------------------------------------------------------------------
+# Request-metrics middleware (Req 30.1)
+# ---------------------------------------------------------------------------
+#
+# The collectors above only expose samples once something records them; on their
+# own they render as bare ``# HELP``/``# TYPE`` lines with no data. This edge
+# feeds :meth:`Metrics.record_request` once per handled request so the ``/metrics``
+# blueprint (``api/metrics.py``) exposes real samples.
+#
+# Design (mirrors ``api/rate_limit.py``):
+#
+# * :func:`install_request_metrics` is the ``install_*`` helper the app factory
+#   calls; it registers a ``before_request`` hook that stamps a monotonic start
+#   time on :data:`flask.g` and an ``after_request`` hook that observes the
+#   elapsed latency, the response status and a low-cardinality endpoint label.
+# * The clock is an **injected** callable (default :func:`time.perf_counter`, a
+#   monotonic timer — never :func:`time.time`) so latency measurement is
+#   deterministic and testable without patching the standard library.
+# * Flask is imported **lazily inside the hooks** so this module — and the pure
+#   collectors above — stay importable and testable without Flask installed.
+# * Endpoint label hygiene: the label is derived from the matched Flask ROUTE
+#   (``request.url_rule.rule``, e.g. ``"/maintenance/list"``), falling back to
+#   ``request.endpoint`` and then to ``"unknown"``. The raw URL / query string is
+#   NEVER used, which keeps label cardinality bounded and prevents leaking query
+#   parameters such as ``?sessionid=`` into the exposition text (Req 30.1).
+
+#: Key under which the per-request start timestamp is stashed on ``flask.g``.
+_METRICS_START_ATTR = "_metrics_start"
+
+#: Label used when no route/endpoint can be resolved for a request (e.g. a 404
+#: that never matched a rule). Keeps the label set bounded.
+_UNKNOWN_ENDPOINT = "unknown"
+
+
+def _endpoint_label(request: object) -> str:
+    """Derive a low-cardinality endpoint label from ``request`` (Req 30.1).
+
+    Prefers the matched route *rule* (e.g. ``"/maintenance/list"``) so the label
+    is the template rather than the concrete path — this bounds cardinality and,
+    critically, never contains the raw URL or query string (so a value like
+    ``?sessionid=...`` can never leak into the metrics). Falls back to the Flask
+    endpoint name and finally to :data:`_UNKNOWN_ENDPOINT`.
+
+    Args:
+        request: The Flask request (duck-typed for testability).
+
+    Returns:
+        A stable, non-sensitive endpoint label string.
+    """
+    url_rule = getattr(request, "url_rule", None)
+    if url_rule is not None:
+        rule = getattr(url_rule, "rule", None)
+        if rule:
+            return str(rule)
+    endpoint = getattr(request, "endpoint", None)
+    if endpoint:
+        return str(endpoint)
+    return _UNKNOWN_ENDPOINT
+
+
+def install_request_metrics(
+    app: Flask,
+    metrics: Metrics,
+    clock: Callable[[], float] = time.perf_counter,
+) -> None:
+    """Register per-request metric hooks on ``app`` (Req 30.1).
+
+    Wires ``metrics`` into Flask so every handled request contributes a sample:
+
+    * a ``before_request`` hook stamps a monotonic start time on
+      :data:`flask.g`;
+    * an ``after_request`` hook computes the elapsed latency, resolves a
+      low-cardinality endpoint label (:func:`_endpoint_label`) and calls
+      :meth:`Metrics.record_request` before returning the response unchanged.
+
+    The start stamp is read defensively: a request that skipped
+    ``before_request`` (for example a 404 that matched no rule) still gets
+    counted, with a ``0.0`` latency, so no request is silently dropped from the
+    counts.
+
+    Following ``install_rate_limit``'s pattern, Flask is imported lazily inside
+    the hooks and the clock is injectable for deterministic tests.
+
+    Args:
+        app: The Flask application to instrument. Registered after the
+            rate-limit hook so it observes every request that reaches a view
+            (including ``/metrics`` itself).
+        metrics: The shared :class:`Metrics` collector to feed.
+        clock: Monotonic time source (seconds). Defaults to
+            :func:`time.perf_counter`; injected so tests can control latency.
+    """
+
+    @app.before_request
+    def _stamp_start() -> None:
+        from flask import g
+
+        setattr(g, _METRICS_START_ATTR, clock())
+
+    @app.after_request
+    def _observe(response: Response) -> Response:
+        from flask import g, request
+
+        start = getattr(g, _METRICS_START_ATTR, None)
+        latency = (clock() - start) if start is not None else 0.0
+        endpoint = _endpoint_label(request)
+        metrics.record_request(endpoint, response.status_code, latency)
+        return response

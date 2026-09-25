@@ -18,7 +18,9 @@ Wiring performed by :func:`create_app` (in order):
    :class:`~observability.logger.SecureLogger`, :class:`~observability.metrics.Metrics`
    and the :class:`~cache.user_cache.UserValidationCache`.
 3. Install the rate-limit middleware FIRST (``before_request``) so it runs
-   before user validation and any action (Req 28.1).
+   before user validation and any action (Req 28.1), then install the
+   request-metrics hooks so every handled request feeds the shared ``Metrics``
+   (Req 30.1).
 4. Register the chat, maintenance, search, health and metrics blueprints
    (Req 15.1).
 5. Enable CORS restricted to the configured allowed origins — never the
@@ -60,7 +62,7 @@ from api.search import make_search_blueprint
 from cache.user_cache import UserValidationCache
 from config import AppConfig
 from observability.logger import SecureLogger
-from observability.metrics import Metrics
+from observability.metrics import Metrics, install_request_metrics
 from services.chat_service import ChatService
 from services.maintenance_service import MaintenanceService
 from zabbix.client import ZabbixClient
@@ -99,7 +101,10 @@ def create_app(config: AppConfig | None = None) -> Flask:
     # through to the bool. Mirrors requests' ``verify`` semantics.
     verify: bool | str = cfg.zabbix_ca_bundle or cfg.zabbix_verify_tls
     client = ZabbixClient(cfg.zabbix_url, cfg.zabbix_token, verify=verify)
-    provider = build_provider(cfg, secure_logger)
+    # Feed AI failover selections into the shared metrics via an injected
+    # callback (no global state): the failover wrapper reports each selection
+    # outcome to ``metrics.record_failover`` (Req 30.1).
+    provider = build_provider(cfg, secure_logger, on_failover=metrics.record_failover)
 
     # The validation cache is constructed here so the wiring owns its lifecycle
     # (interposed before Zabbix by the auth edge, Req 27); the clock is the real
@@ -114,6 +119,13 @@ def create_app(config: AppConfig | None = None) -> Flask:
     # --- Rate-limit middleware FIRST (before user validation, Req 28.1) -----
     limiter = RateLimiter(cfg.rate_limit_max_requests, cfg.rate_limit_window_seconds)
     install_rate_limit(app, limiter)
+
+    # --- Request metrics: observe every handled request (Req 30.1) ----------
+    # Registered after the rate-limit hook so it feeds real samples into the
+    # shared ``Metrics`` for every request that reaches a view (including
+    # ``/metrics`` itself). Kept orchestration-only; the hooks live in
+    # observability/metrics.py.
+    install_request_metrics(app, metrics)
 
     # --- HTTP blueprints (Req 15.1) -----------------------------------------
     app.register_blueprint(

@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.4] - 2026
+
+### Fixed
+- **`GET /metrics` now emits real samples.** The Prometheus collectors were
+  defined but never fed, so the endpoint returned only `# HELP`/`# TYPE` lines
+  with no data. Added an `after_request` hook (`install_request_metrics`) that
+  records every request into `http_requests_total` / `http_request_duration_seconds`
+  / `http_request_errors_total`, labelled by the ROUTE rule (never the raw path,
+  so no high-cardinality labels and no `?sessionid=` leakage). AI provider
+  failover is now counted in `ai_failover_events_total` via an injected
+  `on_failover` callback threaded through `build_provider` into the failover
+  wrapper (outcomes: primary / secondary / unavailable). No metric names,
+  labels or public signatures changed.
+
 ## [2.8.3] - 2026
 
 ### Changed

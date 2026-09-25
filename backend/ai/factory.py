@@ -24,6 +24,8 @@ Requirements: 12.1, 12.2, 12.3, 12.6, 26.1.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from config import AppConfig
 from core.domain import ConversationTurn, ExtractedRequest, PromptContext
 from observability.logger import SecureLogger
@@ -114,7 +116,11 @@ class _UnavailableProvider(AIProvider):
         return False
 
 
-def build_provider(cfg: AppConfig, logger: SecureLogger | None = None) -> AIProvider:
+def build_provider(
+    cfg: AppConfig,
+    logger: SecureLogger | None = None,
+    on_failover: Callable[[str], None] | None = None,
+) -> AIProvider:
     """Build the primary + optional secondary and wrap them in failover (Req 12.1, 26.1).
 
     The primary is selected by ``cfg.ai_provider``; the optional secondary by
@@ -123,6 +129,15 @@ def build_provider(cfg: AppConfig, logger: SecureLogger | None = None) -> AIProv
     the failover/schema config fields (also read defensively with safe
     defaults). Always returns a single usable :class:`AIProvider`; unsupported
     values are logged (Req 12.6) and never raise here.
+
+    Args:
+        cfg: The application configuration driving provider selection/tuning.
+        logger: Optional :class:`SecureLogger` for failover events (Req 26.5).
+        on_failover: Optional observer forwarded to the
+            :class:`FailoverAIProvider`, invoked with the selection outcome
+            (``"primary"`` / ``"secondary"`` / ``"unavailable"``). The app
+            factory passes ``metrics.record_failover`` here so failover
+            selections are counted without any global state (Req 30.1).
     """
     secure_logger = logger or SecureLogger()
 
@@ -153,4 +168,5 @@ def build_provider(cfg: AppConfig, logger: SecureLogger | None = None) -> AIProv
         timeout_s=timeout_s,
         schema_max_attempts=schema_max_attempts,
         logger=secure_logger,
+        on_failover=on_failover,
     )

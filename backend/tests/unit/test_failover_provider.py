@@ -382,6 +382,106 @@ def test_build_provider_wraps_in_failover() -> None:
     assert isinstance(provider, FailoverAIProvider)
 
 
+# --------------------------------------------------------------------------- #
+# on_failover observability seam: the wrapper reports the selection outcome to  #
+# the injected callback (this is what feeds Metrics.record_failover), with no   #
+# global state.                                                                 #
+# --------------------------------------------------------------------------- #
+def test_on_failover_reports_secondary_when_switched() -> None:
+    """Primary fails, secondary serves -> observer sees the ``"secondary"`` outcome."""
+    expected = _valid_request()
+    primary = FakeProvider(available=True, error=True)
+    secondary = FakeProvider(available=True, result=expected)
+    outcomes: list[str] = []
+
+    fp = FailoverAIProvider(
+        primary=primary,
+        secondary=secondary,
+        max_retries=0,
+        logger=RecordingLogger(),  # type: ignore[arg-type]
+        on_failover=outcomes.append,
+    )
+
+    result = fp.extract("do maintenance", CTX)
+
+    assert result is expected
+    assert outcomes == ["secondary"]
+
+
+def test_on_failover_reports_primary_when_primary_serves() -> None:
+    """The primary serving the request reports the ``"primary"`` outcome."""
+    expected = _valid_request()
+    primary = FakeProvider(available=True, result=expected)
+    outcomes: list[str] = []
+
+    fp = FailoverAIProvider(
+        primary=primary,
+        logger=RecordingLogger(),  # type: ignore[arg-type]
+        on_failover=outcomes.append,
+    )
+
+    fp.extract("do maintenance", CTX)
+
+    assert outcomes == ["primary"]
+
+
+def test_on_failover_reports_unavailable_when_both_fail() -> None:
+    """When no provider can serve, the observer sees the ``"unavailable"`` outcome."""
+    primary = FakeProvider(available=True, error=True)
+    secondary = FakeProvider(available=True, error=True)
+    outcomes: list[str] = []
+
+    fp = FailoverAIProvider(
+        primary=primary,
+        secondary=secondary,
+        max_retries=0,
+        logger=RecordingLogger(),  # type: ignore[arg-type]
+        on_failover=outcomes.append,
+    )
+
+    with pytest.raises(AIProviderError):
+        fp.extract("do maintenance", CTX)
+
+    assert outcomes == ["unavailable"]
+
+
+def test_on_failover_observer_exception_never_breaks_extract() -> None:
+    """An observer that raises must not break extraction (best-effort seam)."""
+    expected = _valid_request()
+    primary = FakeProvider(available=True, result=expected)
+
+    def _boom(_outcome: str) -> None:
+        raise RuntimeError("observer blew up")
+
+    fp = FailoverAIProvider(
+        primary=primary,
+        logger=RecordingLogger(),  # type: ignore[arg-type]
+        on_failover=_boom,
+    )
+
+    # The extraction still succeeds despite the failing observer.
+    assert fp.extract("do maintenance", CTX) is expected
+
+
+def test_build_provider_forwards_on_failover_to_wrapper() -> None:
+    """``factory.build_provider`` threads ``on_failover`` into the failover wrapper.
+
+    Using a null primary (no gemini key) makes the wrapper degrade to
+    ``"unavailable"`` on extract, which the injected observer must record.
+    """
+    outcomes: list[str] = []
+    provider = factory.build_provider(
+        _cfg(ai_provider="gemini", gemini_api_key=None),
+        on_failover=outcomes.append,
+    )
+    assert isinstance(provider, FailoverAIProvider)
+
+    with pytest.raises(AIProviderError):
+        provider.extract("do maintenance", CTX)
+
+    assert outcomes == ["unavailable"]
+
+
 def test_build_provider_unsupported_logs_and_degrades() -> None:
     logger = RecordingLogger()
     provider = factory.build_provider(

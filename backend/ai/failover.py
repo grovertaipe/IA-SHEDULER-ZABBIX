@@ -25,6 +25,7 @@ validación de esquema tras agotar los reintentos, se lanza
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import asdict
 from typing import Literal
 
@@ -140,6 +141,7 @@ class FailoverAIProvider(AIProvider):
         timeout_s: float = 30.0,
         schema_max_attempts: int = 2,
         logger: SecureLogger | None = None,
+        on_failover: Callable[[str], None] | None = None,
     ) -> None:
         """Configure the failover orchestrator.
 
@@ -157,6 +159,13 @@ class FailoverAIProvider(AIProvider):
                 Values below ``1`` are clamped to ``1``.
             logger: :class:`SecureLogger` used to record failover events without
                 secrets (Req 26.5). A default instance is created when omitted.
+            on_failover: Optional observer invoked once per :meth:`extract` with
+                the :func:`select_provider` outcome label (``"primary"`` /
+                ``"secondary"`` / ``"unavailable"``). This is the injectable
+                seam used to feed :meth:`~observability.metrics.Metrics.record_failover`
+                without introducing any global state (Req 26, 30.1). It is best
+                effort: an observer that raises must never break extraction, so
+                its exceptions are swallowed.
         """
         self._primary = primary
         self._secondary = secondary
@@ -164,6 +173,21 @@ class FailoverAIProvider(AIProvider):
         self._timeout_s = float(timeout_s)
         self._schema_max_attempts = max(1, schema_max_attempts)
         self._logger = logger or SecureLogger()
+        self._on_failover = on_failover
+
+    def _notify_failover(self, outcome: Selection) -> None:
+        """Report a failover ``outcome`` to the optional observer (best effort).
+
+        The observer (e.g. a bound :meth:`Metrics.record_failover`) is purely
+        for observability, so a failure there must never propagate into request
+        handling; any exception is deliberately swallowed.
+        """
+        if self._on_failover is None:
+            return
+        try:
+            self._on_failover(outcome)
+        except Exception:  # pragma: no cover - observability must never break IO
+            pass
 
     # ------------------------------------------------------------------ #
     # AIProvider interface                                               #
@@ -212,6 +236,9 @@ class FailoverAIProvider(AIProvider):
                 self._primary, "primary", message, ctx, started, history
             )
             if result is not None:
+                # The primary served the request: record the "primary" outcome
+                # so a failover *rate* can be derived against the switches below.
+                self._notify_failover("primary")
                 return result
             # Primary attempted but could not produce a valid response.
             primary_ok = False
@@ -228,9 +255,12 @@ class FailoverAIProvider(AIProvider):
                 self._secondary, "secondary", message, ctx, started, history
             )
             if result is not None:
+                # A switch to the secondary actually served the request.
+                self._notify_failover("secondary")
                 return result
 
         # --- Nothing could serve the request: degrade (Req 26.3) -------- #
+        self._notify_failover("unavailable")
         self._logger.error(
             "ai_failover_unavailable",
             primary_available=self._primary.is_available(),
