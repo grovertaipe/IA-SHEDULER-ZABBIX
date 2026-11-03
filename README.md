@@ -1,5 +1,9 @@
 # AI Maintenance Assistant for Zabbix 7.2+
 
+> **Soporte comercial e implementación / Commercial support:** ¿Quieres implementar Zabbix con IA en tu empresa?
+> [ZMR Cloud](https://zmrcloud.com/zabbix/?utm_source=github&utm_medium=referral&utm_campaign=ia-scheduler-zabbix&utm_content=readme-top) ofrece un diagnóstico gratuito de 30 minutos.
+> *Want Zabbix with AI-assisted operations in your company? Free 30-minute assessment at [zmrcloud.com/zabbix](https://zmrcloud.com/zabbix/?utm_source=github&utm_medium=referral&utm_campaign=ia-scheduler-zabbix&utm_content=readme-top).*
+
 Sistema interactivo de mantenimientos para Zabbix 7.2+ con inteligencia
 artificial. Permite crear mantenimientos únicos y rutinarios usando lenguaje
 natural, con soporte para programaciones avanzadas (días, meses, ocurrencias de
@@ -154,6 +158,7 @@ Proyecto desarrollado por **Grover T.** bajo licencia **MIT**.
 
 - **Repositorio:** [GitHub](https://github.com/grovertaipe/IA-SHEDULER-ZABBIX)
 - **Imagen Docker:** [ghcr.io/grovertaipe/ia-sheduler-zabbix](https://ghcr.io/grovertaipe/ia-sheduler-zabbix)
+- **Soporte e implementación:** [ZMR Cloud](https://zmrcloud.com/zabbix/?utm_source=github&utm_medium=referral&utm_campaign=ia-scheduler-zabbix&utm_content=readme-footer)
 - **Zabbix:** 7.2+ · **Python:** 3.11+
 
 ---
